@@ -7,7 +7,7 @@ from ptsemseg.models.DE_CCFNet.DE_CCFNet_18 import DE_CCFNet_18
 from ptsemseg.models.DE_CCFNet.DE_CCFNet_34 import DE_CCFNet_34
 from ptsemseg.models.DE_DCGCN.DE_DCGCN import DEDCGCNEE
 from ptsemseg.models.HAFNetE.HAFNetE import EfficientHAFNet
-from ptsemseg.models.PCGNet.PCGNet import PCGNet
+from ptsemseg.models.PCGNet.PCGNet34 import PCGNet
 from ptsemseg.models.SFAFMA.SFAFMA50 import SFAFMA50
 from ptsemseg.models.SFAFMA.SFAFMA101 import SFAFMA101
 from ptsemseg.models.SFAFMA.SFAFMA152 import SFAFMA152

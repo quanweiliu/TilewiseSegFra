@@ -413,11 +413,9 @@ class CA_Block(nn.Module):
         return s_h,s_w
 
 
-
-
-class PCGNet(nn.Module):
-    def __init__(self,n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
-        super(PCGNet, self).__init__()
+class PCGNet34(nn.Module):
+    def __init__(self, bands1, bands2, n_classes=1, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
+        super(PCGNet34, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         reduction=[1, 2, 4, 8, 16]
@@ -431,7 +429,7 @@ class PCGNet(nn.Module):
         #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         # )
         self.rgb_first=nn.Sequential(
-            ConvBNReLU(193, filters[0],ks=3,stride=1,padding=1),
+            ConvBNReLU(bands1, filters[0],ks=3,stride=1,padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -451,7 +449,7 @@ class PCGNet(nn.Module):
         #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         # )
         self.lidar_first=nn.Sequential(
-            ConvBNReLU(3, filters[0],ks=3,stride=1,padding=1),
+            ConvBNReLU(bands2, filters[0],ks=3,stride=1,padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -502,7 +500,7 @@ class PCGNet(nn.Module):
             nn.Conv2d(32, 32, 3, 1, 1, bias=False),
             nn.ReLU(inplace=True),
             nn.Dropout(0.1),
-            nn.Conv2d(32, n_classes - 1, 3, padding=1),
+            nn.Conv2d(32, n_classes, 3, padding=1),
         )
 
     def forward(self,x,y):
@@ -565,10 +563,11 @@ if __name__=="__main__":
 
     # x = torch.randn(4, 3, 512, 512, device=device)
     # y = torch.randn(4, 2, 512, 512, device=device)
-
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128, 128, device=device)
-    model = PCGNet(n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1").to(device)
+    bands1 = 224  # Example for RGB bands
+    bands2 = 3    # Example for LiDAR bands
+    x = torch.randn(4, bands1, 128, 128, device=device)
+    y = torch.randn(4, bands2, 128, 128, device=device)
+    model = PCGNet34(bands1=bands1, bands2=bands2, n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1").to(device)
 
     output = model(x, y)
     print("output", output.shape)
