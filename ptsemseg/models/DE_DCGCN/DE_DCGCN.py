@@ -9,24 +9,18 @@ https://github.com/YangLibuaa/DE-DCGCN-EE/blob/main/model/sobel.py
 '''
 
 
-import torch.nn as nn
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-import math
 
-from ptsemseg.models.DuiBi.DE_DCGCN.sobel import edge_conv2d64
-from ptsemseg.models.DuiBi.DE_DCGCN.sobel import edge_conv2d128
-from ptsemseg.models.DuiBi.DE_DCGCN.sobel import edge_conv2d256
+# from .sobel import edge_conv2d64
+# from .sobel import edge_conv2d128
+# from .sobel import edge_conv2d256
 
-# from sobel import edge_conv2d64
-# from sobel import edge_conv2d128
-# from sobel import edge_conv2d256
+from sobel import edge_conv2d64
+from sobel import edge_conv2d128
+from sobel import edge_conv2d256
 
-
-# from torchsummaryX import summary
-# from sobel import edge_conv2d64
-# from sobel import edge_conv2d128
-# from sobel import edge_conv2d256
 
 class conv_block(nn.Module):
     def __init__(self, ch_in, ch_out):
@@ -173,7 +167,7 @@ class DEDCGCNEE(nn.Module):
         self.Up2 = up_conv(128, 64)
         self.Up_conv2 = Decoder(128, 64)
 
-        self.fconv = nn.Conv2d(64, self.n_classes-1, kernel_size=1, padding=0)
+        self.fconv = nn.Conv2d(64, self.n_classes, kernel_size=1, padding=0)
 
     def forward(self, x, y):
         x1 = self.Conv1(x)
@@ -226,29 +220,20 @@ class DEDCGCNEE(nn.Module):
         return F.sigmoid(out)
 
 
-
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    # x = torch.randn(4, 224, 16, 16, device = device)
-    # model = GCN(224).to(device)
-    # output = model(x)
-    # print("output", output.shape)
+    bands1 = 16
+    bands2 = 3
+    x = torch.randn(4, bands1, 16, 16, device=device)
+    model = GCN(bands1).to(device)
+    output = model(x)
+    print("output", output.shape)
 
     # 不同的尺寸，需要改 91-93 行的参数
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128, 128, device=device)
-
-    x = torch.randn(4, 224, 256, 256, device=device)
-    y = torch.randn(4, 3, 256, 256, device=device)
-
-    x = torch.randn(4, 224, 512, 512, device=device)
-    y = torch.randn(4, 3, 512, 512, device=device)
-
-    # model = GCN(512).to(device)
-    model = DEDCGCNEE(in_x = 224, in_y = 3, n_classes = 20).to(device)
+    x = torch.randn(4, bands1, 128, 128, device=device)
+    y = torch.randn(4, bands2, 128, 128, device=device)
+    model = DEDCGCNEE(in_x=bands1, in_y=bands2, n_classes=20).to(device)
     output = model(x, y)
     print("output", output.shape)
 
-
-    # summary(model.to(device), x)

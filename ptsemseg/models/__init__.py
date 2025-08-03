@@ -17,6 +17,7 @@ from ptsemseg.models.DE_CCFNet.DE_CCFNet_18 import DE_CCFNet_18
 from ptsemseg.models.DE_CCFNet.DE_CCFNet_34 import DE_CCFNet_34
 from ptsemseg.models.DE_DCGCN.DE_DCGCN import DEDCGCNEE
 from ptsemseg.models.HAFNetE.HAFNetE import EfficientHAFNet
+from ptsemseg.models.FAFNet.fafnet_alignD import FAFNet
 
 from ptsemseg.models.MCANet.mcanet import MCANet
 from ptsemseg.models.MGFNet.MGFNet50 import MGFNet50
@@ -73,7 +74,8 @@ def get_model(model_dict, bands1, bands2, classes, input_size=256):
         model = model(in_x=bands1, in_y=bands2, n_classes=classes)
     elif name == "HAFNetE":
         model = model(bands1, bands2, n_classes=classes)
-
+    elif name == "FAFNet":
+        model = model(bands1, bands2, n_classes=classes, pretrained=True)
     elif name == "MGFNet50":
         model = model(bands1, bands2, num_classes=classes, **param_dict)
     elif name == "MGFNet101":
@@ -118,6 +120,7 @@ def _get_model_instance(name):
             "DE_CCFNet_34": DE_CCFNet_34,
             "DE_DCGCN": DEDCGCNEE,
             "HAFNetE": EfficientHAFNet,
+            "FAFNet": FAFNet,
             "MCANet": MCANet,
             "MGFNet50": MGFNet50,
             "MGFNet101": MGFNet101,

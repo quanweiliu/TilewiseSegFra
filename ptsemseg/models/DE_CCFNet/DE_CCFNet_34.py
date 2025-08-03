@@ -2,16 +2,15 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torchvision import models
-# from torchsummary import summary
-# from torchsummaryX import summary
 
-from ptsemseg.models.DE_CCFNet.CMFs.CMF_re6 import CMF_re6, CMF_re6_2
-# from ptsemseg.models.DE_CCFNet.decoder import DecoderBlock, DecoderBlock6
-from ptsemseg.models.DE_CCFNet.utils import ConvBNReLU, DecoderBlock6
+from .CMFs.CMF_re6 import CMF_re6, CMF_re6_2
+from .utils import ConvBNReLU, DecoderBlock6
+# from .decoder import DecoderBlock, DecoderBlock6
 
 # from CMFs.CMF_re6 import CMF_re6, CMF_re6_2
-# from decoder import DecoderBlock, DecoderBlock6
-# from utils import ConvBNReLU
+# from utils import ConvBNReLU, DecoderBlock6
+# # from decoder import DecoderBlock, DecoderBlock6
+
 
 class ConvBN(nn.Sequential):
     def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1, 
@@ -25,17 +24,20 @@ class ConvBN(nn.Sequential):
         )
 
 class DE_CCFNet_34(nn.Module):
-    def __init__(self, n_classes=1, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
+    def __init__(self, bands1=16, bands2=3, n_classes=1, is_pretrained=False):
         super(DE_CCFNet_34, self).__init__()
-        # self.pre_conv = ConvBN(224, 4, kernel_size=3)
 
         filters = [64, 128, 256, 512]  # ResNet34
         # reduction = [1, 2, 4, 8, 16]
-        rgb_resnet = models.resnet34(weights = is_pretrained)
-        lidar_resnet = models.resnet34(weights = "ResNet34_Weights.DEFAULT")
+        if is_pretrained:
+            rgb_resnet = models.resnet34(weights="ResNet34_Weights.IMAGENET1K_V1")
+            lidar_resnet = models.resnet34(weights="ResNet34_Weights.DEFAULT")
+        else:
+            rgb_resnet = models.resnet34(pretrained=False)
+            lidar_resnet = models.resnet34(pretrained=False)
 
         self.rgb_first = nn.Sequential(
-            ConvBNReLU(193, filters[0] // 2, ks=3, stride=2, padding=1),
+            ConvBNReLU(bands1, filters[0] // 2, ks=3, stride=2, padding=1),
             ConvBNReLU(filters[0] // 2, filters[0] // 2, ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0] // 2, filters[0], ks=3, stride=1, padding=1),
         )
@@ -50,7 +52,7 @@ class DE_CCFNet_34(nn.Module):
         self.rgb_encoder4 = rgb_resnet.layer4
 
         self.lidar_first = nn.Sequential(
-            ConvBNReLU(3, filters[0] // 2, ks=3, stride=2, padding=1),
+            ConvBNReLU(bands2, filters[0] // 2, ks=3, stride=2, padding=1),
             ConvBNReLU(filters[0] // 2, filters[0] // 2, ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0] // 2, filters[0], ks=3, stride=1, padding=1),
             # nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -139,7 +141,7 @@ class DE_CCFNet_34(nn.Module):
         xe3, ye3, e3 = self.cross_block3(self.rgb_encoder3(xe2), self.lidar_encoder3(ye2), e2)
 
         ## center
-        _,_,center = self.center(self.rgb_encoder4(xe3), self.lidar_encoder4(ye3), e3)
+        _, _, center = self.center(self.rgb_encoder4(xe3), self.lidar_encoder4(ye3), e3)
         # center=self.center(torch.cat([self.rgb_encoder4(xe3),self.lidar_encoder4(ye3)],dim=1))
 
         d4 = self.decoder4(center)
@@ -164,19 +166,15 @@ class DE_CCFNet_34(nn.Module):
         return F.sigmoid(out)
 
 
-
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    # x = torch.randn(1, 64, 256, 256, device = device)
-    # y = torch.randn(1, 64, 256, 256, device = device)
 
-    # x = torch.randn(4, 224, 512, 512, device = device)
-    # y = torch.randn(4, 3, 512, 512, device = device)
+    bands1 = 16  # gaofen
+    bands2 = 3
+    x = torch.randn(4, bands1, 256, 256, device=device)
+    y = torch.randn(4, bands2, 256, 256, device=device)
 
-    x = torch.randn(4, 193, 128, 128, device = device)
-    y = torch.randn(4, 3, 128, 128, device = device)
-
-    model = DE_CCFNet_34(n_classes=10, is_pretrained="ResNet34_Weights.IMAGENET1K_V1").to(device)
+    model = DE_CCFNet_34(bands1=bands1, bands2=bands2, n_classes=20, is_pretrained=True).to(device)
     output = model(x, y)
     print("output", output.shape)
     # model = SKBlock(64,M=2,G=64)

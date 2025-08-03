@@ -9,14 +9,20 @@ import time
 from PIL import Image, ImageFilter
 # from torchsummaryX import summary
 from torchvision import transforms
+import torch.utils.model_zoo as model_zoo
 
 # from .net_util import SAGate
 from net_util import SAGate
 # from .backbone import VisualizeFlow,  VisualizeFeatureMapPCA
 
-
 # __all__ = ['DualResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
 #            'resnet152']
+
+
+model_urls = {
+    #mmcv resnet101_v1c  mmcv/model_zoo/open_mmlab.json:
+    'resnet101_v1c': 'https://download.openmmlab.com/pretrain/third_party/resnet101_v1c-e67eebb6.pth',
+}
 
 
 class DualBasicBlock(nn.Module):
@@ -165,14 +171,15 @@ class DualBottleneck(nn.Module):
 
 
 class DualResNet(nn.Module):
-
-    def __init__(self, block, layers, norm_layer=nn.BatchNorm2d, bn_eps=1e-5,
+    def __init__(self, bands1, bands2, block, layers, norm_layer=nn.BatchNorm2d, bn_eps=1e-5,
                  bn_momentum=0.1, deep_stem=False, stem_width=32, inplace=True):
-        self.inplanes = stem_width * 2 if deep_stem else 64
         super(DualResNet, self).__init__()
+        
+        self.inplanes = stem_width * 2 if deep_stem else 64
+        
         if deep_stem:
             self.conv1 = nn.Sequential(
-                nn.Conv2d(4, stem_width, kernel_size=3, stride=2, padding=1,
+                nn.Conv2d(bands1, stem_width, kernel_size=3, stride=2, padding=1,
                           bias=False),
                 norm_layer(stem_width, eps=bn_eps, momentum=bn_momentum),
                 nn.ReLU(inplace=inplace),
@@ -186,7 +193,7 @@ class DualResNet(nn.Module):
                           bias=False),
             )
             self.hha_conv1 = nn.Sequential(
-                nn.Conv2d(2, stem_width, kernel_size=3, stride=2, padding=1,
+                nn.Conv2d(bands2, stem_width, kernel_size=3, stride=2, padding=1,
                           bias=False),
                 norm_layer(stem_width, eps=bn_eps, momentum=bn_momentum),
                 nn.ReLU(inplace=inplace),
@@ -200,9 +207,9 @@ class DualResNet(nn.Module):
                           bias=False),
             )
         else:
-            self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
+            self.conv1 = nn.Conv2d(bands1, 64, kernel_size=7, stride=2, padding=3,
                                    bias=False)
-            self.hha_conv1 = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3,
+            self.hha_conv1 = nn.Conv2d(bands2, 64, kernel_size=7, stride=2, padding=3,
                                        bias=False)
 
         self.bn1 = norm_layer(stem_width * 2 if deep_stem else 64, eps=bn_eps,
@@ -292,17 +299,21 @@ class DualResNet(nn.Module):
         return blocks, merges
 
 
-def load_dualpath_model(model, model_file, is_restore=False):
+def load_dualpath_model(model, is_restore=False):
     # load raw state_dict
-    t_start = time.time()
-    if isinstance(model_file, str):
-        raw_state_dict = torch.load(model_file)
 
-        if 'model' in raw_state_dict.keys():
-            raw_state_dict = raw_state_dict['model']
-    else:
-        raw_state_dict = model_file
-    # copy to  hha backbone
+    model_url = model_urls['resnet101_v1c']
+    cache_dir = 'pretrains'
+    
+    raw_state_dict = model_zoo.load_url(model_url, model_dir=cache_dir)
+    # if isinstance(model_file, str):
+    #     raw_state_dict = torch.load(model_file)
+
+        # if 'model' in raw_state_dict.keys():
+        #     raw_state_dict = raw_state_dict['model']
+    # else:
+    #     raw_state_dict = model_file
+    # copy to hha backbone
     state_dict = {}
     for k, v in raw_state_dict.items():
         state_dict[k.replace('.bn.', '.')] = v
@@ -328,9 +339,10 @@ def load_dualpath_model(model, model_file, is_restore=False):
             state_dict[k] = v
             state_dict[k.replace('downsample', 'hha_downsample')] = v
 
-    ## 删除第一个卷积预训练权重
-    del state_dict['hha_conv1.0.weight']
-    del state_dict['conv1.0.weight']
+    # ## 删除第一个卷积预训练权重
+    # del state_dict['conv1.0.weight']
+    # del state_dict['hha_conv1.0.weight']
+    # print(state_dict["state_dict"].keys())
 
     if is_restore:
         new_state_dict = collections.OrderedDict()
@@ -342,16 +354,16 @@ def load_dualpath_model(model, model_file, is_restore=False):
     model.load_state_dict(state_dict, strict=False)
 
     del state_dict
-    t_end = time.time()
 
     return model
 
 
-def dual_resnet101(pretrained_model=None, **kwargs):
-    model = DualResNet(DualBottleneck, [3, 4, 23, 3], **kwargs)
+def dual_resnet101(bands1, bands2, pretrained_model=None, **kwargs):
+    model = DualResNet(bands1, bands2, DualBottleneck, [3, 4, 23, 3], **kwargs)
 
+    # print(pretrained_model)
     if pretrained_model is not None:
-        model = load_dualpath_model(model, pretrained_model)
+        model = load_dualpath_model(model)
     return model
 
 
@@ -661,26 +673,31 @@ class TestNet(nn.Module):
         return params
 
 
-def GetFAFNet_D(num_classes, pretrained=True):
-    bkb=None
-    if(pretrained == True):
-        bkb = '/home/wzj/PycharmProjects/multi_road_extraction/pretrained/resnet101_v1c.pth'
-    backbone = dual_resnet101(bkb, 
+def FAFNet(bands1, bands2, num_classes, pretrained=True):
+    # bkb=None
+    # if pretrained == True:
+    #     bkb = '/home/wzj/PycharmProjects/multi_road_extraction/pretrained/resnet101_v1c.pth'
+    backbone = dual_resnet101(bands1, 
+                              bands2, 
+                              pretrained_model=pretrained, 
                               norm_layer=nn.BatchNorm2d,
                               bn_eps=1e-5,
                               bn_momentum=0.1,
-                              deep_stem=True, stem_width=64)
+                              deep_stem=True, 
+                              stem_width=64)
     model = TestNet(backbone, num_classes)
     return model
 
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    model = GetFAFNet_D(1, pretrained=False)
-    # left = torch.randn(2, 3, 128, 128)
-    # right = torch.randn(2, 3, 128, 128)
-    x = torch.randn(4, 4, 512, 512, device=device)
-    y = torch.randn(4,2, 512, 512, device=device)
+    bands1 = 4
+    bands2 = 2
+    x = torch.randn(4, bands1, 512, 512, device=device)
+    y = torch.randn(4, bands2, 512, 512, device=device)
 
-    
+    model = FAFNet(bands1, bands2, num_classes=1, pretrained=True)
+    model = model.to(device)
+    output = model(x, y)
+    print(output.shape)
     # summary(model.to(device), x,y)

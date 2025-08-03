@@ -58,8 +58,8 @@ class channel_frm(nn.Module):
         x_theta_inv = 1 - x_theta
         x_att = x * x_theta
 
-        y_avg = self.y_excitation(self.y_avg(x).view(b,c))
-        y_max = self.y_excitation(self.y_max(x).view(b, c))
+        y_avg = self.y_excitation(self.y_avg(y).view(b,c))
+        y_max = self.y_excitation(self.y_max(y).view(b, c))
         y_theta = self.sigmoid(y_avg+y_max).view(b,c,1,1)
         y_theta_inv = 1 - y_theta
         y_att = y * y_theta
@@ -92,7 +92,7 @@ class spatial_frm(nn.Module):
         attention_vector = torch.cat([attention_vector_l, attention_vector_r], dim=1)
         attention_vector = self.softmax(attention_vector)
         attention_vector_l, attention_vector_r = \
-                                        attention_vector[:, 0:1, :, :], attention_vector[:, 1:2, :, :]
+                                attention_vector[:, 0:1, :, :], attention_vector[:, 1:2, :, :]
         merge_feature = x * attention_vector_l + y * attention_vector_r
 
         return merge_feature
