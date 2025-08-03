@@ -311,13 +311,13 @@ def res2net152_v1b_26w_4s(pretrained=False, **kwargs):
     return model
 
 
-def Res2Net_model(ind=101):
+def Res2Net_model(ind=101, pretrained=False):
     if ind == 50:
-        model_base = res2net50_v1b(pretrained=True)
+        model_base = res2net50_v1b(pretrained=pretrained)
         model = res2net50_v1b_Ours()
 
     if ind == 101:
-        model_base = res2net101_v1b(pretrained=False)
+        model_base = res2net101_v1b(pretrained=pretrained)
         model = res2net101_v1b_Ours()
 
     pretrained_dict = model_base.state_dict()

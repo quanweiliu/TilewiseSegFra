@@ -3,15 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
-from ptsemseg.models.DuiBi.PACSCNet.res2net_v1b_base import Res2Net_model
-# from res2net_v1b_base import Res2Net_model
-# from torchsummaryX import summary
-
-
-# from PACSCNet.res2net_v1b_base import Res2Net_model
-# from ptflops import get_model_complexity_info
-
-# from res2net_v1b_base import Res2Net_model
+from res2net_v1b_base import Res2Net_model
 
 
 class uc(nn.Module):
@@ -125,14 +117,14 @@ class PRIM(nn.Module):
 
 
 class PACSCNet(nn.Module):
-    def __init__(self, num_classes=2, ind=50, pretrained=True):
+    def __init__(self, bands1, bands2, num_classes=2, ind=50, pretrained=False):
         super(PACSCNet, self).__init__()
         # Backbone model
-        self.layer_rgb = Res2Net_model(ind)
-        self.layer_dsm = Res2Net_model(ind)
+        self.layer_rgb = Res2Net_model(ind, pretrained=pretrained)
+        self.layer_dsm = Res2Net_model(ind, pretrained=pretrained)
 
-        self.trans = nn.Conv2d(3, 3, 1, 1)
-        self.trans_rgb = nn.Conv2d(193, 3, 1, 1)
+        self.trans_rgb = nn.Conv2d(bands1, 3, 1, 1)
+        self.trans = nn.Conv2d(bands2, 3, 1, 1)
 
         # Fusion Module
         self.fu_1 = GDBM(64, 32)
@@ -172,7 +164,6 @@ class PACSCNet(nn.Module):
         self.uni_D_512 = Unified(512)
 
         self.up2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        # self.up4 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
         self.up4 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
 
         # Decoder
@@ -191,10 +182,6 @@ class PACSCNet(nn.Module):
         self.predict = nn.Conv2d(16, num_classes, 1, 1, 0)
 
     def forward(self, rgb, dsm):
-        # x = torch.chunk(rgb, 4, dim=1)
-        # rgb = torch.cat(x[0:3], dim=1)
-        # dsm = x[3]
-
         # Encoder
         rgb_1, rgb_2, rgb_3, rgb_4, rgb_5 = self.layer_rgb(self.trans_rgb(rgb))
         dsm_1, dsm_2, dsm_3, dsm_4, dsm_5 = self.layer_dsm(self.trans(dsm))
@@ -277,20 +264,15 @@ class PACSCNet(nn.Module):
 
 if __name__ == "__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    # x = torch.randn(4, 224, 512, 512, device=device)
-    # y = torch.randn(4, 3, 512, 512, device=device)
 
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128, 128, device=device)
+    bands1 = 4
+    bands2 = 3
+    x = torch.randn(4, bands1, 256, 256, device=device)
+    y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = PACSCNet(num_classes=1, ind=50)
+    model = PACSCNet(bands1, bands2, num_classes=1, ind=50, pretrained=True)
     model = model.to(device)
     output = model(x, y)
     print(output.shape)
     
-    # model=CRFN_CMF(n_classes=2,is_pretrained=True)
-    # model = CRFN_HFM(n_classes=2, is_pretrained=True)
-    # model=rectification(64,128,128)
-    # model=crossFusionMoudle1(64,512,512,reduction=8)
-    # summary(model.to(device), x, y)
 

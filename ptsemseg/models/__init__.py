@@ -24,16 +24,18 @@ from ptsemseg.models.MGFNet.MGFNet101 import MGFNet101
 
 from ptsemseg.models.PCGNet.PCGNet18 import PCGNet18
 from ptsemseg.models.PCGNet.PCGNet34 import PCGNet34
+from ptsemseg.models.PACSCNet.PACSCNet import PACSCNet
+from ptsemseg.models.RDFNet.rdfnet50 import RDF50
+from ptsemseg.models.RDFNet.rdfnet101 import RDF101
+
 from ptsemseg.models.SFAFMA.SFAFMA50 import SFAFMA50
 from ptsemseg.models.SFAFMA.SFAFMA101 import SFAFMA101
 from ptsemseg.models.SFAFMA.SFAFMA152 import SFAFMA152
 from ptsemseg.models.SOLCV7.solcv7 import SOLCV7
 
-from ptsemseg.models.PACSCNet.PACSCNet import PACSCNet
-from ptsemseg.models.RDFNet.rdfnet50 import RDF
 
 
-def get_model(model_dict, bands1, bands2, classes, version=None):
+def get_model(model_dict, bands1, bands2, classes, input_size=256):
 
     name = model_dict['arch']
     model = _get_model_instance(name)
@@ -86,10 +88,14 @@ def get_model(model_dict, bands1, bands2, classes, version=None):
     elif name == "PCGNet":
         model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.IMAGENET1K_V1")
 
-    elif name == "PACSCNet":
+    elif name == "PACSCNet50":
         model = model(bands1, bands2, num_classes=classes, ind=50, **param_dict)
-    elif name == "RDFNet":
-        model = model(bands1, bands2, input_size=128, num_classes=classes, pretained=False)
+    elif name == "PACSCNet101":
+        model = model(bands1, bands2, num_classes=classes, ind=101, **param_dict)
+    elif name == "RDFNet50":
+        model = model(bands1, bands2, input_size=input_size, num_classes=classes, pretained=False)
+    elif name == "RDFNet101":
+        model = model(bands1, bands2, input_size=input_size, num_classes=classes, pretained=False)
     else:
         raise("you havn't set the model parameters")
     return model
@@ -101,13 +107,13 @@ def _get_model_instance(name):
             "baseline18": CRFN_base18,
             "baseline34": Resnet_base34,
 
-            "AsymFormer": B0_T,
             "ACNet": ACNet,
+            "AsymFormer": B0_T,
             "CANet": CANet,
             "CMANet": CMAnet,
+            "CMFNet": CMFNet,
             "CMGFNet18": CMGFNet18,
             "CMGFNet34": CMGFNet34,
-            "CMFNet": CMFNet,
             "DE_CCFNet_18": DE_CCFNet_18,
             "DE_CCFNet_34": DE_CCFNet_34,
             "DE_DCGCN": DEDCGCNEE,
@@ -121,8 +127,9 @@ def _get_model_instance(name):
             "SFAFMA101": SFAFMA101,
             "SFAFMA152": SFAFMA152,
             "SOLC": SOLCV7,
-            "PACSCNet": PACSCNet,     
-            "RDFNet": RDF,     
+            "PACSCNet": PACSCNet,
+            "RDFNet50": RDF50,
+            "RDFNet101": RDF101,
         }[name]
     except:
         raise("Model {} not available".format(name))

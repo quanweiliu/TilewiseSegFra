@@ -1,8 +1,8 @@
-import torch.nn as nn
+import os
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import os
 from functools import partial
 import collections
 import time
@@ -10,7 +10,8 @@ from PIL import Image, ImageFilter
 # from torchsummaryX import summary
 from torchvision import transforms
 
-from ptsemseg.models.DuiBi.FAFNet.net_util import SAGate
+# from .net_util import SAGate
+from net_util import SAGate
 # from .backbone import VisualizeFlow,  VisualizeFeatureMapPCA
 
 
@@ -660,11 +661,12 @@ class TestNet(nn.Module):
         return params
 
 
-def GetFAFNet_D(num_classes, Pretrained=True):
+def GetFAFNet_D(num_classes, pretrained=True):
     bkb=None
-    if(Pretrained == True):
+    if(pretrained == True):
         bkb = '/home/wzj/PycharmProjects/multi_road_extraction/pretrained/resnet101_v1c.pth'
-    backbone = dual_resnet101(bkb, norm_layer=nn.BatchNorm2d,
+    backbone = dual_resnet101(bkb, 
+                              norm_layer=nn.BatchNorm2d,
                               bn_eps=1e-5,
                               bn_momentum=0.1,
                               deep_stem=True, stem_width=64)
@@ -674,7 +676,7 @@ def GetFAFNet_D(num_classes, Pretrained=True):
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    model = GetFAFNet_D(1, True)
+    model = GetFAFNet_D(1, pretrained=False)
     # left = torch.randn(2, 3, 128, 128)
     # right = torch.randn(2, 3, 128, 128)
     x = torch.randn(4, 4, 512, 512, device=device)

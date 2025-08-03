@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch
 
 
-
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -37,8 +36,6 @@ class FilterLayer(nn.Module):
 '''
 Feature Separation Part
 '''
-
-
 class FSP(nn.Module):
     def __init__(self, in_planes, out_planes, reduction=16):
         super(FSP, self).__init__()
@@ -54,8 +51,6 @@ class FSP(nn.Module):
 '''
 SA-Gate
 '''
-
-
 class SAGate(nn.Module):
     def __init__(self, in_planes, out_planes, reduction=16, bn_momentum=0.0003):
         self.init__ = super(SAGate, self).__init__()

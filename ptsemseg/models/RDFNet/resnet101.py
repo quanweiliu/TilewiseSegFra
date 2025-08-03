@@ -114,6 +114,7 @@ class ResNet(nn.Module):
 
 def get_resnet50(dilation=[1,1,1,1], bn_momentum=0.0003, is_fpn=False, is_pretrained=False):
     model = ResNet(Bottleneck, [3, 4, 6, 3], dilation=dilation, bn_momentum=bn_momentum, is_fpn=is_fpn)
+    # print(model.conv2)
     
     if is_pretrained:
         # 定义模型URL和缓存目录
@@ -127,10 +128,16 @@ def get_resnet50(dilation=[1,1,1,1], bn_momentum=0.0003, is_fpn=False, is_pretra
         model_dict = model.state_dict()
 
         # 过滤掉预训练权重中 key 为 'conv1.weight' 的层
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+        # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+        new_pretrained_dict = OrderedDict()
+        for k, v in pretrained_dict.items():
+            if k in model_dict and v.size() == model_dict[k].size():
+                new_pretrained_dict[k] = v
+            # else:          # 调试用，可以取消注释，知道哪些层被跳过
+            #     print(f"Skipping layer {k} due to size mismatch or non-existence.")
 
         # 合并权重
-        model_dict.update(pretrained_dict)
+        model_dict.update(new_pretrained_dict)
         model.load_state_dict(model_dict, strict=False)
         print('loadding pretrained model:ResNet50')
 
@@ -154,11 +161,16 @@ def get_resnet101(dilation=[1,1,1,1], bn_momentum=0.0003, is_fpn=False, is_pretr
         model_dict = model.state_dict()
 
         # 过滤掉预训练权重中 key 为 'conv1.weight' 的层
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
-        print("pretrained_dict keys:", pretrained_dict.keys())
+        # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+        new_pretrained_dict = OrderedDict()
+        for k, v in pretrained_dict.items():
+            if k in model_dict and v.size() == model_dict[k].size():
+                new_pretrained_dict[k] = v
+            # else:           # 调试用，可以取消注释，知道哪些层被跳过
+            #     print(f"Skipping layer {k} due to size mismatch or non-existence.")
 
         # 合并权重
-        model_dict.update(pretrained_dict)
+        model_dict.update(new_pretrained_dict)
         model.load_state_dict(model_dict, strict=False)
         print('loadding pretrained model:ResNet101')
 
@@ -168,12 +180,10 @@ def get_resnet101(dilation=[1,1,1,1], bn_momentum=0.0003, is_fpn=False, is_pretr
 
 
 if __name__ == '__main__':
-    # net = get_resnet50()
-    # x = torch.randn(4, 3, 128, 128)
-    # print(net(x).shape)
-
-    net = get_resnet101()
-    # x = torch.randn(4, 3, 128, 128)
+    net = get_resnet50(is_pretrained=True)
     x = torch.randn(4, 3, 256, 256)
-    # x = torch.randn(4, 3, 512, 512)
+    print(net(x).shape)
+
+    net = get_resnet101(is_pretrained=True)
+    x = torch.randn(4, 3, 256, 256)
     print(net(x).shape)
