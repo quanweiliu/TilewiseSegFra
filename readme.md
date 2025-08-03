@@ -5,20 +5,10 @@
 | ----------- | ----------- |----------- |----------- |
 ||**Single modality models**||
 | [FDGC](https://github.com/quanweiliu/FDGC)      | [A Fast Dynamic Graph Convolutional Network and CNN Parallel Network for Hyperspectral Image Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/abstract/document/9785802)       | TGRS       | 2022       | 
-| [SSFTT](https://github.com/zgr6010/HSI_SSFTT) |[Spectral–Spatial Feature Tokenization Transformer for Hyperspectral Image Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/9684381/)| TGRS | 2022  |
-| [morphFormer](https://github.com/mhaut/morphFormer)      | [Spectral–Spatial Morphological Attention Transformer for Hyperspectral Image Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/10036472)       | TGRS       | 2023      
-| [ViT-DGCN](https://github.com/quanweiliu/ViT-DGCN)      | [Fusion of GaoFen-5 and Sentinel-2B data for lithological mapping using vision transformer dynamic graph convolutional network](https://www.sciencedirect.com/science/article/pii/S1569843224001341)       | JAG       | 2024       |
-| [DBCTNet](https://github.com/xurui-joei/DBCTNet)      | [DBCTNet: Double Branch Convolution-Transformer Network for Hyperspectral Image Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/10440601)       | TGRS       | 2024       | 
+
 ||**Multimodal models**||
-| [EndNet](https://github.com/danfenghong/IEEE_GRSL_EndNet)      | [Deep Encoder-Decoder Networks for Classification of Hyperspectral and LiDAR Data](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/9179756)       | TGRSL       | 2020       |
-| [MDL](https://github.com/danfenghong/IEEE_TGRS_MDL-RS)   | [More Diverse Means Better: Multimodal Deep Learning Meets Remote-Sensing Imagery Classification](https://ieeexplore.ieee.org/document/9174822)        | TGRS       |  2021 |
-| [HCTNet](https://github.com/zgr6010/Fusion_HCT)   | [Spectral–Spatial Feature Tokenization Transformer for Hyperspectral Image Classification](https://ieeexplore.ieee.org/document/9999457)        | TGRS       | 2022       |
-| [FusAtNet](https://github.com/ShivamP1993/FusAtNet-Dual-Attention-based-SpectroSpatial-Multimodal-Fusion-Network-for-Hyperspectral-and-LiDAR-)   | [FusAtNet: Dual Attention based SpectroSpatial Multimodal Fusion Network for Hyperspectral and LiDAR Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/9150738)        | CVPR        | 2020       |
-| [S2ENet](https://github.com/likyoo/Multimodal-Remote-Sensing-Toolkit)   | [S²ENet: Spatial–Spectral Cross-Modal Enhancement Network for Classification of Hyperspectral and LiDAR Data]()        | TGRSL       | 2022       |
-| [Cross-HL](https://github.com/AtriSukul1508/Cross-HL)  | [Cross Hyperspectral and LiDAR Attention Transformer: An Extended Self-Attention for Land Use and Land Cover Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/10462184)        | TGRS       | 2024       |
-| [MIViT](https://github.com/icey-zhang/MIViT)   | [Multimodal Informative ViT: Information Aggregation and Distribution for Hyperspectral and LiDAR Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/10464367)        | TCSVT       | 2024       |
-| [MS2CANet](https://github.com/junhengzhu/MS2CANet)   | [MS2CANet: Multiscale Spatial–Spectral Cross-Modal Attention Network for Hyperspectral Image and LiDAR Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/document/10382694/)        | TGRSL       | 2024       | 
-| [SHNet](https://github.com/quanweiliu/SHNet)   | Enhancing Oil Spill Detection with Controlled Random Sampling: A Multimodal Fusion Approach Using SAR and HSI Imagery        | RSA       | 2025       |
+| [RDFNet]()      | [RDFNet: RGB-D Multi-level Residual Feature Fusion for Indoor Semantic Segmentation](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | TGRSL       | 2017       |
+
 
 # Description
 This repository proposed a new taxonomy to descibe existed tile based image semantic segmenation models.
