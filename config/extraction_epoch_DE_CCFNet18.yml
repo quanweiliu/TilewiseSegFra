@@ -8,29 +8,32 @@ model:
   # arch: CMGFNet_U
   arch: DE_CCFNet_18
   # arch: DE_CCFNet_34
-  # arch: CMFNet      # 这个不能用
+  # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
-  # arch: PACSCNet    # 这个不能用
+  # arch: PACSCNet
   # arch: PCGNet
   # arch: SFAFMA50
   # arch: SFAFMA101
 
 data:
-  # path: C:\Users\jc962911\Project\Semantic_Segmentation\multiRoad\multi_data
-  path: /home/leo/DatasetMMF/OSDT
+  path: /home/icclab/Documents/lqw/DatasetMMF/OSTD
   train_split: train
   val_split: val
   test_split: test
   # img_size: 512
   img_size: 128
+  bands1: 193
+  bands2: 3
+  classes: 1
+  classification: Binary
+  # classification: Multi
 
 training:
   train_epoch: 100
-  # batch_size: 4
   batch_size: 32
   test_batch_size: 1
-  n_workers: 6
+  n_workers: 8
   optimizer:
     name: 'adam'
     lr: 0.001
@@ -59,7 +62,7 @@ training:
     name: ReduceLROnPlateau
 
 results:
-  path: /home/leo/Semantic_Segmentation/multiRoadHSI/runs
+  path: /home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run
 
 threshold: 0.5
 

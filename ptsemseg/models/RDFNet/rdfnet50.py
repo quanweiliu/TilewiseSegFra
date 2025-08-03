@@ -8,9 +8,10 @@ from torch.autograd import Variable
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 
-from blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
-from resnet101 import get_resnet50, get_resnet101
-
+# from blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
+# from resnet101 import get_resnet50, get_resnet101
+from .blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
+from .resnet101 import get_resnet50, get_resnet101
 
 class RDF50(nn.Module):
     def __init__(self, bands1, bands2, input_size=512, num_classes=1, bn_momentum=0.0003, features=256, pretained=False):

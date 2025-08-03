@@ -3,7 +3,7 @@ from torch import nn
 # from torchsummaryX import summary
 import torch.nn.functional as F
 
-print("come from CFM_re6.py")
+# print("come from CFM_re6.py")
 
 class channel_frm(nn.Module):
     def __init__(self, channel, r=16):
@@ -60,7 +60,7 @@ class channel_frm(nn.Module):
 
         y_avg = self.y_excitation(self.y_avg(y).view(b,c))
         y_max = self.y_excitation(self.y_max(y).view(b, c))
-        y_theta = self.sigmoid(y_avg+y_max).view(b,c,1,1)
+        y_theta = self.sigmoid(y_avg + y_max).view(b,c,1,1)
         y_theta_inv = 1 - y_theta
         y_att = y * y_theta
 
@@ -73,6 +73,94 @@ class channel_frm(nn.Module):
         # y_chre=self.relu(y+y_att+y_add)
 
         return x_chre, y_chre
+
+
+class channel_frm3(nn.Module):
+    def __init__(self, channel, r=16):
+        '''
+        input x: (b,c,h,w)
+        input y: (b,c,h,w)
+        :param channel:  c
+        :param r: ratio
+        '''
+        super(channel_frm3, self).__init__()
+        self.ch=channel
+        self.x_avg = nn.AdaptiveAvgPool2d(1)
+        self.x_max = nn.AdaptiveMaxPool2d(1)
+        self.x_excitation = nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            # nn.Sigmoid()
+        )
+        # self.x_conv = nn.Sequential(
+        #     nn.Conv2d(channel, channel, kernel_size=1),
+        #     nn.BatchNorm2d(channel),
+        #     nn.ReLU(inplace=True)
+        # )
+
+        self.y_avg = nn.AdaptiveAvgPool2d(1)
+        self.y_max = nn.AdaptiveMaxPool2d(1)
+        self.y_excitation=nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            # nn.Sigmoid()
+        )
+        # self.y_conv = nn.Sequential(
+        #     nn.Conv2d(channel, channel, kernel_size=1),
+        #     nn.BatchNorm2d(channel),
+        #     nn.ReLU(inplace=True)
+        # )
+
+        self.z_avg = nn.AdaptiveAvgPool2d(1)
+        self.z_max = nn.AdaptiveMaxPool2d(1)
+        self.z_excitation=nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            # nn.Sigmoid()
+        )
+        # self.y_conv = nn.Sequential(
+        #     nn.Conv2d(channel, channel, kernel_size=1),
+        #     nn.BatchNorm2d(channel),
+        #     nn.ReLU(inplace=True)
+        # )
+
+        self.sigmoid = nn.Sigmoid()
+        # self.relu=nn.ReLU(inplace=True)
+        # self.x_a=Parameter(torch.zeros(1))
+        # self.y_a = Parameter(torch.zeros(1))
+        # self.x_b = Parameter(torch.zeros(1))
+        # self.y_b=Parameter(torch.zeros(1))
+
+    def forward(self, x, y, z):
+        b, c, _, _ = x.size()
+        x_avg = self.x_excitation(self.x_avg(x).view(b, c))
+        x_max = self.x_excitation(self.x_max(x).view(b, c))
+        # print(x_avg.shape, x_max.shape)    # [4, 256, 64, 64]  - [4, 256]
+        x_theta = self.sigmoid(x_avg + x_max).view(b, c, 1, 1)
+        x_att = x * x_theta
+
+        y_avg = self.y_excitation(self.y_avg(y).view(b, c))
+        y_max = self.y_excitation(self.y_max(y).view(b, c))
+        y_theta = self.sigmoid(y_avg + y_max).view(b, c, 1, 1)
+        y_att = y * y_theta
+
+        z_avg = self.z_excitation(self.z_avg(z).view(b, c))
+        z_max = self.z_excitation(self.z_max(z).view(b, c))
+        z_theta = self.sigmoid(z_avg + z_max).view(b, c, 1, 1)
+        z_att = z * z_theta
+
+        x_chre = x + x_att
+        y_chre = y + y_att
+        z_chre = z + z_att
+        # x_chre=self.relu(x+x_att+x_add)
+        # y_chre=self.relu(y+y_att+y_add)
+
+        return x_chre, y_chre, z_chre
+    
+
 
 class spatial_frm(nn.Module):
     def __init__(self, channel):
@@ -92,19 +180,47 @@ class spatial_frm(nn.Module):
         attention_vector = torch.cat([attention_vector_l, attention_vector_r], dim=1)
         attention_vector = self.softmax(attention_vector)
         attention_vector_l, attention_vector_r = \
-                                attention_vector[:, 0:1, :, :], attention_vector[:, 1:2, :, :]
+                            attention_vector[:, 0:1, :, :], attention_vector[:, 1:2, :, :]
         merge_feature = x * attention_vector_l + y * attention_vector_r
 
         return merge_feature
         # return attention_vector_l,attention_vector_r
 
+
+class spatial_frm3(nn.Module):
+    def __init__(self, channel):
+        super(spatial_frm3, self).__init__()
+        self.ch = channel
+        self.gate_x = nn.Conv2d(channel*3, 1, kernel_size=1, bias=True)
+        self.gate_y = nn.Conv2d(channel*3, 1, kernel_size=1, bias=True)
+        self.gate_z = nn.Conv2d(channel*3, 1, kernel_size=1, bias=True)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x, y, z):
+        # print("x", x.shape, "y", y.shape, "z", z.shape)
+        cat_fea = torch.cat([x, y, z], dim=1)
+        # print("cat_fea", cat_fea.shape)
+        attention_vector_l = self.gate_x(cat_fea)
+        attention_vector_r = self.gate_y(cat_fea)
+        attention_vector_m = self.gate_z(cat_fea)
+
+        attention_vector = torch.cat([attention_vector_l, attention_vector_r, attention_vector_m], dim=1)
+        attention_vector = self.softmax(attention_vector)
+        attention_vector_l, attention_vector_r, attention_vector_m = \
+                            attention_vector[:, 0:1, :, :], attention_vector[:, 1:2, :, :], attention_vector[:, 2:3, :, :]
+        merge_feature = x * attention_vector_l + y * attention_vector_r + z * attention_vector_m
+
+        return merge_feature
+        # return attention_vector_l,attention_vector_r
+
+
 class CMF_re6_2(nn.Module):
-    def __init__(self,channel, filters, r=16):
+    def __init__(self, channel, filters, r=16):
         super(CMF_re6_2, self).__init__()
         self.ch_frm = channel_frm(channel, r)
         self.sp_frm = spatial_frm(channel)
         self.conv = nn.Sequential(
-            nn.Conv2d(filters, channel, kernel_size=1, bias=False),
+            nn.Conv2d(channel, filters, kernel_size=1, bias=False),
             # nn.Conv2d(filters,filters,kernel_size=3,stride=2,padding=1,groups=filters),
             # nn.Conv2d(filters,channel,kernel_size=1,stride=1,padding=0,bias=False),
             nn.BatchNorm2d(channel),
@@ -118,7 +234,7 @@ class CMF_re6_2(nn.Module):
     def forward(self, x, y, fused=None):
         _, _, h, w = x .size()
         x_chre, y_chre = self.ch_frm(x, y)
-        # attention_vector_l,attention_vector_r=self.sp_frm(x_chre,y_chre)
+        # attention_vector_l,attention_vector_r=self.sp_frm(x_chre, y_chre)
         merge_feature = self.sp_frm(x_chre, y_chre)
         # attention_vector_l, attention_vector_r = self.sp_frm(x, y)
         # merge_feature = x * attention_vector_l + y * attention_vector_r
@@ -177,19 +293,65 @@ class CMF_re6(nn.Module):
         return x_out, y_out, merge_feature
 
 
+class CMF_re63(nn.Module):
+    def __init__(self, channel=256, filters=128, r=16):
+        super(CMF_re63, self).__init__()
+        self.ch_frm = channel_frm3(channel, r)
+        self.sp_frm = spatial_frm3(channel)
+        self.conv = nn.Sequential(
+            nn.Conv2d(filters, channel, kernel_size=1, bias=False),
+            # nn.Conv2d(filters,filters,kernel_size=3,stride=2,padding=1,groups=filters),
+            # nn.Conv2d(filters,channel,kernel_size=1,stride=1,padding=0,bias=False),
+            nn.BatchNorm2d(filters),
+            # nn.ReLU(inplace=True)
+        )
+
+        self.relu1 = nn.ReLU()
+        self.relu2 = nn.ReLU()
+        self.relu3 = nn.ReLU()
+
+    def forward(self, x, y, z, fused=None):
+        _, _, h, w = x.size()
+        x_chre, y_chre, z_chre = self.ch_frm(x, y, z)
+        # print("x_chre", x_chre.shape, "y_chre", y_chre.shape, "z_chre", z_chre.shape)
+        # attention_vector_l,attention_vector_r=self.sp_frm(x_chre,y_chre)
+        merge_feature = self.sp_frm(x_chre, y_chre, z_chre)
+        # print("merge_feature", merge_feature.shape)
+        # attention_vector_l, attention_vector_r = self.sp_frm(x, y)
+        # merge_feature = x * attention_vector_l + y * attention_vector_r
+
+        if fused is not None:
+            fused = self.conv(fused)
+            # print("fused", fused.shape)
+            merge_feature = merge_feature + F.interpolate(fused, (h, w))
+            merge_feature = self.relu3(merge_feature)
+        else:
+            merge_feature = self.relu3(merge_feature)
+
+        x_out = (x + merge_feature) / 2
+        y_out = (y + merge_feature) / 2
+        x_out = self.relu1(x_out)
+        y_out = self.relu2(y_out)
+
+        return x_out, y_out, merge_feature
+    
+
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    x = torch.randn(4, 256, 64, 64, device=device)
-    y = torch.randn(4, 256, 64, 64, device=device)
-    fusedc = torch.randn(4, 128, 128, 128, device=device)
-    
-    model = CMF_re6(256, 128).to(device)
 
-    output = model(x, y, fusedc)
+    channel = 128
+    x = torch.randn(4, channel, 32, 32, device=device)
+    y = torch.randn(4, channel, 32, 32, device=device)
+    z = torch.randn(4, channel, 32, 32, device=device)
+
+    fusedc = torch.randn(4, channel, 32, 32, device=device)
     
+    model = CMF_re6(channel, channel).to(device)
+    output = model(x, y, fusedc)
     print(output[0].shape, output[1].shape, output[2].shape)
-    # model=SKBlock(64,M=2,G=64)
-    # model=cfm(64)
-    # summary(model.to(device), x,y, fused)
+
+    # model = CMF_re63(channel, channel).to(device)
+    # output = model(x, y, z, fusedc)
+    # print(output[0].shape, output[1].shape, output[2].shape)
 
 

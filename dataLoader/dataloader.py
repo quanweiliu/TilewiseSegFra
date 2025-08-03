@@ -13,7 +13,6 @@ class Road_loader(data.DataLoader):
     def __init__(self, root, split='train', img_size=512, is_augmentation=False):
         self.root = root
         self.split = split
-        self.n_classes = 2
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size))
         

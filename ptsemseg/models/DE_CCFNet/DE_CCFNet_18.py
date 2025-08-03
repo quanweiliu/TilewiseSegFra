@@ -5,9 +5,8 @@ from torchvision import models
 
 from .CMFs.CMF_re6 import CMF_re6, CMF_re6_2
 from .utils import ConvBNReLU, DecoderBlock6
-# from .decoder import DecoderBlock, DecoderBlock6
 
-# from CMFs.CMF_re6 import CMF_re6, CMF_re6_2
+# from CMFs.CMF_re6 import CMF_re6
 # from utils import ConvBNReLU, DecoderBlock6
 # # from decoder import DecoderBlock, DecoderBlock6
 
@@ -129,12 +128,6 @@ class DE_CCFNet_18(nn.Module):
 
     def forward(self, x, y):
         # encoder
-        # TODO 增加一个 224的输入到 4 维
-        # x = self.pre_conv(x)
-        # y = self.pre_conv(y)
-        # print("x", x.shape, "y", y.shape)
-        # x torch.Size([B, 4, 128, 128]) y torch.Size([B, 3, 128, 128])
-
         x_first, y_first, e_first = self.cross_block0(self.rgb_first(x), self.lidar_first(y))
         xe1, ye1, e1 = self.cross_block1(self.rgb_encoder1(x_first), self.lidar_encoder1(y_first), e_first)
         xe2, ye2, e2 = self.cross_block2(self.rgb_encoder2(xe1), self.lidar_encoder2(ye1), e1)

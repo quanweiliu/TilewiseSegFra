@@ -13,13 +13,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# from .sobel import edge_conv2d64
-# from .sobel import edge_conv2d128
-# from .sobel import edge_conv2d256
+from .sobel import edge_conv2d64
+from .sobel import edge_conv2d128
+from .sobel import edge_conv2d256
 
-from sobel import edge_conv2d64
-from sobel import edge_conv2d128
-from sobel import edge_conv2d256
+# from sobel import edge_conv2d64
+# from sobel import edge_conv2d128
+# from sobel import edge_conv2d256
 
 
 class conv_block(nn.Module):

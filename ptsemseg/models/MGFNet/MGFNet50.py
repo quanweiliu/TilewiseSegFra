@@ -4,11 +4,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-# from .resnet import resnet101
-# from .backbone import BN_MOMENTUM, hrnet_classification
+from .resnet import resnet101
+from .backbone import BN_MOMENTUM, hrnet_classification
 
-from resnet import sresnet50, resnet101
-from backbone import BN_MOMENTUM, hrnet_classification
+# from resnet import sresnet50, resnet101
+# from backbone import BN_MOMENTUM, hrnet_classification
 
 class eca_block(nn.Module):
     def __init__(self, channel, b=1, gamma=2):

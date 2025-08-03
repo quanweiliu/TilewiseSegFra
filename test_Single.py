@@ -18,20 +18,6 @@ from ptsemseg.logger import Logger
 from dataLoader.dataloader import Road_loader
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
-from ptsemseg.models.DE_CCFNet.DE_CCFNet_18 import DE_CCFNet_18
-from ptsemseg.models.DE_CCFNet.DE_CCFNet_34 import DE_CCFNet_34
-from ptsemseg.models.DuiBi.ACNet.ACNet import ACNet
-from ptsemseg.models.DuiBi.CANet.CANet import CANet
-# from ptsemseg.models.DuiBi.CMFNet.CMFNet import CMFNet
-from ptsemseg.models.DuiBi.CMGFNet.CMGFNet18 import CMGFNet, CMGFNet_U
-# from ptsemseg.models.DuiBi.PACSCNet.PACSCNet import PACSCNet
-from ptsemseg.models.DuiBi.single_source.Resnet34 import Resnet_base34
-from ptsemseg.models.DuiBi.single_source.Resnet18 import CRFN_base18
-from ptsemseg.models.DuiBi.DE_DCGCN.DE_DCGCN import DEDCGCNEE
-from ptsemseg.models.DuiBi.HAFNetE.HAFNetE import EfficientHAFNet
-from ptsemseg.models.DuiBi.SFAFMA.SFAFMA import SFAFMA50, SFAFMA101
-from ptsemseg.models.DuiBi.PCGNet.PCGNet import PCGNet
-from ptsemseg.models.DuiBi.CMANet.CMANet import CMAnet
 
 from schedulers.metrics import runningScore, averageMeter
 

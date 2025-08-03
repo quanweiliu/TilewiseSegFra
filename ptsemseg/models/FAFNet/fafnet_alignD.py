@@ -11,8 +11,8 @@ from PIL import Image, ImageFilter
 from torchvision import transforms
 import torch.utils.model_zoo as model_zoo
 
-# from .net_util import SAGate
-from net_util import SAGate
+from .net_util import SAGate
+# from net_util import SAGate
 # from .backbone import VisualizeFlow,  VisualizeFeatureMapPCA
 
 # __all__ = ['DualResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',

@@ -1,4 +1,6 @@
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 import logging
 import random
 import shutil
@@ -18,6 +20,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 
 from dataLoader.dataloader import Road_loader
+# from dataLoader.dataloader_ISPRS import ISPRS_loader
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -28,12 +31,8 @@ from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
 
 
-def train(cfg, writer, rundir):
+def train(cfg, rundir):
 
-    # # Setup device
-    device_num = cfg['training']['loss']['device']
-    # device = torch.device("cuda:"+str(device_num) if torch.cuda.is_available() else "cpu")
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(device_num)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cuda")
     torch.set_num_threads(1)
@@ -49,6 +48,10 @@ def train(cfg, writer, rundir):
     train_split = cfg['data']['train_split']
     val_split = cfg['data']['val_split']
     img_size = cfg['data']['img_size']
+    bands1 = cfg['data']['bands1']
+    bands2 = cfg['data']['bands2']
+    classes = cfg['data']['classes']
+
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
@@ -58,8 +61,10 @@ def train(cfg, writer, rundir):
     # Setup Dataloader
     t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)
     v_loader = Road_loader(data_path, val_split, img_size, is_augmentation=False)
-    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True, num_workers=n_workers)
-    valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False, num_workers=n_workers)
+    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True, 
+                                num_workers=n_workers, prefetch_factor=4, pin_memory=True)
+    valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False, 
+                                num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
     # for gaofens, lidars, labels in trainloader:
     #     print("train gaofens", gaofens.shape)
@@ -74,14 +79,13 @@ def train(cfg, writer, rundir):
     #     break
 
     # Setup Metrics
-    n_classes = t_loader.n_classes
-    running_metrics_val = runningScore(n_classes)
-    running_metrics_train = runningScore(n_classes)
+    running_metrics_train = runningScore(classes+1)
+    running_metrics_val = runningScore(classes+1)
 
     # Set Model
     model_name = cfg['model']
     print("model_name", model_name)
-    model = get_model(model_name, n_classes).to(device)
+    model = get_model(model_name, bands1, bands2, classes=classes).to(device)
 
     # state = torch.load(args.model_path)["model_state"]  # single-gpu
     # model.load_state_dict(state)
@@ -108,7 +112,6 @@ def train(cfg, writer, rundir):
     loss_fn = get_loss_function(cfg)
     # logger.info("Using loss {}".format(loss_fn))
 
-
     ################################# FLOPs and Params ###################################################
     # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
     # # input = torch.randn(2, 3, 128, 128).to(device)
@@ -133,7 +136,7 @@ def train(cfg, writer, rundir):
 
     train_loss_meter = averageMeter()
     val_loss_meter = averageMeter()  #val_loss
-    # time_meter = averageMeter()
+    time_meter = averageMeter()
     best_iou2 = -100.0
     best_iou = -100.0
     i = start_epoch
@@ -146,16 +149,10 @@ def train(cfg, writer, rundir):
         start_ts = time.time()
         # logger.info('current lr: %.6f', optimizer.state_dict()['param_groups'][0]['lr'])
         for (gaofens, lidars, labels) in tqdm(trainloader):
-            # print("gaofens", gaofens.shape)
-            # print("lidars", lidars.shape)
-            # print("labels", labels.shape)
-            # i += 1
-            # scheduler.step()
             model.train()
             gaofens = gaofens.to(device)
             lidars = lidars.to(device)
             labels = labels.to(device)
-
             # print("gaofens", gaofens.shape)
             # print("lidars", lidars.shape)
             # print("labels", labels.shape)
@@ -163,86 +160,46 @@ def train(cfg, writer, rundir):
             model = model.to(device)
             # print("gaofens", gaofens.shape, "lidars", lidars.shape, "labels", labels.shape)
 
-            # gaofen_optimizer.zero_grad()
-            optimizer.zero_grad()
-
-            # ################ output ################
-            # multi_outputs = model(gaofens, lidars)    # 这是指大于 3 个输出吗？
-
             outputs = model(gaofens, lidars)            # DE_CCFNet_34_multi
-            # outputs, _, _ = model(gaofens, lidars)
-            # outputs = model(gaofens)
-            # outputs = model(lidars)
-            # print("outputs", outputs.shape)           # torch.Size([4, 1, 512, 512])
-
-            # ################ loss ################
-            # loss, loss1, loss2 = loss_fn(multi_outputs, labels)
-            # print("outputs", outputs.shape, "labels", labels.shape)
-
             loss, loss1, loss2 = loss_fn(outputs, labels)      #  DE_CCFNet_34_multi
-            # loss, loss1, loss2, loss3 = loss_fn(multi_outputs, labels) 
-            # loss, loss1, loss2 = loss_fn(outputs, outputs2, outputs3, labels)
-            # loss = loss_fn(outputs, labels)
-            # loss = loss_fn(outputs, refine_outputs, labels)
-            loss.backward()
+            optimizer.zero_grad()
+            loss.backward()            # 要在 outputs[outputs > cfg['threshold']] = 1 操作前执行，outputs 在这个操作中会改变
+            optimizer.step()
 
-            # outputs = F.softmax(multi_outputs[0], dim=1)
-            # outputs = outputs[0]
-            outputs[outputs > cfg['threshold']] = 1
-            outputs[outputs <= cfg['threshold']] = 0
-            # pred = outputs.data.max(1)[1].cpu().numpy()
-            pred = outputs.data.cpu().numpy()
+            if cfg["data"]["classification"] == "Multi":
+                pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
+                # print("outputs", outputs.shape, "pred", pred.shape)   # torch.Size([32, 1, 128, 128]) pred (32, 128, 128)
+
+            elif cfg["data"]["classification"] == "Binary":
+                outputs[outputs > cfg['threshold']] = 1
+                outputs[outputs <= cfg['threshold']] = 0
+                pred = outputs.data.cpu().numpy()
+                # print("outputs", outputs.shape, "pred", pred.shape)  #  torch.Size([32, 1, 128, 128]) pred (32, 1, 128, 128)
+
             gt = labels.data.cpu().numpy()
             # update each train batchsize metric and loss
             running_metrics_train.update(gt, pred)  # update confusion_matrix
             train_loss_meter.update(loss.item())  # update sum_loss
 
-            # gaofen_optimizer.step()
-            optimizer.step()
-            # scheduler.step()
-
-            # time_meter.update(time.time() - start_ts)
-        time_meter = time.time() - start_ts
+            time_meter.update(time.time() - start_ts)
 
         ############## print result for each train epoch ############################
-        # fmt_str = "Epoch [{:d}/{:d}]  Loss: {:.4f}  Time/Image: {:.4f}"
-        # print_str = fmt_str.format(i,
-        #                            cfg['training']['train_epoch'],
-        #                            loss.item(),
-        #                            time_meter.avg)
-        # print(print_str)
         # logger.info(print_str)
-
-        print("Epoch [{:d}/{:d}]  Loss: {:.4f}".format(i,cfg['training']['train_epoch'],loss.item()))
-        writer.add_scalar('loss/train_loss', loss.item(), i)
-        writer.add_scalar('loss/train_loss1', loss1.item(), i)
-        writer.add_scalar('loss/train_loss2', loss2.item(), i)
-        # writer.add_scalar('loss/train_loss3', loss3.item(), i)
-
+        print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
+            i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
         train_score, train_class_iou = running_metrics_train.get_scores()
+        # print(train_score.keys())
+        # for k, v in train_score.items():
+        #     print("{}: {:.4f}".format(k, v))
 
         # store results
         results_train.append({'epoch': i, 
                         'trainLoss': train_loss_meter.avg, 
-                        'F1': np.nanmean(train_score["F1: \t\t"]),
-                        "Kappa": np.nanmean(train_score["Kappa: \t\t"]),
-                        "mIOU": np.nanmean(train_score["mIoU : \t\t"]),
+                        'F1': np.nanmean(train_score["F1  \t\t"]),
+                        # "Kappa": np.nanmean(train_score["Kappa: \t\t"]),
+                        "mIoU": np.nanmean(train_score["mIoU  \t\t"]),
                     })
         
-
-        logger2.info('TRAIN ({}) | Loss: {:.4f} | classAcc 0 {:.2f} classAcc 1 {:.2f} OA {:.2f} P {:.2f} R {:.2f} F1 {:.2f} Kappa {:.2f} IOU {:.2f} Time {:.4f}'.format(
-            i,
-            train_loss_meter.avg,
-            np.nanmean(train_score["classAcc 0 :"]).round(4)*100,
-            np.nanmean(train_score["classAcc 1 :"]).round(4)*100,
-            np.nanmean(train_score["OA: \t\t"]).round(4)*100,
-            np.nanmean(train_score["Precision : "]).round(4)*100,
-            np.nanmean(train_score["Recall : \t"]).round(4)*100,
-            np.nanmean(train_score["F1: \t\t"]).round(4)*100,
-            np.nanmean(train_score["Kappa: \t\t"]).round(4)*100,
-            np.nanmean(train_score["mIoU : \t\t"]).round(4)*100,
-            time_meter
-        ))
         train_loss_meter.reset()
         running_metrics_train.reset()
 
@@ -252,84 +209,50 @@ def train(cfg, writer, rundir):
             model.eval()
             with torch.no_grad():
                 for gaofens_val, lidars_val, labels_val in tqdm(valloader):
-                    # print("gaofens", gaofens_validation.shape)
-                    # print("lidars", lidars_val.shape)
-                    # print("labels", labels_val.shape)
-
                     gaofens_val = gaofens_val.to(device)
                     lidars_val = lidars_val.to(device)
                     labels_val = labels_val.to(device)
 
                     # ################ output ################
-                    # multi_outputs = model(gaofens_val, lidars_val)
-
                     outputs = model(gaofens_val, lidars_val)
-                    # outputs, _, _ = model(gaofens_val, lidars_val)
-                    # outputs = model(gaofens_val)
-                    # outputs = model(lidars_val)
-
-                    # ################ loss ################
-                    # val_loss, val_loss1, val_loss2 = loss_fn(multi_outputs, labels_val)
-                    
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
-                    # val_loss, val_loss1, val_loss2, val_loss3 = loss_fn(multi_outputs, labels_val)
-                    # val_loss, val_loss1, val_loss2 = loss_fn(outputs, outputs2, outputs3, labels_val)
-                    # val_loss = loss_fn(outputs, refine_outputs, labels_val)
-                    # val_loss = loss_fn(outputs, labels_val)
 
-                    # outputs = F.softmax(multi_outputs[0], dim=1)
-                    # outputs = outputs[0]
-                    outputs[outputs > cfg['threshold']] = 1
-                    outputs[outputs <= cfg['threshold']] = 0
-                    pred = outputs.data.cpu().numpy()
-                    # pred = outputs.data.max(1)[1].cpu().numpy()
+                    if cfg["data"]["classification"] == "Multi":
+                        pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
+
+                    elif cfg["data"]["classification"] == "Binary":
+                        outputs[outputs > cfg['threshold']] = 1
+                        outputs[outputs <= cfg['threshold']] = 0
+                        pred = outputs.data.cpu().numpy()
                     gt = labels_val.data.cpu().numpy()
 
                     # update each val batchsize metric and loss
                     running_metrics_val.update(gt, pred)     # update confusion_matrix
                     val_loss_meter.update(val_loss.item())  # update sum_loss
 
-            writer.add_scalar('loss/val_loss', val_loss_meter.avg, i)
             # logger.info("Epoch %d Loss: %.4f" % (i, val_loss_meter.avg))
-
             score, class_iou = running_metrics_val.get_scores()
-            for k, v in score.items():
-                # print(k, v)
-                # logger.info('{}: {}'.format(k, v))
-                writer.add_scalar('val_metrics/{}'.format(k), round(np.nanmean(v) * 100, 2), i)
-
-            # for k, v in class_iou.items():
-            #     # logger.info('{}: {}'.format(k, v))
-            #     writer.add_scalar('val_metrics/cls_{}'.format(k), v, i)
 
             # store results
             results_val.append({'epoch': i, 
                             'valLoss': val_loss_meter.avg, 
-                            'F1': np.nanmean(score["F1: \t\t"]),
-                            "Kappa": np.nanmean(score["Kappa: \t\t"]),
-                            "mIOU": np.nanmean(score["mIoU : \t\t"]),
+                            'F1': np.nanmean(score["F1  \t\t"]),
+                            "mIOU": np.nanmean(score["mIoU  \t\t"]),
                         })
 
-            logger2.info('VAL ({}) | Loss: {:.4f} | classAcc 0 {:.2f} classAcc 1 {:.2f} OA {:.2f} P {:.2f} R {:.2f} F1 {:.2f} Kappa {:.2f} IOU {:.2f}'.format(
+            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f}'.format(
                 i,
                 val_loss_meter.avg,
-                np.nanmean(score["classAcc 0 :"]).round(4)*100,
-                np.nanmean(score["classAcc 1 :"]).round(4)*100,
-                np.nanmean(score["OA: \t\t"]).round(4)*100,
-                np.nanmean(score["Precision : "]).round(4)*100,
-                np.nanmean(score["Recall : \t"]).round(4)*100,
-                np.nanmean(score["F1: \t\t"]).round(4)*100,
-                np.nanmean(score["Kappa: \t\t"]).round(4)*100,
-                np.nanmean(score["mIoU : \t\t"]).round(4)*100,
+                np.nanmean(train_score["F1  \t\t"]).round(4)*100,
+                np.nanmean(train_score["mIoU  \t\t"]).round(4)*100,
+                np.nanmean(score["F1  \t\t"]).round(4)*100,
+                np.nanmean(score["mIoU  \t\t"]).round(4)*100,
             ))
-
             val_loss_meter.reset()
             running_metrics_val.reset()
 
             # save best model by mIoU
-            val_IoU = np.nanmean(score["mIoU : \t\t"])
-            # gaofen_scheduler.step(val_IoU)
-            # scheduler.step()
+            val_IoU = np.nanmean(score["mIoU  \t\t"])
             scheduler.step(val_IoU)
             # if i <= warm_up:
             #     scheduler.step()
@@ -337,23 +260,15 @@ def train(cfg, writer, rundir):
             #     scheduler2.step(val_IoU)
             if val_IoU > best_iou:
                 best_iou = val_IoU
-                state = {
+                torch.save({
                     "epoch": i,
                     "model_state": model.state_dict(),
-                    # "gaofen_optimizer_state": gaofen_optimizer.state_dict(),
                     "optimizer_state": optimizer.state_dict(),
-                    # "gaofen_scheduler_state": gaofen_scheduler.state_dict(),
                     "scheduler_state": scheduler.state_dict(),
                     "best_iou": best_iou,
                     "results_train": results_train,
                     'results_val': results_val,
-                }
-                save_path = os.path.join(writer.file_writer.get_logdir(),
-                                         "{}_best_model_temp.pkl".format(
-                                            cfg['model']['arch']))  # DCANet_Mass_road_bet_model.pkl
-                # print(cfg['model']['arch'], cfg['data']['path'])
-                # print("save_path", save_path)
-                torch.save(state, save_path)
+                }, f"{rundir}/best.pt")
 
                 if (i) == cfg['training']['train_epoch']:
                     flag=False
@@ -391,39 +306,38 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_CCFNet18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_DE_CCFNet34.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_AsymFormer.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extraction_epoch_DE_CCFNet18.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_CCFNet34.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_Zhiyang.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_DCGCN.yml",
-        default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_RDFNet.yml",
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_HAFNetE.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_RDFNet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_AsymFormer.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_PCG.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_SFAFMA.yml",
         help="Configuration file to use")
-
+    parser.add_argument("--model_path", type = str, default = "", \
+                        help="Path to the saved model")
     # for i in range(1):
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
 
-    while(True):
-        run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-        # run_id = random.randint(1, 100000)
-        rundir = os.path.join(cfg['results']['path'], str(run_id))
-        if not os.path.exists(rundir):
-            break
+    run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
+    # run_id = random.randint(1, 100000)
+    rundir = os.path.join(cfg['results']['path'], str(run_id))
+    os.makedirs(rundir, exist_ok=True)
 
-    print("args.config", args.config)
+    # print("args.config", args.config)
     # print("basename", os.path.basename(args.config))
     # print("basename[-4]", os.path.basename(args.config)[:-4])
     # print('RUNDIR: {}'.format(rundir))
 
-    writer = SummaryWriter(log_dir = rundir)
+    # writer = SummaryWriter(log_dir = rundir)
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
-    train(cfg, writer, rundir)
+    train(cfg, rundir)
     time.sleep(30)
-
-
-
 

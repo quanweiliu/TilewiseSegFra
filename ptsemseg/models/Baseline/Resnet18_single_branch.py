@@ -18,8 +18,11 @@ import torch.nn.functional as F
 # # from ptsemseg.models.Baseline.decoder import decoder
 # from ptsemseg.models.Baseline.utils import ConvBNReLU
 
-from decoder_zoos import DecoderBlock
-from utils import ConvBNReLU
+# from decoder_zoos import DecoderBlock
+# from utils import ConvBNReLU
+
+from .decoder_zoos import DecoderBlock
+from .utils import ConvBNReLU
 
 nonlinearity = partial(F.relu, inplace=True)
 

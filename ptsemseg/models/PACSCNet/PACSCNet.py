@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
-from res2net_v1b_base import Res2Net_model
+from .res2net_v1b_base import Res2Net_model
+# from res2net_v1b_base import Res2Net_model
 
 
 class uc(nn.Module):

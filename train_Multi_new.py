@@ -204,19 +204,19 @@ def train(cfg, rundir):
                     })
         
 
-        logger2.info('TRAIN ({}) | Loss: {:.4f} | classAcc 0 {:.2f} classAcc 1 {:.2f} OA {:.2f} P {:.2f} R {:.2f} F1 {:.2f} Kappa {:.2f} IOU {:.2f} Time {:.4f}'.format(
-            i,
-            train_loss_meter.avg,
-            np.nanmean(train_score["classAcc 0 :"]).round(4)*100,
-            np.nanmean(train_score["classAcc 1 :"]).round(4)*100,
-            np.nanmean(train_score["OA: \t\t"]).round(4)*100,
-            np.nanmean(train_score["Precision : "]).round(4)*100,
-            np.nanmean(train_score["Recall : \t"]).round(4)*100,
-            np.nanmean(train_score["F1: \t\t"]).round(4)*100,
-            np.nanmean(train_score["Kappa: \t\t"]).round(4)*100,
-            np.nanmean(train_score["mIoU : \t\t"]).round(4)*100,
-            time_meter
-        ))
+        # logger2.info('TRAIN ({}) | Loss: {:.4f} | classAcc 0 {:.2f} classAcc 1 {:.2f} OA {:.2f} P {:.2f} R {:.2f} F1 {:.2f} Kappa {:.2f} IOU {:.2f} Time {:.4f}'.format(
+        #     i,
+        #     train_loss_meter.avg,
+        #     np.nanmean(train_score["classAcc 0 :"]).round(4)*100,
+        #     np.nanmean(train_score["classAcc 1 :"]).round(4)*100,
+        #     np.nanmean(train_score["OA: \t\t"]).round(4)*100,
+        #     np.nanmean(train_score["Precision : "]).round(4)*100,
+        #     np.nanmean(train_score["Recall : \t"]).round(4)*100,
+        #     np.nanmean(train_score["F1: \t\t"]).round(4)*100,
+        #     np.nanmean(train_score["Kappa: \t\t"]).round(4)*100,
+        #     np.nanmean(train_score["mIoU : \t\t"]).round(4)*100,
+        #     time_meter
+        # ))
         train_loss_meter.reset()
         running_metrics_train.reset()
 
@@ -233,10 +233,19 @@ def train(cfg, rundir):
                     # ################ output ################
                     multi_outputs = model(gaofens_val, lidars_val)
 
+                    # outputs = model(gaofens_val, lidars_val)
+                    # outputs, _, _ = model(gaofens_val, lidars_val)
+                    # outputs = model(gaofens_val)
+                    # outputs = model(lidars_val)
 
                     # ################ loss ################
                     val_loss, val_loss1, val_loss2 = loss_fn(multi_outputs, labels_val)
                     
+                    # val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
+                    # val_loss, val_loss1, val_loss2, val_loss3 = loss_fn(multi_outputs, labels_val)
+                    # val_loss, val_loss1, val_loss2 = loss_fn(outputs, outputs2, outputs3, labels_val)
+                    # val_loss = loss_fn(outputs, refine_outputs, labels_val)
+                    # val_loss = loss_fn(outputs, labels_val)
 
                     # outputs = F.softmax(multi_outputs[0], dim=1)
                     outputs = multi_outputs[0]
@@ -251,18 +260,9 @@ def train(cfg, rundir):
                     running_metrics_val.update(gt, pred)     # update confusion_matrix
                     val_loss_meter.update(val_loss.item())  # update sum_loss
 
-            writer.add_scalar('loss/val_loss', val_loss_meter.avg, i)
             # logger.info("Epoch %d Loss: %.4f" % (i, val_loss_meter.avg))
 
             score, class_iou = running_metrics_val.get_scores()
-            for k, v in score.items():
-                # print(k, v)
-                # logger.info('{}: {}'.format(k, v))
-                writer.add_scalar('val_metrics/{}'.format(k), round(np.nanmean(v) * 100, 2), i)
-
-            # for k, v in class_iou.items():
-            #     # logger.info('{}: {}'.format(k, v))
-            #     writer.add_scalar('val_metrics/cls_{}'.format(k), v, i)
 
             # store results
             results_val.append({'epoch': i, 
@@ -272,19 +272,28 @@ def train(cfg, rundir):
                             "mIOU": np.nanmean(score["mIoU : \t\t"]),
                         })
 
-            logger2.info('VAL ({}) | Loss: {:.4f} | classAcc 0 {:.2f} classAcc 1 {:.2f} OA {:.2f} P {:.2f} R {:.2f} F1 {:.2f} Kappa {:.2f} IOU {:.2f}'.format(
+            # logger2.info('VAL ({}) | Loss: {:.4f} | classAcc 0 {:.2f} classAcc 1 {:.2f} OA {:.2f} P {:.2f} R {:.2f} F1 {:.2f} Kappa {:.2f} IOU {:.2f}'.format(
+            #     i,
+            #     val_loss_meter.avg,
+            #     np.nanmean(score["classAcc 0 :"]).round(4)*100,
+            #     np.nanmean(score["classAcc 1 :"]).round(4)*100,
+            #     np.nanmean(score["OA: \t\t"]).round(4)*100,
+            #     np.nanmean(score["Precision : "]).round(4)*100,
+            #     np.nanmean(score["Recall : \t"]).round(4)*100,
+            #     np.nanmean(score["F1: \t\t"]).round(4)*100,
+            #     np.nanmean(score["Kappa: \t\t"]).round(4)*100,
+            #     np.nanmean(score["mIoU : \t\t"]).round(4)*100,
+            # ))
+            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_Kappa {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_Kappa {:.2f} Val_IOU {:.2f}'.format(
                 i,
                 val_loss_meter.avg,
-                np.nanmean(score["classAcc 0 :"]).round(4)*100,
-                np.nanmean(score["classAcc 1 :"]).round(4)*100,
-                np.nanmean(score["OA: \t\t"]).round(4)*100,
-                np.nanmean(score["Precision : "]).round(4)*100,
-                np.nanmean(score["Recall : \t"]).round(4)*100,
+                np.nanmean(train_score["F1: \t\t"]).round(4)*100,
+                np.nanmean(train_score["Kappa: \t\t"]).round(4)*100,
+                np.nanmean(train_score["mIoU : \t\t"]).round(4)*100,
                 np.nanmean(score["F1: \t\t"]).round(4)*100,
                 np.nanmean(score["Kappa: \t\t"]).round(4)*100,
                 np.nanmean(score["mIoU : \t\t"]).round(4)*100,
             ))
-
             val_loss_meter.reset()
             running_metrics_val.reset()
 
@@ -299,7 +308,7 @@ def train(cfg, rundir):
             #     scheduler2.step(val_IoU)
             if val_IoU > best_iou:
                 best_iou = val_IoU
-                state = {
+                torch.save({
                     "epoch": i,
                     "model_state": model.state_dict(),
                     "optimizer_state": optimizer.state_dict(),
@@ -307,13 +316,7 @@ def train(cfg, rundir):
                     "best_iou": best_iou,
                     "results_train": results_train,
                     'results_val': results_val,
-                }
-                save_path = os.path.join(writer.file_writer.get_logdir(),
-                                         "{}_best_model_temp.pkl".format(
-                                            cfg['model']['arch']))  # DCANet_Mass_road_bet_model.pkl
-                # print(cfg['model']['arch'], cfg['data']['path'])
-                # print("save_path", save_path)
-                torch.save(state, save_path)
+                }, f"{rundir}/best.pt")
 
                 if (i) == cfg['training']['train_epoch']:
                     flag=False
@@ -351,7 +354,7 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_ACNet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiRoad/config/extraction_epoch_ACNet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_ACNet2.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CANet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CMANet.yml",
@@ -364,12 +367,10 @@ if __name__ ==  "__main__":
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
 
-    while(True):
-        run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-        # run_id = random.randint(1, 100000)
-        rundir = os.path.join(cfg['results']['path'], str(run_id))
-        if not os.path.exists(rundir):
-            break
+    run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
+    # run_id = random.randint(1, 100000)
+    rundir = os.path.join(cfg['results']['path'], str(run_id))
+    os.makedirs(rundir, exist_ok=True)
 
     print("args.config", args.config)
     # print("basename", os.path.basename(args.config))
@@ -379,6 +380,6 @@ if __name__ ==  "__main__":
     writer = SummaryWriter(log_dir = rundir)
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
-    train(cfg, writer, rundir)
+    train(cfg, rundir)
     time.sleep(30)
 

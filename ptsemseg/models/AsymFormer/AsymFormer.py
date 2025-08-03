@@ -1,15 +1,14 @@
-from torch.nn import functional as F
-
-from mix_transformer import OverlapPatchEmbed, mit_b0
-from convnext import convnext_tiny, LayerNorm
-from MLPDecoder import DecoderHead
-
-# from .mix_transformer import OverlapPatchEmbed, mit_b0
-# from .convnext import convnext_tiny, LayerNorm
-# from .MLPDecoder import DecoderHead
-
-from thop import profile
 import os
+from torch.nn import functional as F
+from thop import profile, clever_format
+
+# from mix_transformer import OverlapPatchEmbed, mit_b0
+# from convnext import convnext_tiny, LayerNorm
+# from MLPDecoder import DecoderHead
+
+from .mix_transformer import OverlapPatchEmbed, mit_b0
+from .convnext import convnext_tiny, LayerNorm
+from .MLPDecoder import DecoderHead
 
 
 def load_pretrain2(net, pretrain_name):
@@ -189,7 +188,7 @@ class SCC_Module(nn.Module):
 # )
 
 class down_sample_block(nn.Module):
-    def __init__(self, inc_depth, inc_rgb, block_num):
+    def __init__(self, inc_depth, inc_rgb, block_num, bands1=3, bands2=1):
         super(down_sample_block, self).__init__()
         self.block_num = block_num
 
@@ -197,10 +196,10 @@ class down_sample_block(nn.Module):
             self.depth_stem = stem2[block_num]
             self.rgb_stem = stem1[block_num]
         else:
-            self.depth_stem = OverlapPatchEmbed(in_chans=3, embed_dim=inc_depth)
+            self.depth_stem = OverlapPatchEmbed(in_chans=bands2, embed_dim=inc_depth)
             # self.rgb_stem = stem1[0]
             self.rgb_stem = nn.Sequential(
-                            nn.Conv2d(193, 96, kernel_size=4, stride=4),
+                            nn.Conv2d(bands1, 96, kernel_size=4, stride=4),
                             LayerNorm(96, eps=1e-6, data_format="channels_first")
                         )
         self.rgb_layer = layers1[block_num]
@@ -232,7 +231,7 @@ class down_sample_block(nn.Module):
 
 
 class B0_T(nn.Module):
-    def __init__(self, n_classes):
+    def __init__(self, bands1, bands2, n_classes):
         super(B0_T, self).__init__()
 
         self.channel = [32, 64, 160, 256]
@@ -240,7 +239,8 @@ class B0_T(nn.Module):
 
         self.down_sample_1 = down_sample_block(inc_depth=self.channel[0], 
                                                inc_rgb=channel_list2[0], 
-                                               block_num=0)
+                                               block_num=0, 
+                                               bands1=bands1, bands2=bands2,)
 
         self.down_sample_2 = down_sample_block(inc_depth=self.channel[1],
                                                inc_rgb=channel_list2[1], 
@@ -286,40 +286,32 @@ class B0_T(nn.Module):
         
         rgb_out = torch.sigmoid(rgb_out)
 
-
         return rgb_out
 
 
 if __name__ == '__main__':
-    from thop import profile, clever_format
 
     # 只修改了两处，第一处是 import LayerNorm 层，第二处是将 rgb_stem 替换为     
     #  self.rgb_stem = nn.Sequential(
                             # nn.Conv2d(193, 96, kernel_size=4, stride=4),
                             # LayerNorm(96, eps=1e-6, data_format="channels_first")
 
-
-    # image = torch.randn(8, 3, 512, 512)
-    # depth = torch.randn(8, 1, 512, 512)
+    bands1 = 3
+    bands2 = 1
+    image = torch.randn(8, bands1, 512, 512)
+    depth = torch.randn(8, bands2, 512, 512)
     # image = torch.randn(8, 193, 128, 128)
     # depth = torch.randn(8, 3, 128, 128)
-    model = B0_T(n_classes=2)
-    # out = model(image, depth)
-    # print(out.shape)
+    model = B0_T(bands1, bands2, n_classes=2)
+    out = model(image, depth)
+    print(out.shape)
     # print("Done")
 
 
     ####################### FLOPs and Params #########################################
-    # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
-    # input = torch.randn(2, 3, 128, 128).to(device)
-    input=(torch.randn(2, 193, 128, 128), torch.randn(2, 3, 128, 128))
-    # print(input.shape)
-
-    flops, params = profile(model, inputs=input)
-    # flops, params = profile(model, inputs=(torch.randn(2, hsi_bands).to(args.device), torch.randn(2, sar_bands).to(args.device)))
-
-    flops, params = clever_format([flops, params])
-    print('# Model FLOPs: {}'.format(flops))
-    print('# Model Params: {}'.format(params))
-
+    # input=(torch.randn(2, 193, 128, 128), torch.randn(2, 3, 128, 128))
+    # flops, params = profile(model, inputs=input)
+    # flops, params = clever_format([flops, params])
+    # print('# Model FLOPs: {}'.format(flops))
+    # print('# Model Params: {}'.format(params))
 ################################# train ###################################################
