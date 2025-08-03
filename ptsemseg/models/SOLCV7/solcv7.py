@@ -1,16 +1,15 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-# from aspp import _ASPP
-# from models.utils import initialize_weights
-from models.SOLCV7.aspp import BasicRFB
 from functools import reduce
+from .aspp import BasicRFB
+# from aspp import BasicRFB
 
 def initialize_weights(*models):
     for model in models:
         for module in model.modules():
             if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-                nn.init.kaiming_normal(module.weight)
+                nn.init.kaiming_normal_(module.weight)
                 if module.bias is not None:
                     module.bias.data.zero_()
             elif isinstance(module, nn.BatchNorm2d):
@@ -72,17 +71,16 @@ class SAGate(nn.Module):
 
 
 class SOLCV7(nn.Module):
-    def __init__(self, num_classes, atrous_rates=[6,12,18]):
+    def __init__(self, bands1, bands2, num_classes, atrous_rates=[6,12,18]):
         super(SOLCV7, self).__init__()
 
-
-        self.sar_en1 = _EncoderBlock(1, 64) # 256->128, 1->64
+        self.sar_en1 = _EncoderBlock(bands2, 64) # 256->128, 1->64
         self.sar_en2 = _EncoderBlock(64, 256)  # 128->64, 64->256
         self.sar_en3 = _EncoderBlock(256, 512)  # 64->32, 256->512
         self.sar_en4 = _EncoderBlock(512, 1024, downsample=False)  # 32->32 *** , 512->1024
         self.sar_en5 = _EncoderBlock(1024, 2048, downsample=False)  # 32->32 *** , 1024->2048
 
-        self.opt_en1 = _EncoderBlock(4, 64) # 256->128, 4->64
+        self.opt_en1 = _EncoderBlock(bands1, 64) # 256->128, 4->64
         self.opt_en2 = _EncoderBlock(64, 256)  # 128->64, 64->256
         self.opt_en3 = _EncoderBlock(256, 512)  # 64->32, 256->512
         self.opt_en4 = _EncoderBlock(512, 1024, downsample=False)  # 32->32 *** , 512->1024
@@ -100,10 +98,9 @@ class SOLCV7(nn.Module):
         self.sar_high_level_down = nn.Conv2d(2048, 256, kernel_size=1, stride=1, padding=0)
         self.opt_high_level_down = nn.Conv2d(2048, 256, kernel_size=1, stride=1, padding=0)
 
-
         initialize_weights(self)
 
-    def forward(self, sar, opt):
+    def forward(self, opt, sar):
         sar_en1 = self.sar_en1(sar)
         sar_en2 = self.sar_en2(sar_en1)
         sar_en3 = self.sar_en3(sar_en2)
@@ -122,20 +119,26 @@ class SOLCV7(nn.Module):
 
         high_level_features = self.aspp(high_level_features)
 
-        high_level_features = F.upsample(high_level_features, sar_en2.size()[2:], mode='bilinear')
+        high_level_features = F.interpolate(high_level_features, sar_en2.size()[2:], mode='bilinear')
 
         low_high = torch.cat([low_level_features, high_level_features], 1)
 
         sar_opt_decoder = self.decoder(low_high)
         
-        return F.upsample(sar_opt_decoder, sar.size()[2:], mode='bilinear')
+        return F.interpolate(sar_opt_decoder, sar.size()[2:], mode='bilinear')
 
 
 if __name__ == "__main__":
-    model = SOLCV7(num_classes=8)
-    model.train()
-    sar = torch.randn(2, 1, 256, 256)
-    opt = torch.randn(2, 4, 256, 256)
-    print(model)
-    print("input:", sar.shape, opt.shape)
-    print("output:", model(sar, opt).shape)
+
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+    bands1 = 193  # gaofen
+    bands2 = 3  # lidar
+
+    # x = torch.randn(4, bands1, 480, 640, device=device)
+    # y = torch.randn(4, bands2, 480, 640, device=device)
+    x = torch.randn(4, bands1, 512, 512, device=device)
+    y = torch.randn(4, bands2, 512, 512, device=device)
+
+    model = SOLCV7(bands1, bands2, num_classes=8).to(device)
+    print("output:", model(x, y).shape)

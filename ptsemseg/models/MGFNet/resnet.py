@@ -172,7 +172,7 @@ class ResNet(nn.Module):
         feat5   = self.layer4(feat4)
         return [feat1, feat2, feat3, feat4, feat5]
 
-def resnet50(in_channels=3, pretrained=False, **kwargs):
+def sresnet50(in_channels=3, pretrained=False, **kwargs):
     model = ResNet(in_channels=in_channels, block=Bottleneck, layers=[3, 4, 6, 3], **kwargs)
     if pretrained:
         pretrained_dict = model_zoo.load_url('https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth', model_dir='pretrains')

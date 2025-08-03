@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.SOLCV7.component import _ConvBnReLU
+# from component import _ConvBnReLU
+from .component import _ConvBnReLU
 
 class _ImagePool(nn.Module):
     def __init__(self, in_ch, out_ch):

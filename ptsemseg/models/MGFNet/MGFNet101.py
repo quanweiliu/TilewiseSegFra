@@ -251,5 +251,5 @@ if __name__ == "__main__":
     x = torch.randn(2, bands1, 512, 512, device=device)
     y = torch.randn(2, bands2, 512, 512, device=device)
 
-    model = MGFNet(bands1, bands2, num_classes=1, pretrained=True).to(device)
+    model = MGFNet101(bands1, bands2, num_classes=1, pretrained=True).to(device)
     print("output:", model(x, y).shape)

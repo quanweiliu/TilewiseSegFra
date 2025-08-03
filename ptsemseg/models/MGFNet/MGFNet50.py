@@ -7,7 +7,7 @@ import math
 # from .resnet import resnet101
 # from .backbone import BN_MOMENTUM, hrnet_classification
 
-from resnet import resnet50, resnet101
+from resnet import sresnet50, resnet101
 from backbone import BN_MOMENTUM, hrnet_classification
 
 class eca_block(nn.Module):
@@ -139,7 +139,7 @@ class MGFNet50(nn.Module):
     def __init__(self, bands1, bands2, num_classes=21, backbone='hrnetv2_w48', pretrained=False):
         super(MGFNet50, self).__init__()
         self.opt_encoder = HRnet_Backbone(bands1, backbone=backbone, pretrained=pretrained)
-        self.sar_encoder = resnet50(in_channels=bands2, pretrained=pretrained)
+        self.sar_encoder = sresnet50(in_channels=bands2, pretrained=pretrained)
         last_inp_channels = np.sum(self.opt_encoder.model.pre_stage_channels)
 
         self.last_layer = nn.Sequential(
@@ -251,5 +251,5 @@ if __name__ == "__main__":
     x = torch.randn(2, bands1, 512, 512, device=device)
     y = torch.randn(2, bands2, 512, 512, device=device)
 
-    model = MGFNet(bands1, bands2, num_classes=1, pretrained=True).to(device)
+    model = MGFNet50(bands1, bands2, num_classes=1, pretrained=True).to(device)
     print("output:", model(x, y).shape)

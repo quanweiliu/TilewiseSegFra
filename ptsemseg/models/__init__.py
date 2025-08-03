@@ -77,6 +77,8 @@ def get_model(model_dict, bands1, bands2, classes, version=None):
     elif name == "MGFNet101":
         model = model(bands1, bands2, num_classes=classes, **param_dict)
 
+    elif name == "SOLC":
+        model = model(bands1, bands2, num_classes=classes, **param_dict)
     elif name == "SFAFMA50":
         model = model(bands1, bands2, n_classes=classes)
     elif name == "SFAFMA101":
@@ -102,6 +104,10 @@ def _get_model_instance(name):
             "AsymFormer": B0_T,
             "ACNet": ACNet,
             "CANet": CANet,
+            "CMANet": CMAnet,
+            "CMGFNet18": CMGFNet18,
+            "CMGFNet34": CMGFNet34,
+            "CMFNet": CMFNet,
             "DE_CCFNet_18": DE_CCFNet_18,
             "DE_CCFNet_34": DE_CCFNet_34,
             "DE_DCGCN": DEDCGCNEE,
@@ -109,16 +115,12 @@ def _get_model_instance(name):
             "MCANet": MCANet,
             "MGFNet50": MGFNet50,
             "MGFNet101": MGFNet101,
+            "PCGNet18": PCGNet18,
+            "PCGNet34": PCGNet34,
             "SFAFMA50": SFAFMA50,
             "SFAFMA101": SFAFMA101,
             "SFAFMA152": SFAFMA152,
-            "PCGNet18": PCGNet18,
-            "PCGNet34": PCGNet34,
-
-            "CMANet": CMAnet,
-            "CMGFNet18": CMGFNet18,
-            "CMGFNet34": CMGFNet34,
-            "CMFNet": CMFNet,
+            "SOLC": SOLCV7,
             "PACSCNet": PACSCNet,     
             "RDFNet": RDF,     
         }[name]

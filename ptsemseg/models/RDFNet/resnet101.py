@@ -1,8 +1,9 @@
 import os
 import sys
 import torch
-from collections import OrderedDict
 import torch.nn as nn
+import torch.utils.model_zoo as model_zoo
+from collections import OrderedDict
 
 
 class Bottleneck(nn.Module):
@@ -111,17 +112,30 @@ class ResNet(nn.Module):
         else:
             return x
 
-    
 def get_resnet50(dilation=[1,1,1,1], bn_momentum=0.0003, is_fpn=False, is_pretrained=False):
     model = ResNet(Bottleneck, [3, 4, 6, 3], dilation=dilation, bn_momentum=bn_momentum, is_fpn=is_fpn)
     
     if is_pretrained:
-        f_path = r'.cache\torch\hub\checkpoints\resnet50-19c8e357.pth'
-        if not os.path.exists(f_path):
-            raise FileNotFoundError('The pretrained model cannot be found.')
-        weights = torch.load(f_path)
-        model.load_state_dict(weights, strict=False)
+        # 定义模型URL和缓存目录
+        model_url = 'https://download.pytorch.org/models/resnet50-19c8e357.pth'
+        cache_dir = 'pretrains' # 模型将被下载到项目根目录下的 'pretrains' 文件夹
 
+        # 从URL加载预训练权重，如果本地已存在则直接读取
+        pretrained_dict = model_zoo.load_url(model_url, model_dir=cache_dir)
+
+        # 获取你当前模型的权重字典
+        model_dict = model.state_dict()
+
+        # 过滤掉预训练权重中 key 为 'conv1.weight' 的层
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+
+        # 合并权重
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict, strict=False)
+        print('loadding pretrained model:ResNet50')
+
+    # del model.avgpool
+    # del model.fc
     return model
 
 
@@ -129,12 +143,27 @@ def get_resnet101(dilation=[1,1,1,1], bn_momentum=0.0003, is_fpn=False, is_pretr
     model = ResNet(Bottleneck, [3, 4, 23, 3], dilation=dilation, bn_momentum=bn_momentum, is_fpn=is_fpn)
     
     if is_pretrained:
-        f_path = r'.cache\torch\hub\checkpoints\resnet101-63fe2227.pth'
-        if not os.path.exists(f_path):
-            raise FileNotFoundError('The pretrained model cannot be found.')
-        weights = torch.load(f_path)
-        model.load_state_dict(weights, strict=False)
+        # 定义模型URL和缓存目录
+        model_url = 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth'
+        cache_dir = 'pretrains' # 模型将被下载到项目根目录下的 'pretrains' 文件夹
 
+        # 从URL加载预训练权重，如果本地已存在则直接读取
+        pretrained_dict = model_zoo.load_url(model_url, model_dir=cache_dir)
+
+        # 获取你当前模型的权重字典
+        model_dict = model.state_dict()
+
+        # 过滤掉预训练权重中 key 为 'conv1.weight' 的层
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+        print("pretrained_dict keys:", pretrained_dict.keys())
+
+        # 合并权重
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict, strict=False)
+        print('loadding pretrained model:ResNet101')
+
+    # del model.avgpool
+    # del model.fc
     return model
 
 

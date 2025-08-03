@@ -8,34 +8,23 @@ from torch.autograd import Variable
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 
-from ptsemseg.models.DuiBi.RDFNet.blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
-from ptsemseg.models.DuiBi.RDFNet.resnet101 import get_resnet50, get_resnet101
-
-# from blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
-# from resnet101 import get_resnet50, get_resnet101
-
-# from blocks import (MMFBlock, RefineNetBlock, ResidualConvUnit,
-#                       RefineNetBlockImprovedPooling, ChainedResidualPool)
-# from resnet101 import get_resnet101
+from blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
+from resnet101 import get_resnet50, get_resnet101
 
 
-class RDF(nn.Module):
-    def __init__(self, input_size=512, num_classes=1, bn_momentum=0.0003, features=256, pretained=False):
-        super(RDF, self).__init__()
+class RDF50(nn.Module):
+    def __init__(self, bands1, bands2, input_size=512, num_classes=1, bn_momentum=0.0003, features=256, pretained=False):
+        super(RDF50, self).__init__()
 
         self.Resnet50rgb = get_resnet50(bn_momentum=bn_momentum, is_pretrained=pretained)
         self.Resnet50hha = get_resnet50(bn_momentum=bn_momentum, is_pretrained=pretained)
 
-        # self.Resnet101rgb = get_resnet101(bn_momentum=bn_momentum,is_pretrained=pretained)
-        # self.Resnet101hha = get_resnet101(bn_momentum=bn_momentum,is_pretrained=pretained)
-
         # This is the four stages of each resnet.
         self.rgb_conv_bn_relu1=nn.Sequential(
-            nn.Conv2d(193, 64, 3, stride=2, padding=1, bias=False),
+            nn.Conv2d(bands1, 64, 3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64, momentum=bn_momentum),
             nn.ReLU(inplace=False)
         )
-
         self.rgblayer1 = nn.Sequential(self.rgb_conv_bn_relu1,
                                        self.Resnet50rgb.conv2, 
                                        self.Resnet50rgb.bn2, 
@@ -46,38 +35,13 @@ class RDF(nn.Module):
                                        self.Resnet50rgb.maxpool, 
                                        self.Resnet50rgb.layer1)
         
-        # self.rgblayer1 = nn.Sequential(self.rgb_conv_bn_relu1,
-        #                                self.Resnet101rgb.conv2, 
-        #                                self.Resnet101rgb.bn2, 
-        #                                self.Resnet101rgb.relu2,
-        #                                self.Resnet101rgb.conv3, 
-        #                                self.Resnet101rgb.bn3, 
-        #                                self.Resnet101rgb.relu3,
-        #                                self.Resnet101rgb.maxpool, 
-        #                                self.Resnet101rgb.layer1)
-
-        # self.rgblayer1 = nn.Sequential(self.Resnet101rgb.conv1, 
-        #                                self.Resnet101rgb.bn1, 
-        #                                self.Resnet101rgb.relu1,
-        #                                 self.Resnet101rgb.conv2, 
-        #                                 self.Resnet101rgb.bn2, 
-        #                                 self.Resnet101rgb.relu2,
-        #                                 self.Resnet101rgb.conv3, 
-        #                                 self.Resnet101rgb.bn3, 
-        #                                 self.Resnet101rgb.relu3,
-        #                                 self.Resnet101rgb.maxpool, 
-        #                                 self.Resnet101rgb.layer1)
         
-        # self.rgblayer2 = self.Resnet101rgb.layer2
-        # self.rgblayer3 = self.Resnet101rgb.layer3
-        # self.rgblayer4 = self.Resnet101rgb.layer4
-
         self.rgblayer2 = self.Resnet50rgb.layer2
         self.rgblayer3 = self.Resnet50rgb.layer3
         self.rgblayer4 = self.Resnet50rgb.layer4
 
         self.hha_conv_bn_relu1=nn.Sequential(
-            nn.Conv2d(3, 64, 3, stride=2, padding=1, bias=False),
+            nn.Conv2d(bands2, 64, 3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64, momentum=bn_momentum),
             nn.ReLU(inplace=False)
         )
@@ -92,31 +56,6 @@ class RDF(nn.Module):
                                        self.Resnet50hha.maxpool, 
                                        self.Resnet50hha.layer1)
         
-        # self.hhalayer1 = nn.Sequential(self.hha_conv_bn_relu1,
-        #                                self.Resnet101hha.conv2, 
-        #                                self.Resnet101hha.bn2, 
-        #                                self.Resnet101hha.relu2,
-        #                                self.Resnet101hha.conv3, 
-        #                                self.Resnet101hha.bn3, 
-        #                                self.Resnet101hha.relu3,
-        #                                self.Resnet101hha.maxpool, 
-        #                                self.Resnet101hha.layer1)
-        
-        # self.hhalayer1 = nn.Sequential(self.Resnet101hha.conv1, 
-        #                                self.Resnet101hha.bn1, 
-        #                                self.Resnet101hha.relu1,
-        #                             self.Resnet101hha.conv2, 
-        #                             self.Resnet101hha.bn2, 
-        #                             self.Resnet101hha.relu2,
-        #                             self.Resnet101hha.conv3, 
-        #                             self.Resnet101hha.bn3, 
-        #                             self.Resnet101hha.relu3,
-        #                             self.Resnet101hha.maxpool, 
-        #                             self.Resnet101hha.layer1)
-        
-        # self.hhalayer2 = self.Resnet101hha.layer2
-        # self.hhalayer3 = self.Resnet101hha.layer3
-        # self.hhalayer4 = self.Resnet101hha.layer4
 
         self.hhalayer2 = self.Resnet50hha.layer2
         self.hhalayer3 = self.Resnet50hha.layer3
@@ -184,22 +123,15 @@ class RDF(nn.Module):
         # return out
         return F.sigmoid(out)
 
-def main():
-    num_classes = 10
-    # in_batch, in_h, in_w = 4, 512, 512
-    # in_batch, in_h, in_w = 4, 256, 256
-    in_batch, in_h, in_w = 4, 128, 128
-
-    rgb_inchannel = 193
-    lidar_inchannel = 3
-
-    left = torch.randn(in_batch, rgb_inchannel, in_h, in_w)
-    right = torch.randn(in_batch, lidar_inchannel, in_h, in_w)
-
-    # net = RDF(input_size=in_h, num_classes=num_classes, pretained=True)
-    net = RDF(input_size=in_h, num_classes=num_classes, pretained=False)
-    out = net(left, right)
-    print(out.shape)
 
 if __name__ == '__main__':
-    main()
+    bands1 = 4
+    bands2 = 2
+    num_classes = 1
+
+    left = torch.randn(4, bands1, 256, 256)
+    right = torch.randn(4, bands2, 256, 256)
+
+    net = RDF50(bands1, bands2, input_size=256, num_classes=num_classes, pretained=True)
+    out = net(left, right)
+    print(out.shape)
