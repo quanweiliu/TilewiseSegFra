@@ -3,12 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from .backbone import BN_MOMENTUM, hrnet_classification
-# 改成绝对导入
-# from models.MGFNet.backbone import BN_MOMENTUM, hrnet_classification
 
-from .resnet import resnet101
-from math import sqrt
+# from .resnet import resnet101
+# from .backbone import BN_MOMENTUM, hrnet_classification
+
+from resnet import resnet50, resnet101
+from backbone import BN_MOMENTUM, hrnet_classification
 
 class eca_block(nn.Module):
     def __init__(self, channel, b=1, gamma=2):
@@ -85,9 +85,9 @@ class MGFM(nn.Module):
         return f
 
 class HRnet_Backbone(nn.Module):
-    def __init__(self, backbone = 'hrnetv2_w18', pretrained = False):
+    def __init__(self, in_channels, backbone='hrnetv2_w18', pretrained=False):
         super(HRnet_Backbone, self).__init__()
-        self.model    = hrnet_classification(backbone = backbone, pretrained = pretrained)
+        self.model = hrnet_classification(in_channels, backbone=backbone, pretrained=pretrained)
         del self.model.incre_modules
         del self.model.downsamp_modules
         del self.model.final_layer
@@ -135,12 +135,12 @@ class HRnet_Backbone(nn.Module):
         
         return y_list
 
-class MGFNet(nn.Module):
-    def __init__(self, num_classes = 21, backbone = 'hrnetv2_w48', pretrained = False):
-        super(MGFNet, self).__init__()
-        self.opt_encoder       = HRnet_Backbone(backbone = backbone, pretrained = pretrained)
-        self.sar_encoder       = resnet101(pretrained)
-        last_inp_channels   = np.sum(self.opt_encoder.model.pre_stage_channels)
+class MGFNet50(nn.Module):
+    def __init__(self, bands1, bands2, num_classes=21, backbone='hrnetv2_w48', pretrained=False):
+        super(MGFNet50, self).__init__()
+        self.opt_encoder = HRnet_Backbone(bands1, backbone=backbone, pretrained=pretrained)
+        self.sar_encoder = resnet50(in_channels=bands2, pretrained=pretrained)
+        last_inp_channels = np.sum(self.opt_encoder.model.pre_stage_channels)
 
         self.last_layer = nn.Sequential(
             nn.Conv2d(in_channels=last_inp_channels, out_channels=last_inp_channels, kernel_size=1, stride=1, padding=0),
@@ -195,14 +195,12 @@ class MGFNet(nn.Module):
             nn.BatchNorm2d(24),
             nn.ReLU(inplace=True)
         )
-    def forward(self, x):
-        opt = x[:, :20, :, :]    # 前 20 个通道为 HSI 数据
-        sar = x[:, 20:21, :, :]  # 第 21 个通道为 SAR 数据
-        H, W = opt.size(2), opt.size(3)
+    def forward(self, x, y):
+        H, W = x.size(2), y.size(3)
 
         # MFE Network
-        [feat1_opt, feat2_opt, feat3_opt, feat4_opt] = self.opt_encoder(opt)
-        [feat1_sar, feat2_sar, feat3_sar, feat4_sar, feat5_sar] = self.sar_encoder(sar)
+        [feat1_opt, feat2_opt, feat3_opt, feat4_opt] = self.opt_encoder(x)
+        [feat1_sar, feat2_sar, feat3_sar, feat4_sar, feat5_sar] = self.sar_encoder(y)
 
         # Shortcut Layer
         feat4_opt = self.shortcut_conv1(feat4_opt)
@@ -245,10 +243,13 @@ class MGFNet(nn.Module):
         #     param.requires_grad = True
 
 if __name__ == "__main__":
-    model = MGFNet(num_classes=1)
-    model.train()
-    sar = torch.randn(8, 1, 256, 256)
-    opt = torch.randn(8, 20, 256, 256)
-    print(model)
-    print("input:", sar.shape, opt.shape)
-    print("output:", model(opt, sar).shape)
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+    bands1 = 193  # gaofen
+    bands2 = 3  # lidar
+
+    x = torch.randn(2, bands1, 512, 512, device=device)
+    y = torch.randn(2, bands2, 512, 512, device=device)
+
+    model = MGFNet(bands1, bands2, num_classes=1, pretrained=True).to(device)
+    print("output:", model(x, y).shape)

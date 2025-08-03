@@ -185,7 +185,7 @@ class HighResolutionModule(nn.Module):
 
 
 class HighResolutionNet_Classification(nn.Module):
-    def __init__(self, num_classes, backbone):
+    def __init__(self, in_channels, num_classes, backbone):
         super(HighResolutionNet_Classification, self).__init__()
         num_filters = {
             'hrnetv2_w18' : [18, 36, 72, 144],
@@ -193,7 +193,7 @@ class HighResolutionNet_Classification(nn.Module):
             'hrnetv2_w48' : [48, 96, 192, 384],
         }[backbone]
         # stem net
-        self.conv1  = nn.Conv2d(20, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1  = nn.Conv2d(in_channels, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn1    = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
         self.conv2  = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn2    = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
@@ -365,16 +365,21 @@ class HighResolutionNet_Classification(nn.Module):
         y = self.classifier(y)
 
         return y
-        
-def hrnet_classification(pretrained=False, backbone='hrnetv2_w18'):
-    model = HighResolutionNet_Classification(num_classes=1000, backbone=backbone)
+
+def hrnet_classification(in_channels, pretrained=False, backbone='hrnetv2_w18'):
+    model = HighResolutionNet_Classification(in_channels, num_classes=1000, backbone=backbone)
     if pretrained:
         model_urls = {
             'hrnetv2_w18' : "https://github.com/bubbliiiing/hrnet-pytorch/releases/download/v1.0/hrnetv2_w18_imagenet_pretrained.pth",
             'hrnetv2_w32' : "https://github.com/bubbliiiing/hrnet-pytorch/releases/download/v1.0/hrnetv2_w32_imagenet_pretrained.pth",
             'hrnetv2_w48' : "https://github.com/bubbliiiing/hrnet-pytorch/releases/download/v1.0/hrnetv2_w48_imagenet_pretrained.pth",
         }
-        state_dict = load_state_dict_from_url(model_urls[backbone], model_dir="pretrains")
-        model.load_state_dict(state_dict)
-    print('loadding pretrained model:HRNet')
+        pretrained_dict = load_state_dict_from_url(model_urls[backbone], model_dir="pretrains")
+        
+        model_dict = model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
+        print('loadding pretrained model:HRNet')
+        
     return model

@@ -413,11 +413,9 @@ class CA_Block(nn.Module):
         return s_h,s_w
 
 
-
-
-class PCGNet(nn.Module):
+class PCGNet18(nn.Module):
     def __init__(self,n_classes=2, is_pretrained="ResNet18_Weights.IMAGENET1K_V1"):
-        super(PCGNet, self).__init__()
+        super(PCGNet18, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         reduction=[1, 2, 4, 8, 16]
@@ -569,7 +567,7 @@ if __name__=="__main__":
 
     x = torch.randn(4, 224, 128, 128, device=device)
     y = torch.randn(4, 3, 128, 128, device=device)
-    model = PCGNet(n_classes=2, is_pretrained="ResNet18_Weights.IMAGENET1K_V1").to(device)
+    model = PCGNet18(n_classes=2, is_pretrained="ResNet18_Weights.IMAGENET1K_V1").to(device)
 
     output = model(x, y)
     print("output", output.shape)

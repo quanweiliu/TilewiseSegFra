@@ -172,33 +172,31 @@ class ResNet(nn.Module):
         feat5   = self.layer4(feat4)
         return [feat1, feat2, feat3, feat4, feat5]
 
-def resnet50(pretrained=False,in_channels=3, **kwargs):
+def resnet50(in_channels=3, pretrained=False, **kwargs):
     model = ResNet(in_channels=in_channels, block=Bottleneck, layers=[3, 4, 6, 3], **kwargs)
     if pretrained:
-
         pretrained_dict = model_zoo.load_url('https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth', model_dir='pretrains')
 
         model_dict = model.state_dict()
-
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
-        print('loadding pretrained model')
-
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
+        print('loadding pretrained model:ResNet50')
 
     del model.avgpool
     del model.fc
     return model
 
-def resnet101(pretrained=False,in_channels=1, **kwargs):
-
+def resnet101(in_channels=1, pretrained=False, **kwargs):
     model = ResNet(in_channels=in_channels, block=Bottleneck, layers=[3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(
-            model_zoo.load_url('https://download.pytorch.org/models/resnet101-5d3b4d8f.pth', model_dir='pretrains'),
-            strict=False)
-        
-    print('loadding pretrained model:ResNet101')
+        pretrained_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet101-5d3b4d8f.pth', model_dir='pretrains')
+
+        model_dict = model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k not in ['conv1.weight']}
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
+        print('loadding pretrained model:ResNet101')
 
     del model.avgpool
     del model.fc
