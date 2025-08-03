@@ -6,8 +6,8 @@
 ||**Single modality models**||
 | [FDGC](https://github.com/quanweiliu/FDGC)      | [A Fast Dynamic Graph Convolutional Network and CNN Parallel Network for Hyperspectral Image Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/abstract/document/9785802)       | TGRS       | 2022       | 
 ||**Multimodal models**||
-| [RDFNet]()      | [RDFNet: RGB-D Multi-level Residual Feature Fusion for Indoor Semantic Segmentation](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | CVPR       | 2017       |
-
+| RDFNet      | [RDFNet: RGB-D Multi-level Residual Feature Fusion for Indoor Semantic Segmentation](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | CVPR       | 2017       |
+| DECCFNet      | [A Deep Cross-Modal Fusion Network for Road Extraction With High-Resolution Imagery and LiDAR Data](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | TGRS       | 2024       |
 
 # Description
 This repository proposed a new taxonomy to descibe existed tile based image semantic segmenation models.
