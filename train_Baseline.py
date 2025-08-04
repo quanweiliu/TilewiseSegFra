@@ -1,6 +1,7 @@
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
 print('using GPU %s' % ','.join(map(str, [1])))
+
 import logging
 import random
 import shutil
@@ -18,7 +19,6 @@ from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
-
 from dataLoader.dataloader import Road_loader
 # from dataLoader.dataloader_ISPRS import ISPRS_loader
 from ptsemseg import get_logger
@@ -55,6 +55,9 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
 
+    print("img_size", img_size)
+
+
     # print("data_path", data_path)
 
     # Setup Dataloader
@@ -84,9 +87,6 @@ def train(cfg, rundir):
     # Set Model
     model_name = cfg['model']
     model = get_model(model_name, bands1, bands2, classes=classes).to(device)
-
-    # state = torch.load(args.model_path)["model_state"]  # single-gpu
-    # model.load_state_dict(state)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -126,7 +126,7 @@ def train(cfg, rundir):
     # 初始化 log-dir 用于后续画图
     logger2 = initLogger(cfg['model']['arch'], rundir)
 
-################################# retrain ##################################################
+################################# retrain ###################################################
     if args.model_path is not None:
         resume = torch.load(args.model_path, weights_only=False)
         start_epoch = resume["epoch"]
@@ -157,7 +157,6 @@ def train(cfg, rundir):
         i += 1
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
-        # logger.info('current lr: %.6f', optimizer.state_dict()['param_groups'][0]['lr'])
         for (gaofens, lidars, labels) in tqdm(trainloader):
             model.train()
             gaofens = gaofens.to(device)
@@ -171,7 +170,7 @@ def train(cfg, rundir):
             outputs = model(gaofens, lidars)
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
-            loss.backward()            # 要在 outputs[outputs > cfg['threshold']] = 1 操作前执行，outputs 在这个操作中会改变
+            loss.backward()
             optimizer.step()
 
             if cfg["data"]["classification"] == "Multi":
@@ -189,7 +188,7 @@ def train(cfg, rundir):
             running_metrics_train.update(gt, pred)  # update confusion_matrix
             train_loss_meter.update(loss.item())  # update sum_loss
 
-            time_meter.update(time.time() - start_ts)
+        time_meter.update(time.time() - start_ts)
 
         ############## print result for each train epoch ############################
         print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
@@ -218,11 +217,15 @@ def train(cfg, rundir):
                     labels_val = labels_val.to(device)
 
                     # ################ output ################
-                    # outputs = model(gaofens_val)
-                    outputs = model(gaofens_val, lidars_val)
+                    outputs = model(gaofens_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
+                    if cfg["data"]["classification"] == "Multi":
+                        pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
 
-                    pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
+                    elif cfg["data"]["classification"] == "Binary":
+                        outputs[outputs > cfg['threshold']] = 1
+                        outputs[outputs <= cfg['threshold']] = 0
+                        pred = outputs.data.cpu().numpy()
                     gt = labels_val.data.cpu().numpy()
 
                     # update each val batchsize metric and loss
@@ -307,17 +310,16 @@ if __name__ ==  "__main__":
         default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline34.yml",
         help="Configuration file to use")
-
-    parser.add_argument("--model_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0708-1511-DE_DCGCN", "best.pt"),
-                        default = None, 
-                        help="Path to the saved model")
+    parser.add_argument(
+        "--model_path", 
+        type = str, 
+        default = "", 
+        help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
 
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-    # run_id = random.randint(1, 100000)
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)
 
@@ -326,10 +328,8 @@ if __name__ ==  "__main__":
     # print("basename[-4]", os.path.basename(args.config)[:-4])
     # print('RUNDIR: {}'.format(rundir))
 
-    # writer = SummaryWriter(log_dir = rundir)
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
     train(cfg, rundir)
     time.sleep(30)
-
 

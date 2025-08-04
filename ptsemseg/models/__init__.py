@@ -1,8 +1,10 @@
 import copy
 
-from ptsemseg.models.Baseline.Resnet34_base_decoder1 import Resnet_base34
-from ptsemseg.models.Baseline.Resnet18_single_branch import CRFN_base18
-
+from ptsemseg.models.Baseline.Resnet18_single_branch import CRFN_base18_single
+from ptsemseg.models.Baseline.Resnet18_double_branch import CRFN_base18_double
+from ptsemseg.models.Baseline.Resnet34_single_decoder1 import Resnet_base34_decoder1
+from ptsemseg.models.Baseline.Resnet34_single_decoder2 import Resnet_base34_decoder2
+from ptsemseg.models.Baseline.Resnet34_double_branch import Resnet_base34_double
 
 from ptsemseg.models.ACNet.ACNet import ACNet
 from ptsemseg.models.AsymFormer.AsymFormer import B0_T
@@ -44,11 +46,17 @@ def get_model(model_dict, bands1, bands2, classes, input_size=256):
 
     print("model name", name)
 
-    # "前两个是 resNet 50"
-    if name == "baseline18":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", data='lidar', **param_dict)
-    elif name == "baseline34":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", data='lidar',**param_dict)
+    if name == "CRFN_base18_single":
+        model = model(bands1, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", **param_dict)
+    elif name == "CRFN_base18_double":
+        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", **param_dict)
+    elif name == "Resnet_base34_decoder1":
+        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+    elif name == "Resnet_base34_decoder2":
+        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+    elif name == "Resnet_base34_double":
+        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+
     elif name == "AsymFormer":
         model = model(bands1, bands2, n_classes=classes)
     elif name == "ACNet":
@@ -103,8 +111,11 @@ def get_model(model_dict, bands1, bands2, classes, input_size=256):
 def _get_model_instance(name):
     try:
         return {
-            "baseline18": CRFN_base18,
-            "baseline34": Resnet_base34,
+            "baseline18_single": CRFN_base18_single,
+            "baseline18_double": CRFN_base18_double,
+            "baseline34_single_decoder1": Resnet_base34_decoder1,
+            "baseline34_single_decoder2": Resnet_base34_decoder2,
+            "baseline34_double": Resnet_base34_double,
 
             "ACNet": ACNet,
             "AsymFormer": B0_T,

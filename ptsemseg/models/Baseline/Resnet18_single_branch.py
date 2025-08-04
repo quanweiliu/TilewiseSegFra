@@ -18,37 +18,27 @@ import torch.nn.functional as F
 # # from ptsemseg.models.Baseline.decoder import decoder
 # from ptsemseg.models.Baseline.utils import ConvBNReLU
 
-# from decoder_zoos import DecoderBlock
-# from utils import ConvBNReLU
+# from .decoder_zoos import DecoderBlock
+# from .utils import ConvBNReLU
 
-from .decoder_zoos import DecoderBlock
-from .utils import ConvBNReLU
+from decoder_zoos import DecoderBlock
+from utils import ConvBNReLU
 
 nonlinearity = partial(F.relu, inplace=True)
 
 
-class CRFN_base18(nn.Module):
-    def __init__(self, n_classes=2, is_pretrained="ResNet18_Weights.DEFAULT", data='rgb'):
-        super(CRFN_base18, self).__init__()
+class CRFN_base18_single(nn.Module):
+    def __init__(self, bands, n_classes=2, is_pretrained="ResNet18_Weights.DEFAULT"):
+        super(CRFN_base18_single, self).__init__()
         filters = [64, 128, 256, 512]  # ResNet18
-        reduction = [1, 2, 4, 8, 16]
         resnet = models.resnet18(weights=is_pretrained)
 
-        # rgb-decoder
-        if data == 'rgb':
-            self.first = nn.Sequential(
-                ConvBNReLU(224, filters[0]//2, ks=3, stride=2, padding=1),
-                ConvBNReLU(filters[0]//2, filters[0]//2, ks=3, stride=1, padding=1),
-                ConvBNReLU(filters[0]//2, filters[0], ks=3, stride=1, padding=1),
-            )
-
-        # lidar-decoder
-        if data == 'lidar':
-            self.first = nn.Sequential(
-                ConvBNReLU(3, filters[0]//2, ks=3, stride=2, padding=1),
-                ConvBNReLU(filters[0]//2, filters[0]//2, ks=3, stride=1, padding=1),
-                ConvBNReLU(filters[0]//2, filters[0], ks=3, stride=1, padding=1),
-            )
+        # rgb and lidar -decoder
+        self.first = nn.Sequential(
+            ConvBNReLU(bands, filters[0]//2, ks=3, stride=2, padding=1),
+            ConvBNReLU(filters[0]//2, filters[0]//2, ks=3, stride=1, padding=1),
+            ConvBNReLU(filters[0]//2, filters[0], ks=3, stride=1, padding=1),
+        )
 
         self.encoder1 = nn.Sequential(
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
@@ -73,6 +63,19 @@ class CRFN_base18(nn.Module):
             # nn.Dropout(0.1),
             nn.Conv2d(32, n_classes - 1, 3, padding=1),
         )
+
+        self._initalize_weights()
+
+    def _initalize_weights(self):
+        init_set = {nn.Conv2d, nn.ConvTranspose2d, nn.Linear}
+        for module in self.modules():
+            if type(module) in init_set:
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                if module.bias is not None:
+                    module.bias.data.zero_()
+            elif isinstance(module, nn.BatchNorm2d):
+                module.weight.data.fill_(1)
+                module.bias.data.zero_()
 
     def forward(self, x):
         # encoder
@@ -101,17 +104,17 @@ class CRFN_base18(nn.Module):
 if __name__=="__main__":
     # model=SEBlock(128)
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    bands = 14
+    x = torch.randn(4, bands, 128, 128, device=device)
 
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128 ,128, device=device)
-
-    model = CRFN_base18(data='rgb').to(device)
+    model = CRFN_base18_single(bands).to(device)
     output = model(x)
     print("output", output.shape)
 
-
-    model = CRFN_base18(data='lidar').to(device)
-    output = model(y)
+    bands = 28
+    x = torch.randn(4, bands, 128, 128, device=device)
+    model = CRFN_base18_single(bands).to(device)
+    output = model(x)
     print("output", output.shape)
     # summary(model.to(device),x,y)
 

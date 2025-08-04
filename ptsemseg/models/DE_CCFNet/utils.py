@@ -106,9 +106,10 @@ class DecoderBlock6(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def forward(self,x):
-        x=self.conv(x)
-        x = self.up(self.conv1(x))
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.conv1(x)
+        x = self.up(x)
         return x
     
 

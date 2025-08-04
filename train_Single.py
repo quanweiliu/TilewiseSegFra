@@ -232,7 +232,6 @@ def train(cfg, rundir):
                     running_metrics_val.update(gt, pred)     # update confusion_matrix
                     val_loss_meter.update(val_loss.item())  # update sum_loss
 
-            # logger.info("Epoch %d Loss: %.4f" % (i, val_loss_meter.avg))
             score, class_iou = running_metrics_val.get_scores()
 
             # store results
