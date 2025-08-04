@@ -22,11 +22,11 @@ import torch.nn.functional as F
 # from decoder_zoos import DecoderBlock
 # from utils import ConvBNReLU
 
-# from .decoder_zoos import decoder, DecoderBlock
-# from .utils import ConvBNReLU
+from .decoder_zoos import decoder, DecoderBlock
+from .utils import ConvBNReLU
 
-from decoder_zoos import decoder, DecoderBlock
-from utils import ConvBNReLU
+# from decoder_zoos import decoder, DecoderBlock
+# from utils import ConvBNReLU
 
 
 nonlinearity = partial(F.relu, inplace=True)
@@ -66,7 +66,7 @@ class Resnet_base34_decoder1(nn.Module):
             nn.Conv2d(32, 32, 3, 1, 1, bias=False),
             nn.ReLU(inplace=True),
             # nn.Dropout(0.1),
-            nn.Conv2d(32, n_classes - 1, 3, padding=1),
+            nn.Conv2d(32, n_classes, 3, padding=1),
         )
         #
         # self.final=nn.Sequential(
@@ -123,14 +123,14 @@ if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     bands = 10
     x = torch.randn(4, bands, 128, 128, device=device)
-    model = Resnet_base34(bands).to(device)
+    model = Resnet_base34_decoder1(bands).to(device)
     output = model(x)
     print("output", output.shape)
 
 
     bands = 5
     y = torch.randn(1, bands, 128, 128, device=device)
-    model = Resnet_base34(bands).to(device)
+    model = Resnet_base34_decoder1(bands).to(device)
     output = model(y)
     print("output", output.shape)
 

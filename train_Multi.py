@@ -55,10 +55,6 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
 
-    print("img_size", img_size)
-
-
-    # print("data_path", data_path)
 
     # Setup Dataloader
     t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)
@@ -307,8 +303,8 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extraction_epoch_ACNet.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/config/extraction_epoch_CMGFNet34.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/config/extraction_epoch_CANet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CMANet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CMGF.yml",

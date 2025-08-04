@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import logging
 import random
@@ -55,10 +55,6 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
 
-    print("img_size", img_size)
-
-
-    # print("data_path", data_path)
 
     # Setup Dataloader
     t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)
@@ -86,20 +82,17 @@ def train(cfg, rundir):
 
     # Set Model
     model_name = cfg['model']
-    model = get_model(model_name, bands1, bands2, classes=classes).to(device)
+    if cfg['data']['modality'] == "rgb":
+        model = get_model(model_name, bands1, bands2, classes=classes).to(device)
+    elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
+        model = get_model(model_name, bands2, bands1, classes=classes).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
 
     # 单一 学习率 更新 (?)
     optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items() if k != 'name'}
-    # print("optimizer_params", optimizer_params)    # {'lr': 0.001}
-
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
-    # optimizer=torch.optim.Adam(model.parameters(), lr=cfg['training']['optimizer']['lr'],
-    #                            betas=[cfg['training']['optimizer']['momentum'], 0.999],
-    #                            weight_decay=cfg['training']['optimizer']['weight_decay'])
-    # logger.info("Using optimizer {}".format(optimizer))
 
     ## scheduler
     scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
@@ -166,8 +159,11 @@ def train(cfg, rundir):
             # print("lidars", lidars.shape)
             # print("labels", labels.shape)
 
-            model = model.to(device)
-            outputs = model(gaofens, lidars)
+            if cfg['data']['modality'] == "rgb":
+                outputs = model(gaofens)
+            elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
+                outputs = model(lidars)
+
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
@@ -175,13 +171,15 @@ def train(cfg, rundir):
 
             if cfg["data"]["classification"] == "Multi":
                 pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
-                # print("outputs", outputs.shape, "pred", pred.shape)   # torch.Size([32, 1, 128, 128]) pred (32, 128, 128)
+                # print("outputs", outputs.shape, "pred", pred.shape)   
+                # # torch.Size([32, 1, 128, 128]) pred (32, 128, 128)
 
             elif cfg["data"]["classification"] == "Binary":
                 outputs[outputs > cfg['threshold']] = 1
                 outputs[outputs <= cfg['threshold']] = 0
                 pred = outputs.data.cpu().numpy()
-                # print("outputs", outputs.shape, "pred", pred.shape)  #  torch.Size([32, 1, 128, 128]) pred (32, 1, 128, 128)
+                # print("outputs", outputs.shape, "pred", pred.shape)  
+                # #  torch.Size([32, 1, 128, 128]) pred (32, 1, 128, 128)
 
             gt = labels.data.cpu().numpy()
             # update each train batchsize metric and loss
@@ -216,9 +214,12 @@ def train(cfg, rundir):
                     lidars_val = lidars_val.to(device)
                     labels_val = labels_val.to(device)
 
-                    # ################ output ################
-                    outputs = model(gaofens_val)
+                    if cfg['data']['modality'] == "rgb":
+                        outputs = model(gaofens_val)
+                    elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
+                        outputs = model(lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
+                    
                     if cfg["data"]["classification"] == "Multi":
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
 
@@ -307,26 +308,26 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline18.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extraction_epoch_baseline18_single.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline34.yml",
         help="Configuration file to use")
     parser.add_argument(
         "--model_path", 
         type = str, 
-        default = "", 
+        default = None, 
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
 
-    run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-    rundir = os.path.join(cfg['results']['path'], str(run_id))
-    os.makedirs(rundir, exist_ok=True)
-
     # print("args.config", args.config)
     # print("basename", os.path.basename(args.config))
     # print("basename[-4]", os.path.basename(args.config)[:-4])
-    # print('RUNDIR: {}'.format(rundir))
+    
+    run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
+    rundir = os.path.join(cfg['results']['path'], str(run_id))
+    os.makedirs(rundir, exist_ok=True)
+    print('RUNDIR: {}'.format(rundir))
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 

@@ -46,15 +46,16 @@ def get_model(model_dict, bands1, bands2, classes, input_size=256):
 
     print("model name", name)
 
-    if name == "CRFN_base18_single":
+    if name == "baseline18_single":
         model = model(bands1, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", **param_dict)
-    elif name == "CRFN_base18_double":
+    elif name == "baseline34_single_decoder1":
+        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+    elif name == "baseline34_single_decoder2":
+        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+    
+    elif name == "baseline18_double":
         model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", **param_dict)
-    elif name == "Resnet_base34_decoder1":
-        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
-    elif name == "Resnet_base34_decoder2":
-        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
-    elif name == "Resnet_base34_double":
+    elif name == "baseline34_double":
         model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
 
     elif name == "AsymFormer":

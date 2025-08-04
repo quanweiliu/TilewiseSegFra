@@ -154,16 +154,16 @@ class runningScore(object):
         mIoU = np.nanmean(IoU_valid)
 
         results = {
-            "OA \t\t": OA,
+            "OA \t\t\t": OA,
             "mIoU  \t\t": mIoU,
             "F1  \t\t": F1_valid.mean(),
-            "Precision": Precision_valid.mean(),
+            "Precision\t": Precision_valid.mean(),
             "Recall  \t": Recall_valid.mean(),
         }
 
         # 输出每类指标（包括背景类也一起打印出来）
         for i in range(n_class):
-            results[f"Class {i} Acc"] = acc_cls[i]
+            results[f"Class {i} Acc "] = acc_cls[i]
             # results[f"Class {i} IoU"] = IoU[i]
             # results[f"Class {i} F1"] = F1[i]
 

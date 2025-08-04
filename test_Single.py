@@ -130,6 +130,7 @@ def test(args):
     # classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
     classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
     id_to_color, legend_elements = train_id_to_color(classes)
+
     # Setup submits
     if args.out_path == '':
         if args.TTA:
@@ -155,7 +156,7 @@ def test(args):
     model.load_state_dict(checkpoint["model_state"])
     epoch = checkpoint["epoch"]
     print("successfully load model from {} at {}".format(args.model_path, epoch))
-
+    
     # plot_training_results
     savefig_path = os.path.split(args.model_path)[0]
     results_train = pd.DataFrame(checkpoint['results_train'])

@@ -1,5 +1,9 @@
 model:
-  arch: baseline18
+  arch: baseline18_single
+  # arch: baseline18_double
+  # arch: baseline34_single_decoder1
+  # arch: baseline34_single_decoder2
+  # arch: baseline34_double
   # arch: baseline34
   # arch: ACNet
   # arch: CANet
@@ -17,21 +21,26 @@ model:
   # arch: SFAFMA101
   
 data:
-  # path: C:\Users\jc962911\Project\Semantic_Segmentation\multiRoad\multi_data
-  path: /home/leo/DatasetMMF/OSDT
+  path: /home/icclab/Documents/lqw/DatasetMMF/OSTD
   train_split: train
   val_split: val
   test_split: test
   # img_size: 512
   img_size: 128
+  bands1: 193
+  bands2: 3
+  classes: 1
+  classification: Binary
+  # classification: Multi
+  # modality: rgb
+  # modality: lidar
+  modality: sar
 
 training:
-  train_epoch: 100
-  # batch_size: 4
+  train_epoch: 50
   batch_size: 32
   test_batch_size: 1
-  # n_workers: 4
-  n_workers: 6
+  n_workers: 8
   optimizer:
     name: 'adam'
     lr: 0.001
@@ -60,7 +69,7 @@ training:
     name: ReduceLROnPlateau
 
 results:
-  path: /home/leo/Semantic_Segmentation/multiRoadHSI/runs
+  path: /home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run
 
 threshold: 0.5
 

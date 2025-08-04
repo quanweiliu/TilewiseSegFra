@@ -55,10 +55,6 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
 
-    print("img_size", img_size)
-
-
-    # print("data_path", data_path)
 
     # Setup Dataloader
     t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)

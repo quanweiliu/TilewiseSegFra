@@ -14,15 +14,11 @@ from torchvision import models
 from functools import partial
 import torch.nn.functional as F
 
-# from ptsemseg.models.Baseline.decoder import DecoderBlock
-# # from ptsemseg.models.Baseline.decoder import decoder
-# from ptsemseg.models.Baseline.utils import ConvBNReLU
+from .decoder_zoos import DecoderBlock
+from .utils import ConvBNReLU
 
-# from .decoder_zoos import DecoderBlock
-# from .utils import ConvBNReLU
-
-from decoder_zoos import DecoderBlock
-from utils import ConvBNReLU
+# from decoder_zoos import DecoderBlock
+# from utils import ConvBNReLU
 
 nonlinearity = partial(F.relu, inplace=True)
 
@@ -61,7 +57,7 @@ class CRFN_base18_single(nn.Module):
             nn.Conv2d(32, 32, 3, 1, 1, bias=False),
             nn.ReLU(inplace=True),
             # nn.Dropout(0.1),
-            nn.Conv2d(32, n_classes - 1, 3, padding=1),
+            nn.Conv2d(32, n_classes, 3, padding=1),
         )
 
         self._initalize_weights()
@@ -96,6 +92,7 @@ class CRFN_base18_single(nn.Module):
         d1 = self.decoder1(e1 + d2)
 
         ## final classification
+        # print("d1", d1.shape)   # [32, 64, 64, 64
         out = self.final(d1)
 
         return F.sigmoid(out)
@@ -104,17 +101,10 @@ class CRFN_base18_single(nn.Module):
 if __name__=="__main__":
     # model=SEBlock(128)
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    bands = 14
+    bands = 193
     x = torch.randn(4, bands, 128, 128, device=device)
 
     model = CRFN_base18_single(bands).to(device)
     output = model(x)
     print("output", output.shape)
-
-    bands = 28
-    x = torch.randn(4, bands, 128, 128, device=device)
-    model = CRFN_base18_single(bands).to(device)
-    output = model(x)
-    print("output", output.shape)
-    # summary(model.to(device),x,y)
 

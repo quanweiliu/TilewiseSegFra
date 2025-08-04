@@ -5,16 +5,14 @@ from torch import nn
 from torch.nn import functional as F
 import torch.utils.model_zoo as model_zoo
 from torch.utils.checkpoint import checkpoint
-# import utils
 # from Co_attention import PCAM_Module, CCAM_Module, FusionLayer
 # from torchsummaryX import summary
 
-# import utils
-from . import utils
-from .Co_attention import PCAM_Module, CCAM_Module, FusionLayer
+# from .Co_attention import PCAM_Module, CCAM_Module, FusionLayer
+# from . import utils
 
-# import utils
-# from Co_attention import PCAM_Module, CCAM_Module, FusionLayer
+from Co_attention import PCAM_Module, CCAM_Module, FusionLayer
+import utils
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -36,7 +34,7 @@ class ConvBN(nn.Sequential):
         )
 
 class CANet(nn.Module):
-    def __init__(self, num_class=37, backbone='ResNet-101', pretrained=False, pcca5=False):
+    def __init__(self, bands1, bands2, num_class=37, backbone='ResNet-101', pretrained=False, pcca5=False):
         super(CANet, self).__init__()
 
         self.pcca5 = pcca5
@@ -53,7 +51,7 @@ class CANet(nn.Module):
         self.inplanes = 64
         # self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
         #                        bias=False)
-        self.conv1=nn.Conv2d(193, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1=nn.Conv2d(bands1, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -67,7 +65,7 @@ class CANet(nn.Module):
         self.inplanes = 64
         # self.conv1_d = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
         #                        bias=False)
-        self.conv1_d = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1_d = nn.Conv2d(bands2, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1_d = nn.BatchNorm2d(64)
         self.relu_d = nn.ReLU(inplace=True)
         self.maxpool_d = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -473,17 +471,12 @@ class TransBasicBlock(nn.Module):
 
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    # x = torch.randn(1, 64,256,256, device=device)
-    # y = torch.randn(1,64,256,256,device=device)
+    bands1 = 3
+    bands2 = 1
 
-    # x = torch.randn(4, 224, 512, 512, device=device)
-    # y = torch.randn(4, 3, 512, 512,device=device)
-
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128, 128, device=device)
-    model = CANet(num_class=1, backbone='ResNet-50', pretrained=True, pcca5=True)
-    # model=SKBlock(64,M=2,G=64)
-    # model=cfm(64)
+    x = torch.randn(4, bands1, 128, 128, device=device)
+    y = torch.randn(4, bands2, 128, 128, device=device)
+    model = CANet(bands1, bands2, num_class=1, backbone='ResNet-50', pretrained=True, pcca5=True).to(device)
     model = model.to(device)
     output = model(x, y)
     print(output[0].shape)
