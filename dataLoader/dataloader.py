@@ -1,9 +1,9 @@
-
 import os
-from PIL import Image
 import tifffile
 import numpy as np
+from PIL import Image
 import scipy.io as scio
+
 import torch
 from torch.utils import data
 from torchvision import transforms
@@ -105,9 +105,6 @@ class Road_loader(data.DataLoader):
         lidar_aug = img[gaofen_band : gaofen_band + lidar_band, :, :]
         mask_aug = img[-1, :, :].unsqueeze(0)
 
-        # print("gaofen2np", gaofen_aug.shape, "lidar2np", lidar_aug.shape, "mask2np", mask_aug.shape)
-
-        # return gaofen_aug, lidar_aug[1:2,:,:], mask_aug
         return gaofen_aug, lidar_aug, mask_aug
 
     def no_aug(self, gaofen2np, lidar2np, mask2np):

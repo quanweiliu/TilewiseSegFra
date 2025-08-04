@@ -1,6 +1,7 @@
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
 print('using GPU %s' % ','.join(map(str, [1])))
+
 import logging
 import random
 import shutil
@@ -18,7 +19,6 @@ from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
-
 from dataLoader.dataloader import Road_loader
 # from dataLoader.dataloader_ISPRS import ISPRS_loader
 from ptsemseg import get_logger
@@ -51,19 +51,21 @@ def train(cfg, rundir):
     bands1 = cfg['data']['bands1']
     bands2 = cfg['data']['bands2']
     classes = cfg['data']['classes']
-
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
+
+    print("img_size", img_size)
+
 
     # print("data_path", data_path)
 
     # Setup Dataloader
     t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)
     v_loader = Road_loader(data_path, val_split, img_size, is_augmentation=False)
-    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True, 
+    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
-    valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False, 
+    valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
     # for gaofens, lidars, labels in trainloader:
@@ -84,11 +86,7 @@ def train(cfg, rundir):
 
     # Set Model
     model_name = cfg['model']
-    print("model_name", model_name)
     model = get_model(model_name, bands1, bands2, classes=classes).to(device)
-
-    # state = torch.load(args.model_path)["model_state"]  # single-gpu
-    # model.load_state_dict(state)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -110,7 +108,6 @@ def train(cfg, rundir):
 
     # loss_function
     loss_fn = get_loss_function(cfg)
-    # logger.info("Using loss {}".format(loss_fn))
 
     ################################# FLOPs and Params ###################################################
     # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
@@ -129,8 +126,21 @@ def train(cfg, rundir):
     # 初始化 log-dir 用于后续画图
     logger2 = initLogger(cfg['model']['arch'], rundir)
 
+################################# retrain ###################################################
+    if args.model_path is not None:
+        resume = torch.load(args.model_path, weights_only=False)
+        start_epoch = resume["epoch"]
+        model.load_state_dict(resume["model_state"])
+        optimizer.load_state_dict(resume["optimizer_state"])
+        scheduler.load_state_dict(resume["scheduler_state"])
+        best_iou = resume["best_iou"]
+        results_train = resume["results_train"]
+        results_val = resume["results_val"]
+        print("successfully load model from {}, Epoch {}".format(args.model_path, start_epoch))
+    else:
+        start_epoch = 0
+        print("start from scratch, no model loaded")
 ################################# train ###################################################
-    start_epoch = 0
     results_train = []
     results_val = []
 
@@ -147,7 +157,6 @@ def train(cfg, rundir):
         i += 1
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
-        # logger.info('current lr: %.6f', optimizer.state_dict()['param_groups'][0]['lr'])
         for (gaofens, lidars, labels) in tqdm(trainloader):
             model.train()
             gaofens = gaofens.to(device)
@@ -158,12 +167,10 @@ def train(cfg, rundir):
             # print("labels", labels.shape)
 
             model = model.to(device)
-            # print("gaofens", gaofens.shape, "lidars", lidars.shape, "labels", labels.shape)
-
-            outputs = model(gaofens, lidars)            # DE_CCFNet_34_multi
-            loss, loss1, loss2 = loss_fn(outputs, labels)      #  DE_CCFNet_34_multi
+            outputs = model(gaofens, lidars)
+            loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
-            loss.backward()            # 要在 outputs[outputs > cfg['threshold']] = 1 操作前执行，outputs 在这个操作中会改变
+            loss.backward()
             optimizer.step()
 
             if cfg["data"]["classification"] == "Multi":
@@ -181,16 +188,12 @@ def train(cfg, rundir):
             running_metrics_train.update(gt, pred)  # update confusion_matrix
             train_loss_meter.update(loss.item())  # update sum_loss
 
-            time_meter.update(time.time() - start_ts)
+        time_meter.update(time.time() - start_ts)
 
         ############## print result for each train epoch ############################
-        # logger.info(print_str)
         print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
             i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
         train_score, train_class_iou = running_metrics_train.get_scores()
-        # print(train_score.keys())
-        # for k, v in train_score.items():
-        #     print("{}: {:.4f}".format(k, v))
 
         # store results
         results_train.append({'epoch': i, 
@@ -216,7 +219,6 @@ def train(cfg, rundir):
                     # ################ output ################
                     outputs = model(gaofens_val, lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
-
                     if cfg["data"]["classification"] == "Multi":
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
 
@@ -318,15 +320,16 @@ if __name__ ==  "__main__":
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_PCG.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_SFAFMA.yml",
         help="Configuration file to use")
-    parser.add_argument("--model_path", type = str, default = "", \
-                        help="Path to the saved model")
-    # for i in range(1):
+    parser.add_argument(
+        "--model_path", 
+        type = str, 
+        default = "", 
+        help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
 
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-    # run_id = random.randint(1, 100000)
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)
 
@@ -335,7 +338,6 @@ if __name__ ==  "__main__":
     # print("basename[-4]", os.path.basename(args.config)[:-4])
     # print('RUNDIR: {}'.format(rundir))
 
-    # writer = SummaryWriter(log_dir = rundir)
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
     train(cfg, rundir)

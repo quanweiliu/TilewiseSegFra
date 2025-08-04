@@ -29,7 +29,7 @@ class ConvBN(nn.Sequential):
         )
 
 class ACNet(nn.Module):
-    def __init__(self, num_class=2, pretrained=True):
+    def __init__(self, bands1, bands2, num_class=2, pretrained=True):
         super(ACNet, self).__init__()
 
         layers = [3, 4, 6, 3]
@@ -39,7 +39,7 @@ class ACNet(nn.Module):
         self.inplanes = 64
         # self.pre_conv = ConvBN(224, 4, kernel_size=3)
 
-        self.conv1 = nn.Conv2d(193, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(bands1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -50,7 +50,7 @@ class ACNet(nn.Module):
 
         # depth image branch
         self.inplanes = 64
-        self.conv1_d = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1_d = nn.Conv2d(bands2, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1_d = nn.BatchNorm2d(64)
         self.relu_d = nn.ReLU(inplace=True)
@@ -302,11 +302,14 @@ class ACNet(nn.Module):
         for k, v in pretrain_dict.items():
             # print('%%%%% ', k)
             if k in state_dict:
-                if k.startswith('conv1'):
-                    model_dict[k] = v
-                    # print('##### ', k)
-                    model_dict[k.replace('conv1', 'conv1_d')] = torch.mean(v, 1).data. \
-                        view_as(state_dict[k.replace('conv1', 'conv1_d')])
+
+
+                # 这里报错
+                # if k.startswith('conv1'):
+                #     model_dict[k] = v
+                #     # print('##### ', k)
+                #     model_dict[k.replace('conv1', 'conv1_d')] = torch.mean(v, 1).data. \
+                #         view_as(state_dict[k.replace('conv1', 'conv1_d')])
 
                 if k.startswith('bn1'):
                     model_dict[k] = v
@@ -436,17 +439,11 @@ class TransBasicBlock(nn.Module):
 if __name__=="__main__":
     # device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # rgb = torch.randn(1, 3, 128, 128, device=device)
-    # dsm = torch.randn(1, 1, 128, 128, device=device)
-
-    # rgb = torch.randn(4, 224, 512, 512, device=device)
-    # dsm = torch.randn(4, 3, 512, 512, device=device)
-
-    rgb = torch.randn(4, 224, 128, 128, device=device)
-    dsm = torch.randn(4, 3, 128, 128, device=device)
-    model = ACNet()
-    # load_init_weight(model)
+    bands1 = 3
+    bands2 = 1
+    rgb = torch.randn(4, bands1, 256, 256, device=device)
+    dsm = torch.randn(4, bands2, 256, 256, device=device)
+    model = ACNet(bands1, bands2, num_class=2, pretrained=True).to(device)
 
     model.to(device)
     output = model(rgb, dsm)

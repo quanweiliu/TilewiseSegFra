@@ -22,7 +22,11 @@ data:
   val_split: val
   test_split: test
   img_size: 128
-
+  bands1: 193
+  bands2: 3
+  classes: 1
+  classification: Binary
+  # classification: Multi
 
 training:
   train_epoch: 100
@@ -47,7 +51,7 @@ training:
     # name: 'multi_loss3'
 
     size_average: True
-    # device: 0
+    device: 0
     a: 1
     b: 1
 #    c: 1
@@ -57,7 +61,7 @@ training:
     name: ReduceLROnPlateau
 
 results:
-  path: /home/icclab/Documents/lqw/Multimodal_Segmentation/multiOSTD/run
+  path: /home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run
 
 threshold: 0.5
 

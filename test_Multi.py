@@ -198,6 +198,8 @@ def test(args):
                 # 模型推理
                 pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
                 pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
+                pred_a = pred_a[0]                                 # 取出预测结果
+                pred_b = pred_b[0]
                 pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
 
                 # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
@@ -219,9 +221,11 @@ def test(args):
 
                 outputs = model(gaofen, lidar)
                 if args.classification == "Multi":
+                    outputs = outputs[0]
                     pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
 
                 elif args.classification == "Binary":
+                    outputs = outputs[0]
                     outputs[outputs > args.threshold] = 1
                     outputs[outputs <= args.threshold] = 0
                     pred = outputs.data.cpu().numpy().astype(np.uint8)
@@ -230,7 +234,6 @@ def test(args):
         ############################### save pred image ###############################
             if args.save_img:
                 pred = pred.reshape(args.img_size, args.img_size)
-                # print(str(img_id), type(str(img_id)), type(img_id))
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred.astype(np.uint8))
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
@@ -256,10 +259,8 @@ def test(args):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
-    parser.add_argument('--model', choices=['DE_CCFNet_18', 'DE_CCFNet_34', 'DE_DCGCN', 'Zhiyang', \
-                                            "AsymFormer", "SFAFMA", "MCANet", "MGFNet50", 'MGFNet2_50', "PCGNet34", \
-                                            "SFAFMA50", 'SOLC', 'DE_DCGCN', 'PACSCNet50', 'FAFNet'], \
-                        default='DE_CCFNet_18', help="the model architecture that should be trained")
+    parser.add_argument('--model', choices=['ACNet', 'CANet', 'CMANet50', 'CMGFNet34'], \
+                        default='ACNet', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument("--imgs_path", nargs = "?", type = str, default = '/home/icclab/Documents/lqw/DatasetMMF/OSTD', \
@@ -276,7 +277,10 @@ if __name__=='__main__':
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
     parser.add_argument("--model_path", nargs = "?", type = str, \
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0804-1143-DE_CCFNet_18", "best.pt"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0804-1405-ACNet", "best.pt"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0705-1039-CANet", "best.pt"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0705-1315-CMGFNet34", "best.pt"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0707-2347-CMANet50", "best.pt"),
                         help="Path to the saved model")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])
