@@ -19,8 +19,8 @@ from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
-from dataLoader.dataloader import Road_loader
-# from dataLoader.dataloader_ISPRS import ISPRS_loader
+from dataLoader.OSTD_loader import OSTD_loader
+from dataLoader.ISPRS_loader import ISPRS_loader
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -44,6 +44,7 @@ def train(cfg, rundir):
     # random.seed(cfg.get('seed', seed))
 
     # cfg parameters
+    data_name = cfg['data']['name']
     data_path = cfg['data']['path']
     train_split = cfg['data']['train_split']
     val_split = cfg['data']['val_split']
@@ -57,8 +58,18 @@ def train(cfg, rundir):
 
 
     # Setup Dataloader
-    t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)
-    v_loader = Road_loader(data_path, val_split, img_size, is_augmentation=False)
+    if data_name == "OSTD":
+        t_loader = OSTD_loader(data_path, train_split, img_size, is_augmentation=True)
+        v_loader = OSTD_loader(data_path, val_split, img_size, is_augmentation=False)
+        running_metrics_train = runningScore(classes+1)
+        running_metrics_val = runningScore(classes+1)
+
+    elif data_name == "Vaihingen":
+        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        running_metrics_train = runningScore(classes)
+        running_metrics_val = runningScore(classes)
+
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
@@ -75,10 +86,6 @@ def train(cfg, rundir):
     #     print("val lidars", lidars.shape)
     #     print("val labels", labels.shape)
     #     break
-
-    # Setup Metrics
-    running_metrics_train = runningScore(classes+1)
-    running_metrics_val = runningScore(classes+1)
 
     # Set Model
     model_name = cfg['model']
@@ -303,13 +310,13 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/baseline18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/AsymFormer.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_DE_CCFNet34.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_AsymFormer.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extraction_epoch_DE_CCFNet18.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_Zhiyang.yml",
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_DCGCN.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_RDFNet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_AsymFormer.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_PCG.yml",
@@ -318,7 +325,7 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--model_path", 
         type = str, 
-        default = "", 
+        default = None, 
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:

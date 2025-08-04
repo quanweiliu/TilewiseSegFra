@@ -4,8 +4,12 @@ import functools
 import torch.nn.functional as F
 
 from ptsemseg.loss.cldice import dice_cldice_loss, bce_cldice_loss
-from ptsemseg.loss.loss import cross_entropy2d, new_dice_bce_loss, focal_bce_loss, dice_bce_loss_re, \
-    dice_bce_loss_re2, gaploss, multi_loss, multi_loss2, multi_loss3
+from ptsemseg.loss.loss import cross_entropy2d, new_dice_bce_loss, \
+                                focal_bce_loss, dice_bce_loss_re, \
+                                dice_bce_loss_re2, gaploss, multi_loss, \
+                                multi_loss2, multi_loss3
+from ptsemseg.loss.loss import multiclass_ce_dice_loss
+from ptsemseg.loss.loss import multiclass_multi_loss
 # from ptsemseg.loss.loss import dice_bce_loss
 from ptsemseg.loss.loss import focal_dice_loss
 from ptsemseg.loss.loss import focal_loss
@@ -32,6 +36,8 @@ key2loss = {
             # 'bce_dice_cldice_loss':bce_dice_cldice_loss,
             'dice_bce_loss_re':dice_bce_loss_re,
             'dice_bce_loss_re2':dice_bce_loss_re2,
+            'multiclass_ce_dice_loss':multiclass_ce_dice_loss,
+            'multiclass_multi_loss':multiclass_multi_loss,
             'gaploss':gaploss,
             'multi_loss':multi_loss,
             'multi_loss2':multi_loss2,

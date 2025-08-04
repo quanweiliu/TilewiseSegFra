@@ -64,8 +64,10 @@ def get_model(model_dict, bands1, bands2, classes, input_size=256):
         model = model(bands1, bands2, num_class=classes, pretrained=True, **param_dict)
     elif name == "CMFNet":
         model = model(bands1, bands2, **param_dict)
-    elif name == "CANet":
+    elif name == "CANet50":
         model = model(bands1, bands2, num_class=classes, backbone='ResNet-50', pretrained=True, pcca5=True, **param_dict)
+    elif name == "CANet101":
+        model = model(bands1, bands2, num_class=classes, backbone='ResNet-101', pretrained=True, pcca5=True, **param_dict)
 
     elif name == "CMANet":
         model = model(bands1, bands2, n_classes=classes, pretrained=True)
@@ -120,7 +122,8 @@ def _get_model_instance(name):
 
             "ACNet": ACNet,
             "AsymFormer": B0_T,
-            "CANet": CANet,
+            "CANet50": CANet,
+            "CANet101": CANet,
             "CMANet": CMAnet,
             "CMFNet": CMFNet,
             "CMGFNet18": CMGFNet18,
@@ -138,7 +141,8 @@ def _get_model_instance(name):
             "SFAFMA101": SFAFMA101,
             "SFAFMA152": SFAFMA152,
             "SOLC": SOLCV7,
-            "PACSCNet": PACSCNet,
+            "PACSCNet50": PACSCNet,
+            "PACSCNet101": PACSCNet,
             "RDFNet50": RDF50,
             "RDFNet101": RDF101,
         }[name]

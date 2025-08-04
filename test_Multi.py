@@ -19,7 +19,7 @@ from matplotlib.patches import Patch
 import torch
 from torch.utils import data
 from ptsemseg.logger import Logger
-from dataLoader.dataloader import Road_loader
+from dataLoader.OSTD_loader import OSTD_loader
 # from dataLoader.dataloader_ISPRS import ISPRS_loader
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
@@ -145,7 +145,7 @@ def test(args):
         os.mkdir(out_path)
 
     # test_loader = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
-    test_loader = Road_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+    test_loader = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
     testloader = data.DataLoader(test_loader, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
     model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes).to(args.device)

@@ -9,7 +9,7 @@ from torch.utils import data
 from torchvision import transforms
 
 
-class Road_loader(data.DataLoader):
+class OSTD_loader(data.DataLoader):
     def __init__(self, root, split='train', img_size=512, is_augmentation=False):
         self.root = root
         self.split = split
@@ -137,7 +137,7 @@ class Road_loader(data.DataLoader):
 
 if __name__ == '__main__':
     root = "/home/leo/DatasetMMF/OSDT"
-    dataset = Road_loader(root, split='train', img_size=128, is_augmentation=False)
+    dataset = OSTD_loader(root, split='train', img_size=128, is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=2, shuffle=True)
     print(len(dataset))
 

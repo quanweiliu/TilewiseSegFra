@@ -2,7 +2,7 @@ model:
   # arch: baseline18
   # arch: baseline34
   # arch: ACNet
-  arch: CANet
+  arch: CANet101
   # arch: CMANet
   # arch: CMGFNet
   # arch: CMGFNet_U

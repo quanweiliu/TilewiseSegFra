@@ -8,11 +8,11 @@ from torch.utils.checkpoint import checkpoint
 # from Co_attention import PCAM_Module, CCAM_Module, FusionLayer
 # from torchsummaryX import summary
 
-# from .Co_attention import PCAM_Module, CCAM_Module, FusionLayer
-# from . import utils
+from .Co_attention import PCAM_Module, CCAM_Module, FusionLayer
+from . import utils
 
-from Co_attention import PCAM_Module, CCAM_Module, FusionLayer
-import utils
+# from Co_attention import PCAM_Module, CCAM_Module, FusionLayer
+# import utils
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -42,17 +42,14 @@ class CANet(nn.Module):
 
         if self.backbone == 'ResNet-50':
             layers = [3, 4, 6, 3]
-        else:
+        elif self.backbone == 'ResNet-101':
             layers = [3, 4, 23, 3]
 
         block = Bottleneck
         transblock = TransBasicBlock
         # RGB image branch
         self.inplanes = 64
-        # self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
-        #                        bias=False)
-        self.conv1=nn.Conv2d(bands1, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
+        self.conv1=nn.Conv2d(bands1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -63,8 +60,6 @@ class CANet(nn.Module):
 
         # depth image branch
         self.inplanes = 64
-        # self.conv1_d = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
-        #                        bias=False)
         self.conv1_d = nn.Conv2d(bands2, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1_d = nn.BatchNorm2d(64)
         self.relu_d = nn.ReLU(inplace=True)
@@ -114,13 +109,13 @@ class CANet(nn.Module):
         self.inplanes = 64
         self.final_conv = self._make_transpose(transblock, 64, 3)
 
-        self.final_deconv = nn.ConvTranspose2d(self.inplanes, num_class - 1, kernel_size=2,
+        self.final_deconv = nn.ConvTranspose2d(self.inplanes, num_class, kernel_size=2,
                                                stride=2, padding=0, bias=True)
 
-        self.out5_conv = nn.Conv2d(256, num_class - 1, kernel_size=1, stride=1, bias=True)
-        self.out4_conv = nn.Conv2d(128, num_class - 1, kernel_size=1, stride=1, bias=True)
-        self.out3_conv = nn.Conv2d(64, num_class - 1, kernel_size=1, stride=1, bias=True)
-        self.out2_conv = nn.Conv2d(64, num_class - 1, kernel_size=1, stride=1, bias=True)
+        self.out5_conv = nn.Conv2d(256, num_class, kernel_size=1, stride=1, bias=True)
+        self.out4_conv = nn.Conv2d(128, num_class, kernel_size=1, stride=1, bias=True)
+        self.out3_conv = nn.Conv2d(64, num_class, kernel_size=1, stride=1, bias=True)
+        self.out2_conv = nn.Conv2d(64, num_class, kernel_size=1, stride=1, bias=True)
 
         if self.pcca5:
 
@@ -162,6 +157,7 @@ class CANet(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # print('n', m.kernel_size[0], m.kernel_size[1], m.out_channels)
                 m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
@@ -337,14 +333,14 @@ class CANet(nn.Module):
         for k, v in pretrain_dict.items():
             # print('%%%%% ', k)
             if k in state_dict:
-                if k.startswith('conv1'):
-                    model_dict[k] = v
+                # if k.startswith('conv1'):
+                    # model_dict[k] = v
                     # print('##### ', k)
                     # model_dict[k.replace('conv1', 'conv1_d')] = torch.mean(v, 1).data. \
                     #     view_as(state_dict[k.replace('conv1', 'conv1_d')])
-                    model_dict[k.replace('conv1', 'conv1_d')] = v
+                    # model_dict[k.replace('conv1', 'conv1_d')] = v
                 
-                elif k.startswith('bn1'):
+                if k.startswith('bn1'):
                     model_dict[k] = v
                     model_dict[k.replace('bn1', 'bn1_d')] = v
                 if k.startswith('layer'):
@@ -471,8 +467,8 @@ class TransBasicBlock(nn.Module):
 
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    bands1 = 3
-    bands2 = 1
+    bands1 = 18
+    bands2 = 3
 
     x = torch.randn(4, bands1, 128, 128, device=device)
     y = torch.randn(4, bands2, 128, 128, device=device)

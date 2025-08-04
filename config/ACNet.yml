@@ -17,16 +17,27 @@ model:
   # arch: SFAFMA101
 
 data:
-  path: /home/icclab/Documents/lqw/DatasetMMF/OSTD
+  # path: /home/icclab/Documents/lqw/DatasetMMF/OSTD
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: 128
+  # bands1: 193
+  # bands2: 3
+  # classes: 1
+  # classification: Binary
+
+  name: Vaihingen
+  path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
   train_split: train
   val_split: val
   test_split: test
-  img_size: 128
-  bands1: 193
-  bands2: 3
-  classes: 1
-  classification: Binary
-  # classification: Multi
+  img_size: 256
+  bands1: 3
+  bands2: 1
+  classes: 6
+  classification: Multi
+
 
 training:
   train_epoch: 100
@@ -42,16 +53,19 @@ training:
 #    name: 'adam'
 #    lr: 0.001
   loss:
+    # name: 'dice_bce_loss_re'
+    # size_average: True
+
+    name: 'multiclass_multi_loss'
+    classes: 6
+
+    # name: 'gaploss'
+    # name: 'multi_loss'
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
-    # name: 'dice_bce_loss_re'
-    # name: 'gaploss'
-    name: 'multi_loss'
     # name: 'multi_loss2'
     # name: 'multi_loss3'
 
-    size_average: True
-    device: 0
     a: 1
     b: 1
 #    c: 1

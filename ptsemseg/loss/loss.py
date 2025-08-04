@@ -182,12 +182,12 @@ def dice_loss(input, target):
 
     return soft_dice_loss
 
-def bce_loss(input, target, size_average = True):
+def bce_loss(input, target, size_average=True):
 
     # input = F.sigmoid(input)
     _, _, h, w = input.size()
     # _, ht, wt = target.size()
-    _,_, ht, wt = target.size()
+    _, _, ht, wt = target.size()
 
     # Handle inconsistent size between input and target
     if h > ht and w > wt:  # upsample labels
@@ -260,19 +260,19 @@ class GapLoss(nn.Module):
         loss = torch.mean(W * L)
         return loss
 
-def gaploss(input, target,K=60,device=None):
+def gaploss(input, target, K=60, device=None):
     criterion=GapLoss(K)
     # alpha = 0.3
     # loss = (1-alpha)*bceloss + alpha*diceloss
     loss=criterion(input,target)
     return loss,loss,loss
 
-def bce_loss2(input, target,device_num, weight =None,size_average=True):
+def bce_loss2(input, target, device_num, weight=None, size_average=True):
 
     # input = F.sigmoid(input)
     _, _, h, w = input.size()
     # _, ht, wt = target.size()
-    _,_, ht, wt = target.size()
+    _, _, ht, wt = target.size()
 
     # Handle inconsistent size between input and target
     if h > ht and w > wt:  # upsample labels
@@ -300,7 +300,7 @@ def bce_loss2(input, target,device_num, weight =None,size_average=True):
     loss = F.binary_cross_entropy(input, target,class_weight)
     return loss
 
-def focal_loss(input, target,device, gamma = 2, alpha = None, size_average=True):
+def focal_loss(input, target, device, gamma=2, alpha=None, size_average=True):
     device = torch.device("cuda:"+str(device) if torch.cuda.is_available() else "cpu")
 
     input = input.contiguous().view(-1, 1)
@@ -386,13 +386,47 @@ def focal_bce_loss(input, target, device, gamma = 2, alpha = 0.25, size_average=
     loss = f_loss + b_loss
     return loss, b_loss, f_loss
 
-def dice_bce_loss_re(input, target, device, a, b, size_average = True):
-    bceloss = bce_loss(input, target, size_average = size_average)
+def dice_bce_loss_re(input, target, a, b, size_average=True):
+    bceloss = bce_loss(input, target, size_average=size_average)
     diceloss = dice_loss(input, target)
     # alpha = 0.3
     # loss = (1-alpha)*bceloss + alpha*diceloss
     loss=a*bceloss + b*diceloss
     return loss, bceloss, diceloss
+
+
+def multiclass_dice_loss(input, target, classes=None, epsilon=1e-6):
+    """
+    input: [N, C, H, W] - softmax probabilities
+    target: [N, H, W] - integer labels from 0 to C-1
+    """
+
+    if classes is None:
+        classes = input.shape[1]
+
+    input_soft = F.softmax(input, dim=1)  # Convert logits to probabilities
+    target_one_hot = F.one_hot(target, num_classes=classes).permute(0, 3, 1, 2).float()  # [N, C, H, W]
+
+    dims = (0, 2, 3)
+    intersection = torch.sum(input_soft * target_one_hot, dims)
+    union = torch.sum(input_soft + target_one_hot, dims)
+
+    dice = (2. * intersection + epsilon) / (union + epsilon)
+    dice_loss = 1. - dice.mean()
+
+    return dice_loss
+
+
+def multiclass_ce_dice_loss(input, target, a, b, classes):
+    """
+    input: [N, C, H, W] - raw logits
+    target: [N, H, W]   - integer labels
+    """
+    ce_loss = F.cross_entropy(input, target)  # CE Loss
+    dice = multiclass_dice_loss(input, target, classes)
+    loss = a * ce_loss + b * dice
+    return loss, ce_loss, dice
+
 
 def dice_bce_loss_re2(input, target, device, weight, a, b, size_average=True):
     bceloss = bce_loss2(input, target,device_num=device,weight=weight,size_average=size_average)
@@ -426,7 +460,7 @@ def dice_bce_loss_re3(input, target, a, b):
     return loss
 
 
-def new_dice_bce_loss(input1, input2, input3, target, device, size_average=True):
+def new_dice_bce_loss(input1, input2, input3, target, size_average=True):
     bceloss1 = bce_loss(input1, target, size_average = size_average)
     bceloss2= bce_loss(input2, target, size_average = size_average)
     bceloss3= bce_loss(input3, target, size_average = size_average)
@@ -486,6 +520,30 @@ def Label_loss(inputs, target, a, b):
 #     loss3=bce_loss(input3, target, size_average = size_average)
 #     loss = (loss1 + loss2 + loss3) / 3
 #     return loss, loss1, loss2
+
+def multiclass_multi_loss(input, target, a, b, classes, aux_weight=1):
+    out_feats = input[0]                     # [B, C, H, W]
+    aux_feats = input[1:]                    # list of [B, C, h', w']
+    aux_loss = []
+
+    _, _, h, w = out_feats.shape
+
+    for aux in aux_feats:
+        # Upsample aux prediction to main output size
+        aux = F.interpolate(aux, size=(h, w), mode='bilinear', align_corners=False)
+        ce = F.cross_entropy(aux, target)
+        dice = multiclass_dice_loss(aux, target, classes)
+        aux_loss.append(a * ce + b * dice)
+
+    # Main loss
+    loss1 = a * F.cross_entropy(out_feats, target) + \
+            b * multiclass_dice_loss(out_feats, target, classes)
+    loss2 = sum(aux_loss)
+    loss = loss1 + aux_weight * loss2
+
+    return loss, loss1, loss2
+
+
 
 def multi_loss(input, target, device, a, b, size_average=True, aux_weight=1):
     out_feats= input[0]

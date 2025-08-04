@@ -19,7 +19,7 @@ from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
-from dataLoader.dataloader import Road_loader
+from dataLoader.OSTD_loader import OSTD_loader
 # from dataLoader.dataloader_ISPRS import ISPRS_loader
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
@@ -57,8 +57,8 @@ def train(cfg, rundir):
 
 
     # Setup Dataloader
-    t_loader = Road_loader(data_path, train_split, img_size, is_augmentation=True)
-    v_loader = Road_loader(data_path, val_split, img_size, is_augmentation=False)
+    t_loader = OSTD_loader(data_path, train_split, img_size, is_augmentation=True)
+    v_loader = OSTD_loader(data_path, val_split, img_size, is_augmentation=False)
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,

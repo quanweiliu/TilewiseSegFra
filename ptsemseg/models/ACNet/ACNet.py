@@ -303,7 +303,6 @@ class ACNet(nn.Module):
             # print('%%%%% ', k)
             if k in state_dict:
 
-
                 # 这里报错
                 # if k.startswith('conv1'):
                 #     model_dict[k] = v
