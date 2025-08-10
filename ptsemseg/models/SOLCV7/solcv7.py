@@ -69,9 +69,8 @@ class SAGate(nn.Module):
         return V
 
 
-
 class SOLCV7(nn.Module):
-    def __init__(self, bands1, bands2, num_classes, atrous_rates=[6,12,18]):
+    def __init__(self, bands1, bands2, num_classes, classification="Multi", atrous_rates=[6,12,18]):
         super(SOLCV7, self).__init__()
 
         self.sar_en1 = _EncoderBlock(bands2, 64) # 256->128, 1->64
@@ -97,6 +96,8 @@ class SOLCV7(nn.Module):
 
         self.sar_high_level_down = nn.Conv2d(2048, 256, kernel_size=1, stride=1, padding=0)
         self.opt_high_level_down = nn.Conv2d(2048, 256, kernel_size=1, stride=1, padding=0)
+
+        self.classification = classification
 
         initialize_weights(self)
 
@@ -125,8 +126,12 @@ class SOLCV7(nn.Module):
 
         sar_opt_decoder = self.decoder(low_high)
         
-        return F.interpolate(sar_opt_decoder, sar.size()[2:], mode='bilinear')
+        output = F.interpolate(sar_opt_decoder, sar.size()[2:], mode='bilinear')
 
+        if self.classification == "Multi":
+            return output
+        elif self.classification == "Binary":
+            return F.sigmoid(output)
 
 if __name__ == "__main__":
 

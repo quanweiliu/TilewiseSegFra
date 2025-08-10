@@ -371,7 +371,7 @@ class RefineAgent(nn.Module):
 
 
 class CMAnet(nn.Module):
-    def __init__(self, n_classes, pretrained=True):
+    def __init__(self, n_classes, pretrained=True, classification="Multi"):
         super(CMAnet, self).__init__()
         self.backbone = 'resnet50'
         self.freezedict = {}
@@ -438,6 +438,8 @@ class CMAnet(nn.Module):
         self.out2_conv = nn.Conv2d(64, n_classes, kernel_size=1, stride=1, bias=True)
         self.out1_conv = nn.ConvTranspose2d(64, n_classes, kernel_size=2,
                                             stride=2, padding=0, bias=True)
+        
+        self.classification = classification
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -558,8 +560,11 @@ class CMAnet(nn.Module):
         # output1
         out1 = self.out1_conv(de52)  # (numclass,480,640)
 
-        return [torch.sigmoid(out1), torch.sigmoid(out2), torch.sigmoid(out3), torch.sigmoid(out4), torch.sigmoid(out5)]
-        # return [out1, out2, out3, out4, out5]
+        if self.classification == "Multi":
+            return [out1, out2, out3, out4, out5]
+        elif self.classification == "Single":
+            return [torch.sigmoid(out1), torch.sigmoid(out2), torch.sigmoid(out3), torch.sigmoid(out4), torch.sigmoid(out5)]
+
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None

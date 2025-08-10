@@ -15,7 +15,8 @@ from .blocks import MMFBlock, RefineNetBlock, ResidualConvUnit
 from .resnet101 import get_resnet50, get_resnet101
 
 class RDF101(nn.Module):
-    def __init__(self, bands1, bands2, input_size=512, num_classes=1, bn_momentum=0.0003, features=256, pretained=False):
+    def __init__(self, bands1, bands2, input_size=512, num_classes=1, \
+                 bn_momentum=0.0003, features=256, pretained=False, classification="Multi"):
         super(RDF101, self).__init__()
 
         self.Resnet101rgb = get_resnet101(bn_momentum=bn_momentum,is_pretrained=pretained)
@@ -88,6 +89,8 @@ class RDF101(nn.Module):
                 stride=1,
                 padding=0,
                 bias=True))
+        
+        self.classification = classification
 
     def forward(self, rgb, hha):
         rgb_layer_1 = self.rgblayer1(rgb)
@@ -120,8 +123,10 @@ class RDF101(nn.Module):
         out = self.output_conv(path_1)
         out = F.interpolate(out, size=rgb.size()[-2:], mode='bilinear', align_corners=True)
 
-        # return out
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__ == '__main__':

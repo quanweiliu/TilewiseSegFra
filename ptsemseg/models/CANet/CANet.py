@@ -34,7 +34,8 @@ class ConvBN(nn.Sequential):
         )
 
 class CANet(nn.Module):
-    def __init__(self, bands1, bands2, num_class=37, backbone='ResNet-101', pretrained=False, pcca5=False):
+    def __init__(self, bands1, bands2, num_class=37, backbone='ResNet-101', \
+                 pretrained=True, pcca5=False, classification="Multi"):
         super(CANet, self).__init__()
 
         self.pcca5 = pcca5
@@ -162,6 +163,8 @@ class CANet(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
+        
+        self.classification = classification
 
         if pretrained:
             self._load_resnet_pretrained()
@@ -249,8 +252,10 @@ class CANet(nn.Module):
         x = self.final_conv(x)
         out = self.final_deconv(x)
 
-        return [torch.sigmoid(out), torch.sigmoid(out2), torch.sigmoid(out3), torch.sigmoid(out4), torch.sigmoid(out5)]
-        return out, out2, out3, out4, out5
+        if self.classification == "Multi":
+            return [out, out2, out3, out4, out5]
+        elif self.classification == "Binary":
+            return [torch.sigmoid(out), torch.sigmoid(out2), torch.sigmoid(out3), torch.sigmoid(out4), torch.sigmoid(out5)]
 
         # return out
 

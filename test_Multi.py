@@ -20,7 +20,7 @@ import torch
 from torch.utils import data
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
-# from dataLoader.dataloader_ISPRS import ISPRS_loader
+from dataLoader.ISPRS_loader import ISPRS_loader
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -70,7 +70,7 @@ def train_id_to_color(classes):
             Label(classes[9], 9, (0, 255, 0)) 
         ]
     else:
-        return
+        raise ValueError("Unsupported number of classes: {}".format(len(classes)))
     # print("drivables", drivables)
     id_to_color = [c.color for c in drivables if (c.train_id != -1 and c.train_id != 255)]
     id_to_color = np.array(id_to_color)
@@ -112,24 +112,16 @@ def printMetrics(submit_path, mask_path, running_metrics, log):
 
     running_metrics.reset()
 
-def sort_key(filename):
+def sort_key(filename, args):
     # 将文件名前缀（数字部分）提取出来并转换为整数
     # return int(filename.split('.')[0][20:])
-    name = filename.split('.')[0]
-    name = name[5:]
-    # print("name: ", name)
+    if args.data_name == 'OSTD':
+        name = filename.split('.')[0][5:]
+    elif args.data_name == 'Vaihingen':
+        name = filename.split('.')[0][20:]
     return int(name)
 
 def test(args):
-
-    # Setup image
-    images_dir = "/home/icclab/Documents/lqw/DatasetMMF/OSTD/test/image128"
-    imgname_list = sorted(os.listdir(images_dir), key=sort_key)
-    # print("imgname_list: ", imgname_list)
-
-    # classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-    classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
-    id_to_color, legend_elements = train_id_to_color(classes)
     # Setup submits
     if args.out_path == '':
         if args.TTA:
@@ -144,18 +136,37 @@ def test(args):
     if not os.path.exists(out_path):
         os.mkdir(out_path)
 
-    # test_loader = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
-    test_loader = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
-    testloader = data.DataLoader(test_loader, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
-    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes).to(args.device)
+    # Setup Dataloader
+    if args.data_name == "OSTD":
+        imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')), \
+                              key=lambda fname: sort_key(fname, args))
+        classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
+        # print("imgname_list: ", imgname_list)
+        test_dataset = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes+1)
+
+    elif args.data_name == "Vaihingen":
+        # key cannot accept a function, so we use a lambda function to call sort_key
+        imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')), \
+                               key=lambda fname: sort_key(fname, args))
+        classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
+        # print("imgname_list: ", imgname_list)
+        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes)
+
+    testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
+
+
+    id_to_color, legend_elements = train_id_to_color(classes)
+    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.classification).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)
     model.load_state_dict(checkpoint["model_state"])
     epoch = checkpoint["epoch"]
     print("successfully load model from {} at {}".format(args.model_path, epoch))
-
+    
     # plot_training_results
     savefig_path = os.path.split(args.model_path)[0]
     results_train = pd.DataFrame(checkpoint['results_train'])
@@ -166,8 +177,6 @@ def test(args):
     model.eval()
     model.to(args.device)
 
-    # Setup Metrics
-    running_metrics_test = runningScore(args.classes+1)
     test_log = Logger(os.path.join(os.path.split(args.model_path)[0], 'test_result.log'))
 
     ########################### test ####################################
@@ -176,11 +185,10 @@ def test(args):
     with torch.no_grad():
         for ind, (gaofen, lidar, mask) in tqdm(enumerate(testloader)):
             img_id = imgname_list[ind]
+            gaofen = gaofen.to(args.device)  # (B, C, H, W)
+            lidar = lidar.to(args.device)
 
             if args.TTA:
-                gaofen = gaofen.to(args.device)  # (B, C, H, W)
-                lidar = lidar.to(args.device)
-
                 # 原图 + 旋转90°
                 gaofen_90 = torch.rot90(gaofen, k=1, dims=[2, 3])
                 lidar_90 = torch.rot90(lidar, k=1, dims=[2, 3])
@@ -216,9 +224,6 @@ def test(args):
                 running_metrics_test.update(mask.numpy(), pred)
 
             else:
-                gaofen = gaofen.to(args.device)
-                lidar = lidar.to(args.device)
-
                 outputs = model(gaofen, lidar)
                 if args.classification == "Multi":
                     outputs = outputs[0]
@@ -239,12 +244,12 @@ def test(args):
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
 
         # print and save metrics result
-        score, class_iou = running_metrics_test.get_scores()
+        score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
         test_log.write('************test_result**********\n')
         test_log.write('{}: '.format(args.TTA) + '\n')
 
         for k, v in score.items():
-            test_log.write('{}: {}'.format(k, round(np.nanmean(v) * 100, 2)) + '\n')
+            test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
         
         t1 = time.time()
         img_write_time = t1 - t0
@@ -259,31 +264,35 @@ def test(args):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
-    parser.add_argument('--model', choices=['ACNet', 'CANet', 'CMANet50', 'CMGFNet34'], \
+    parser.add_argument('--model',
+                        choices=['ACNet', 'CANet', 'CMANet50', 'CMGFNet34'], \
                         default='ACNet', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
-    parser.add_argument("--imgs_path", nargs = "?", type = str, default = '/home/icclab/Documents/lqw/DatasetMMF/OSTD', \
-                        help="Path of the input image")
-    parser.add_argument('--img_size', type=int, default=128, help='size of the image patches the model should be trained on')
-    parser.add_argument('--bands1', type=int, default=193, help='image bands of gaofen')
-    parser.add_argument('--bands2', type=int, default=3, help='image bands of lidar')
-    parser.add_argument('--classes', type=int, default=1, help='classes of the dataset')
-    parser.add_argument('--classification', default = "Binary", choices = ["Multi", "Binary"], type = str, help="Multi or Binary classification" )
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
-    parser.add_argument('--batch-size', type=int, default=1, help='batch size for training data')
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
-    parser.add_argument("--model_path", nargs = "?", type = str, \
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0804-1405-ACNet", "best.pt"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0705-1039-CANet", "best.pt"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0705-1315-CMGFNet34", "best.pt"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/run/0707-2347-CMANet50", "best.pt"),
+    parser.add_argument("--file_path", nargs = "?", type = str, \
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-0831-ACNet"),
                         help="Path to the saved model")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])
 
+    with open(os.path.join(args.file_path, args.model + '.yml')) as fp:
+        cfg = yaml.safe_load(fp)
+
+    args.model_path = os.path.join(args.file_path, "best.pt")
+    args.data_name = cfg['data']['name']
+    args.imgs_path = cfg['data']['path']
+    args.bands1 = cfg['data']['bands1']
+    args.bands2 = cfg['data']['bands2']
+    args.classes = cfg['data']['classes']
+    args.classification = cfg['data']['classification']
+    args.img_size = cfg['data']['img_size']
+    args.split = cfg['data']['test_split']
+    args.batch_size = cfg['training']['test_batch_size']
+    args.ignore_index = cfg['data']['ignore_index']
     test(args)
 

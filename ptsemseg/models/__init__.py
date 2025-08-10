@@ -15,8 +15,8 @@ from ptsemseg.models.CMFNet.CMFNet import CMFNet
 from ptsemseg.models.CMGFNet.CMGFNet18 import CMGFNet18
 from ptsemseg.models.CMGFNet.CMGFNet34 import CMGFNet34
 
-from ptsemseg.models.DE_CCFNet.DE_CCFNet_18 import DE_CCFNet_18
-from ptsemseg.models.DE_CCFNet.DE_CCFNet_34 import DE_CCFNet_34
+from ptsemseg.models.DE_CCFNet.DE_CCFNet18 import DE_CCFNet18
+from ptsemseg.models.DE_CCFNet.DE_CCFNet34 import DE_CCFNet34
 from ptsemseg.models.DE_DCGCN.DE_DCGCN import DEDCGCNEE
 from ptsemseg.models.FAFNet.fafnet_alignD import FAFNet
 
@@ -37,7 +37,7 @@ from ptsemseg.models.SOLCV7.solcv7 import SOLCV7
 
 
 
-def get_model(model_dict, bands1, bands2, classes, input_size=256):
+def get_model(model_dict, bands1, bands2, classes, input_size, classification="Multi"):
 
     name = model_dict['arch']
     model = _get_model_instance(name)
@@ -47,65 +47,66 @@ def get_model(model_dict, bands1, bands2, classes, input_size=256):
     print("model name", name)
 
     if name == "baseline18_single":
-        model = model(bands1, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", **param_dict)
+        model = model(bands1, n_classes=classes, classification=classification, **param_dict)
     elif name == "baseline34_single_decoder1":
-        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+        model = model(bands1, n_classes=classes, classification=classification, **param_dict)
     elif name == "baseline34_single_decoder2":
-        model = model(bands1, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
-    
+        model = model(bands1, n_classes=classes, classification=classification, **param_dict)
+
     elif name == "baseline18_double":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet18_Weights.DEFAULT", **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
     elif name == "baseline34_double":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
 
     elif name == "AsymFormer":
-        model = model(bands1, bands2, n_classes=classes)
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "ACNet":
-        model = model(bands1, bands2, num_class=classes, pretrained=True, **param_dict)
+        model = model(bands1, bands2, num_class=classes, classification=classification, **param_dict)
     elif name == "CMFNet":
         model = model(bands1, bands2, **param_dict)
     elif name == "CANet50":
-        model = model(bands1, bands2, num_class=classes, backbone='ResNet-50', pretrained=True, pcca5=True, **param_dict)
+        model = model(bands1, bands2, num_class=classes, classification=classification, backbone='ResNet-50', pcca5=True, **param_dict)
     elif name == "CANet101":
-        model = model(bands1, bands2, num_class=classes, backbone='ResNet-101', pretrained=True, pcca5=True, **param_dict)
+        model = model(bands1, bands2, num_class=classes, classification=classification, backbone='ResNet-101', pcca5=True, **param_dict)
 
     elif name == "CMANet":
-        model = model(bands1, bands2, n_classes=classes, pretrained=True)
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "CMGFNet18":
-        model = model(bands1, bands2, n_classes=classes, pretrained="ResNet18_Weights.DEFAULT", **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
     elif name == "CMGFNet34":
-        model = model(bands1, bands2, n_classes=classes, pretrained="ResNet34_Weights.DEFAULT", **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
 
-    elif name == "DE_CCFNet_18":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet18_Weights.IMAGENET1K_V1", **param_dict)
-    elif name == "DE_CCFNet_34":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.IMAGENET1K_V1", **param_dict)
+    elif name == "DE_CCFNet18":
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
+    elif name == "DE_CCFNet34":
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
     elif name == "DE_DCGCN":
-        model = model(in_x=bands1, in_y=bands2, n_classes=classes)
+        model = model(in_x=bands1, in_y=bands2, n_classes=classes, classification=classification)
     elif name == "FAFNet":
-        model = model(bands1, bands2, n_classes=classes, pretrained=True)
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "MGFNet50":
-        model = model(bands1, bands2, num_classes=classes, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
     elif name == "MGFNet101":
-        model = model(bands1, bands2, num_classes=classes, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
 
     elif name == "SOLC":
-        model = model(bands1, bands2, num_classes=classes, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
     elif name == "SFAFMA50":
-        model = model(bands1, bands2, n_classes=classes)
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "SFAFMA101":
-        model = model(bands1, bands2, n_classes=classes)
-    elif name == "PCGNet":
-        model = model(bands1, bands2, n_classes=classes, is_pretrained="ResNet34_Weights.IMAGENET1K_V1")
-
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
+    elif name == "PCGNet18":
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
+    elif name == "PCGNet34":
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "PACSCNet50":
-        model = model(bands1, bands2, num_classes=classes, ind=50, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, ind=50, **param_dict)
     elif name == "PACSCNet101":
-        model = model(bands1, bands2, num_classes=classes, ind=101, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, ind=101, **param_dict)
     elif name == "RDFNet50":
-        model = model(bands1, bands2, input_size=input_size, num_classes=classes, pretained=False)
+        model = model(bands1, bands2, input_size=input_size, num_classes=classes, classification=classification, **param_dict)
     elif name == "RDFNet101":
-        model = model(bands1, bands2, input_size=input_size, num_classes=classes, pretained=False)
+        model = model(bands1, bands2, input_size=input_size, num_classes=classes, classification=classification, **param_dict)
     else:
         raise("you havn't set the model parameters")
     return model
@@ -128,8 +129,8 @@ def _get_model_instance(name):
             "CMFNet": CMFNet,
             "CMGFNet18": CMGFNet18,
             "CMGFNet34": CMGFNet34,
-            "DE_CCFNet_18": DE_CCFNet_18,
-            "DE_CCFNet_34": DE_CCFNet_34,
+            "DE_CCFNet18": DE_CCFNet18,
+            "DE_CCFNet34": DE_CCFNet34,
             "DE_DCGCN": DEDCGCNEE,
             "FAFNet": FAFNet,
             "MCANet": MCANet,

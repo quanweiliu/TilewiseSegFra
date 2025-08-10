@@ -24,7 +24,7 @@ class ConvBN(nn.Sequential):
 
 class CMGFNet18(nn.Module):
 
-    def __init__(self, bands1, bands2, n_classes, pretrained="ResNet18_Weights.IMAGENET1K_V1"):
+    def __init__(self, bands1, bands2, n_classes, classification="Multi", pretrained="ResNet18_Weights.IMAGENET1K_V1"):
         super().__init__()
 
         self.num_classes = n_classes
@@ -133,21 +133,20 @@ class CMGFNet18(nn.Module):
         self.final_fused = nn.Sequential(
             nn.Conv2d(32, self.num_classes, kernel_size=1, padding=0),
             # nn.BatchNorm2d(self.num_classes),
-            nn.Sigmoid(),
         )
-
 
         self.final_rgb = nn.Sequential(
             nn.Conv2d(16, self.num_classes, kernel_size=1, padding=0),
             # nn.BatchNorm2d(self.num_classes),
-            nn.Sigmoid(),
         )
 
         self.final_dsm = nn.Sequential(
             nn.Conv2d(16, self.num_classes, kernel_size=1, padding=0),
             # nn.BatchNorm2d(self.num_classes),
-            nn.Sigmoid(),
         )
+
+        self.classification = classification
+
 
     def forward(self, x_rgb, x_dsm):
         # dsm_encoder
@@ -277,7 +276,13 @@ class CMGFNet18(nn.Module):
 
         final_dsm = self.final_dsm(out_dsm6)
 
-        return final_fused, final_rgb, final_dsm
+        if self.classification == "Multi":
+            return final_fused, final_rgb, final_dsm    
+        elif self.classification == "Binary":
+            final_fused = F.sigmoid(final_fused)
+            final_rgb = F.sigmoid(final_rgb)
+            final_dsm = F.sigmoid(final_dsm)
+            return final_fused, final_rgb, final_dsm
 
 class ChannelWeights(nn.Module):
     def __init__(self, dim, reduction=1):

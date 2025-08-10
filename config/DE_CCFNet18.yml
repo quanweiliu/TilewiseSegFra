@@ -6,8 +6,8 @@ model:
   # arch: CMANet
   # arch: CMGFNet
   # arch: CMGFNet_U
-  arch: DE_CCFNet_18
-  # arch: DE_CCFNet_34
+  arch: DE_CCFNet18
+  # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
@@ -26,6 +26,7 @@ data:
   # bands1: 193
   # bands2: 3
   # classes: 1
+  # ignore_index: 999
   # classification: Binary
 
   name: Vaihingen
@@ -37,8 +38,8 @@ data:
   bands1: 3
   bands2: 1
   classes: 6
+  ignore_index: 5
   classification: Multi
-
 
 training:
   train_epoch: 100
@@ -53,8 +54,6 @@ training:
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-
-
   loss:
     # name: 'dice_bce_loss_re'
     # size_average: True

@@ -55,6 +55,7 @@ def train(cfg, rundir):
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
+    classification = cfg["data"]["classification"]
 
 
     # Setup Dataloader
@@ -89,7 +90,7 @@ def train(cfg, rundir):
 
     # Set Model
     model_name = cfg['model']
-    model = get_model(model_name, bands1, bands2, classes=classes).to(device)
+    model = get_model(model_name, bands1, bands2, classes, img_size, classification).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -176,11 +177,11 @@ def train(cfg, rundir):
             loss.backward()
             optimizer.step()
 
-            if cfg["data"]["classification"] == "Multi":
+            if classification == "Multi":
                 pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
                 # print("outputs", outputs.shape, "pred", pred.shape)   # torch.Size([32, 1, 128, 128]) pred (32, 128, 128)
 
-            elif cfg["data"]["classification"] == "Binary":
+            elif classification == "Binary":
                 outputs[outputs > cfg['threshold']] = 1
                 outputs[outputs <= cfg['threshold']] = 0
                 pred = outputs.data.cpu().numpy()
@@ -222,10 +223,10 @@ def train(cfg, rundir):
                     # ################ output ################
                     outputs = model(gaofens_val, lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
-                    if cfg["data"]["classification"] == "Multi":
+                    if classification == "Multi":
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
 
-                    elif cfg["data"]["classification"] == "Binary":
+                    elif classification == "Binary":
                         outputs[outputs > cfg['threshold']] = 1
                         outputs[outputs <= cfg['threshold']] = 0
                         pred = outputs.data.cpu().numpy()
@@ -313,19 +314,21 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/baseline18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/AsymFormer.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_DE_CCFNet34.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_Zhiyang.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_RDFNet.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_AsymFormer.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_PCG.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_SFAFMA.yml",
         help="Configuration file to use")
     parser.add_argument(
-        "--model_path", 
-        type = str, 
-        default = None, 
+        "--model_path",
+        nargs = "?",
+        type = str,
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
+        default = None,
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
@@ -334,11 +337,6 @@ if __name__ ==  "__main__":
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)
-
-    # print("args.config", args.config)
-    # print("basename", os.path.basename(args.config))
-    # print("basename[-4]", os.path.basename(args.config)[:-4])
-    # print('RUNDIR: {}'.format(rundir))
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 

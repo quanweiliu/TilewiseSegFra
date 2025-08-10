@@ -144,7 +144,7 @@ class ASPP(nn.Module):
 
 
 class SFAFMA101(nn.Module):
-    def __init__(self, bands1, bands2, n_classes):
+    def __init__(self, bands1, bands2, n_classes, classification="Multi"):
         super(SFAFMA101, self).__init__()
         resnet_raw_model1 = models.resnet101(weights="ResNet101_Weights.DEFAULT") #preweights of backbone
         resnet_raw_model2 = models.resnet101(weights="ResNet101_Weights.DEFAULT")
@@ -281,6 +281,7 @@ class SFAFMA101(nn.Module):
         self.finalrelu2 = nn.ReLU(inplace=True)
         self.finalconv3 = nn.Conv2d(32, n_classes, 2, padding=1)
 
+        self.classification = classification
     def forward(self, rgb,thermal):
         # encoder
         ######################################################################
@@ -380,8 +381,10 @@ class SFAFMA101(nn.Module):
         fuse = self.finalrelu2(fuse)
         fuse = self.finalconv3(fuse)
 
-        # return fuse
-        return F.sigmoid(fuse)
+        if self.classification == "Multi":
+            return fuse
+        elif self.classification == "Binary":
+            return F.sigmoid(fuse)
 
 
 """

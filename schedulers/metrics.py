@@ -24,85 +24,8 @@ class runningScore(object):
                 lt.flatten(), lp.flatten(), self.n_classes
             )
 
-    # def get_scores(self):
-    #     """Returns accuracy score evaluation result.
-    #         - overall accuracy
-    #         - mean accuracy
-    #         - mean IU
-    #         - fwavacc
-    #     """
-    #     hist = self.confusion_matrix
-    #     # print("hist", hist)
-
-    #     # 逐类别的 precision
-    #     acc_cls = np.diag(self.confusion_matrix) / (self.confusion_matrix.sum(axis=1) + self.eps) # (TP,TN)/(TP+FN,FP+TN)
-    #     # print("acc_cls", acc_cls)
-
-
-    #     # 宏观平均更适合于平衡的数据集
-    #     # mAcc_cls = np.nanmean(acc_cls)
-    #     # print("mAcc_cls", mAcc_cls)
-
-    #     # freq = hist.sum(axis=1) / hist.sum()
-    #     # fwavacc = (freq[freq > 0] * iu[freq > 0]).sum()
-        
-    #     # 这个 IOU 和下面的 IOU 是一样的, 只是计算了类别的 IOU
-    #     # iou = np.diag(self.confusion_matrix) / (hist.sum(axis=1) + hist.sum(axis=0) - np.diag(hist))
-    #     # # print("iu", iu)
-    #     # mean_iou = np.nanmean(iou)
-    #     # print("mean_iou", mean_iou)
-    #     # cls_iou = dict(zip(range(self.n_classes), iou))
-    #     # print("cls_iou", cls_iou)
-
-
-    #     OA = np.diag(self.confusion_matrix).sum() / (self.confusion_matrix.sum() + self.eps)  # (TP+TN)/(TP+FP+TN+FN)
-    #     # OA = np.diag(self.confusion_matrix).sum() / (self.confusion_matrix.sum() + self.eps)
-
-    #     # 这是一种针对特定的 2x2 混淆矩阵的计算方法，不适用于多分类问题，计算微观指标（适用于样本不均衡问题）
-    #     # TP, FP, FN, TN = hist[1][1], hist[0][1], hist[1][0], hist[0][0]
-
-    #     # 这是一种针对通用混淆矩阵的计算方法，计算宏观指标（适用于样本均衡问题）（本来是上面的，以后还是海泽下面的更通用版本吧）
-    #     TP = np.diag(self.confusion_matrix)
-    #     FP = self.confusion_matrix.sum(axis=0) - np.diag(self.confusion_matrix)
-    #     FN = self.confusion_matrix.sum(axis=1) - np.diag(self.confusion_matrix)
-    #     TN = np.diag(self.confusion_matrix).sum() - np.diag(self.confusion_matrix)
-    #     # print("tp, fp, tn, fn", TP, FP, FN, TN)
-        
-    #     # 方法二得到的是总体的 Precision 值（宏观）
-    #     Precision = TP / (TP + FP + self.eps)
-    #     Recall = TP / (TP + FN + self.eps)
-    #     F1 = 2 * Precision * Recall / (Precision + Recall + self.eps)
-
-    #     po = (TP + TN) / (TP + TN + FP + FN)
-    #     pe = ((TP + FP) * (TP + FN) + (FP + TN) * (FN + TN)) / (TP + TN + FP + FN) ** 2
-    #     Kappa = (po - pe) / (1 - pe)
-
-    #     IoU = TP / (TP + FN + FP + self.eps)
-    #     mIoU = 0.5 * (IoU + (TN / (TN + FP + FN)))
-    #     # print("mIoU", mIoU)
-    #     # PA = (TP+TN)/(TP+TN+FP+FN)
-    #     # FWIoU = ((TP+FN)/(TP+TN+FP+FN)*IoU)+((TN+FP)/(TP+TN+FP+FN)*(TN/(TN+FP+FN)))
-    #     # MPA = 0.5*(TP/(TP+FN)+TN/(FP+TN))
-
-    #     return (
-    #         {
-    #             # "Mean Acc/MPA : \t": acc_cls,
-    #             "classAcc 0 :": acc_cls[0],
-    #             # "classAcc 1 :": acc_cls[1],
-    #             # "MPA : \t": MPA,
-    #             # "FreqW Acc/FWIoU : \t": fwavacc,
-    #             # "FWIoU : \t": FWIoU,
-    #             # "Mean IoU/mIoU : \t": mean_iu,
-    #             "OA: \t\t": OA,
-    #             "Precision : ": Precision,
-    #             "Recall : \t": Recall,
-    #             "F1: \t\t": F1,
-    #             "Kappa: \t\t": Kappa, 
-    #             # "IoU : \t\t": IoU,
-    #             "mIoU : \t\t": mIoU,
-    #         },
-    #         acc_cls,
-    #     )
+    def reset(self):
+        self.confusion_matrix = np.zeros((self.n_classes, self.n_classes))
 
 
     def get_scores(self, ignore_index=5):
@@ -118,63 +41,74 @@ class runningScore(object):
         eps = 1e-6
         n_class = self.n_classes
 
-        valid_classes = [i for i in range(n_class) if i != ignore_index]
-        hist = hist.copy()
+        # --- 1. 确定需要计算的有效类别 ---
+        if ignore_index is not None:
+            # 将 ignore_index 统一处理为列表
+            if isinstance(ignore_index, int):
+                ignore_index = [ignore_index]
+            
+            # 创建一个布尔掩码，标记哪些类别是有效的
+            valid_mask = np.ones(n_class, dtype=bool)
+            for idx in ignore_index:
+                if 0 <= idx < n_class:
+                    valid_mask[idx] = False
+            valid_classes = np.where(valid_mask)[0]
+        else:
+            # 如果不忽略任何类，则所有类都有效
+            valid_classes = np.arange(n_class)
+        
+        # 如果所有类别都被忽略了，返回空结果
+        if len(valid_classes) == 0:
+            return {}, {}
+        
+        # --- 2. 计算 OA (只在有效类别上计算) ---
+        # 使用 np.ix_ 从原始混淆矩阵中提取有效类别的子矩阵
+        valid_hist = hist[np.ix_(valid_classes, valid_classes)]
+        OA_valid = np.diag(valid_hist).sum() / (valid_hist.sum() + eps)
 
-        # Overall Accuracy
-        OA = np.diag(hist).sum() / (hist.sum() + eps)
-
-        # Per-class Accuracy
-        acc_cls = np.diag(hist) / (hist.sum(axis=1) + eps)
-
-        # TP, FP, FN
+        # 计算所有类别的基础指标 TP, FP, FN
         TP = np.diag(hist)
         FP = hist.sum(axis=0) - TP
         FN = hist.sum(axis=1) - TP
         TN = np.diag(self.confusion_matrix).sum() - np.diag(self.confusion_matrix)
 
 
-        po = (TP + TN) / (TP + TN + FP + FN)
-        pe = ((TP + FP) * (TP + FN) + (FP + TN) * (FN + TN)) / (TP + TN + FP + FN) ** 2
-        Kappa = (po - pe) / (1 - pe + eps)
+        # po = (TP + TN) / (TP + TN + FP + FN)
+        # pe = ((TP + FP) * (TP + FN) + (FP + TN) * (FN + TN)) / (TP + TN + FP + FN) ** 2
+        # Kappa = (po - pe) / (1 - pe + eps)
 
         IoU = TP / (TP + FP + FN + eps)
         Precision = TP / (TP + FP + eps)
-        Recall = TP / (TP + FN + eps)
+        Recall = TP / (TP + FN + eps)                       # 在机器学习中通常被称为 召回率 (Recall)，在语义分割任务中也常被称为 类别准确率 (Per-Class Accuracy)
+        acc_cls = np.diag(hist) / (hist.sum(axis=1) + eps)  # 和上面的计算方式得到的结果一样
         F1 = 2 * Precision * Recall / (Precision + Recall + eps)
 
         # 只保留非背景类指标用于平均
-        IoU_valid = IoU[valid_classes]
-        Precision_valid = Precision[valid_classes]
-        Recall_valid = Recall[valid_classes]
-        F1_valid = F1[valid_classes]
-        acc_cls_valid = acc_cls[valid_classes]
-        Kappa_valid = Kappa[valid_classes]
-
-        mIoU = np.nanmean(IoU_valid)
+        IoU_valid = IoU[valid_classes].mean()
+        F1_valid = F1[valid_classes].mean()
+        Precision_valid = Precision[valid_classes].mean()
+        Recall_valid = Recall[valid_classes].mean()
+        # acc_cls_valid = acc_cls[valid_classes]  # 和上面的 recall 一样
+        # Kappa_valid = Kappa[valid_classes].mean()
+        # print("Kappa", Kappa, "Kappa_valid", Kappa_valid)
 
         results = {
-            "OA \t\t\t": OA,
-            "mIoU  \t\t": mIoU,
-            "F1  \t\t": F1_valid.mean(),
-            "Precision\t": Precision_valid.mean(),
-            "Recall  \t": Recall_valid.mean(),
+            "OA \t\t\t": OA_valid,
+            "mIoU  \t\t": IoU_valid,
+            "F1  \t\t": F1_valid,
+            "Precision\t": Precision_valid,
+            "Recall  \t": Recall_valid,
         }
 
         # 输出每类指标（包括背景类也一起打印出来）
         for i in range(n_class):
+            # results[f"Recall {i} Acc"] = Recall[i]
             results[f"Class {i} Acc "] = acc_cls[i]
             # results[f"Class {i} IoU"] = IoU[i]
             # results[f"Class {i} F1"] = F1[i]
 
-        return results, acc_cls_valid
+        return results, Recall[valid_classes]
 
-    def reset(self):
-        self.confusion_matrix = np.zeros((self.n_classes, self.n_classes))
-
-
-    def reset(self):
-        self.confusion_matrix = np.zeros((self.n_classes, self.n_classes))
 
 class averageMeter(object):
     """Computes and stores the average and current value"""
@@ -195,32 +129,34 @@ class averageMeter(object):
 
 if __name__ == '__main__':
 
-    # gt = np.array([[0, 2, 1],
-    #                [1, 2, 1],
-    #                [1, 0, 1]])
+    gt = np.array([[0, 2, 1],
+                   [1, 2, 1],
+                   [1, 0, 1]])
 
-    # pre = np.array([[0, 1, 1],
-    #                [2, 0, 1],
-    #                [1, 1, 1]])
+    pre = np.array([[0, 1, 1],
+                   [2, 0, 1],
+                   [1, 1, 1]])
     
-    gt = np.array([0, 0, 1, 1, 1, 1, 1, 0])
-    pre = np.array([0, 1, 0, 1, 1, 1, 1, 0])
-    gt = np.array([0, 0, 1, 1, 1, 1])
-    pre = np.array([0, 1, 0, 1, 1, 1])
+    # gt = np.array([0, 0, 1, 1, 1, 1, 1, 0])
+    # pre = np.array([0, 1, 0, 1, 1, 1, 1, 0])
+    # gt = np.array([0, 0, 1, 1, 1, 1])
+    # pre = np.array([0, 1, 0, 1, 1, 1])
     # print(gt.shape, pre.shape)
 
-    running_metrics_test = runningScore(n_classes=2)
+    running_metrics_test = runningScore(n_classes=3)
     # eval.add_batch(gt, pre)
     running_metrics_test.update(gt, pre)
     score, class_iou = running_metrics_test.get_scores()
     # print(score.items(), class_iou)
+    # print("score", score.keys())
 
-    print("classAcc 0", np.nanmean(score["classAcc 0 :"]).round(4)*100)
-    print("classAcc 1", np.nanmean(score["classAcc 1 :"]).round(4)*100)
-    print("OA       ", np.nanmean(score["OA: \t\t"]).round(4)*100)
-    print("Precision", np.nanmean(score["Precision : "]).round(4)*100)
-    print("Recall   ", np.nanmean(score["Recall : \t"]).round(4)*100)
-    print("F1       ", np.nanmean(score["F1: \t\t"]).round(4)*100)
-    print("Kappa    ", np.nanmean(score["Kappa: \t\t"]).round(4)*100)
-    print("mIoU      ", np.nanmean(score["mIoU : \t\t"]).round(4)*100)
-    print("Class IoU", class_iou)
+    # print("classAcc 0", score["Class 0 Acc"])
+    # print("classAcc 1", score["Class 1 Acc"])
+    # print("OA       ", score["OA \t\t\t"])
+    # print("Precision", score["Precision\t"])
+    # print("Recall   ", score["Recall  \t"])
+    # print("F1       ", score["F1  \t\t"])
+    # # print("Kappa    ", score["Kappa: \t\t"])
+    # print("mIoU      ", score["mIoU  \t\t"])
+    # print("Class IoU", class_iou)
+    print(score)

@@ -55,6 +55,7 @@ def train(cfg, rundir):
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
+    classification = cfg["data"]["classification"]
 
 
     # Setup Dataloader
@@ -89,7 +90,7 @@ def train(cfg, rundir):
 
     # Set Model
     model_name = cfg['model']
-    model = get_model(model_name, bands1, bands2, classes=classes).to(device)
+    model = get_model(model_name, bands1, bands2, classes, img_size, classification).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -176,10 +177,10 @@ def train(cfg, rundir):
             loss.backward()
             optimizer.step()
 
-            if cfg["data"]["classification"] == "Multi":
+            if classification == "Multi":
                 outputs = multi_outputs[0]
                 pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
-            elif cfg["data"]["classification"] == "Binary":
+            elif classification == "Binary":
                 outputs = multi_outputs[0]
                 outputs[outputs > cfg['threshold']] = 1
                 outputs[outputs <= cfg['threshold']] = 0
@@ -203,6 +204,7 @@ def train(cfg, rundir):
                         # "Kappa": np.nanmean(train_score["Kappa: \t\t"]),
                         "mIoU": np.nanmean(train_score["mIoU  \t\t"]),
                     })
+        
         train_loss_meter.reset()
         running_metrics_train.reset()
 
@@ -219,11 +221,11 @@ def train(cfg, rundir):
                     # ################ output ################
                     multi_outputs = model(gaofens_val, lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(multi_outputs, labels_val)
-                    if cfg["data"]["classification"] == "Multi":
+                    if classification == "Multi":
                         outputs = multi_outputs[0]
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
 
-                    elif cfg["data"]["classification"] == "Binary":
+                    elif classification == "Binary":
                         outputs = multi_outputs[0]
                         outputs[outputs > cfg['threshold']] = 1
                         outputs[outputs <= cfg['threshold']] = 0
@@ -234,7 +236,6 @@ def train(cfg, rundir):
                     running_metrics_val.update(gt, pred)     # update confusion_matrix
                     val_loss_meter.update(val_loss.item())  # update sum_loss
 
-            # logger.info("Epoch %d Loss: %.4f" % (i, val_loss_meter.avg))
             score, class_iou = running_metrics_val.get_scores()
 
             # store results
@@ -331,11 +332,6 @@ if __name__ ==  "__main__":
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)
-
-    # print("args.config", args.config)
-    # print("basename", os.path.basename(args.config))
-    # print("basename[-4]", os.path.basename(args.config)[:-4])
-    # print('RUNDIR: {}'.format(rundir))
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 

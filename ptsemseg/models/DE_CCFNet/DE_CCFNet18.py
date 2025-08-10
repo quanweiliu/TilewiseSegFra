@@ -22,9 +22,9 @@ class ConvBN(nn.Sequential):
             norm_layer(out_channels)
         )
 
-class DE_CCFNet_18(nn.Module):
-    def __init__(self, bands1=16, bands2=3, n_classes=1, is_pretrained=False):
-        super(DE_CCFNet_18, self).__init__()
+class DE_CCFNet18(nn.Module):
+    def __init__(self, bands1=16, bands2=3, n_classes=1, classification="Multi", is_pretrained=False):
+        super(DE_CCFNet18, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         # reduction = [1, 2, 4, 8, 16]
@@ -32,8 +32,8 @@ class DE_CCFNet_18(nn.Module):
             rgb_resnet = models.resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
             lidar_resnet = models.resnet18(weights="ResNet18_Weights.DEFAULT")
         else:
-            rgb_resnet = models.resnet18(pretrained=False)
-            lidar_resnet = models.resnet18(pretrained=False)
+            rgb_resnet = models.resnet18(weights=None)
+            lidar_resnet = models.resnet18(weights=None)
 
         self.rgb_first = nn.Sequential(
             ConvBNReLU(bands1, filters[0] // 2, ks=3, stride=2, padding=1),
@@ -103,6 +103,7 @@ class DE_CCFNet_18(nn.Module):
             # nn.Dropout(0.1),
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
+        self.classification = classification
 
         # self.final = nn.Sequential(
         #     nn.ConvTranspose2d(filters[0], 32, 4, 2, 1),
@@ -156,7 +157,10 @@ class DE_CCFNet_18(nn.Module):
         # out = self.final(d1)
         out = self.final(d1)  ## new
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
@@ -167,7 +171,7 @@ if __name__=="__main__":
     x = torch.randn(4, bands1, 256, 256, device=device)
     y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = DE_CCFNet_18(bands1=bands1, bands2=bands2, n_classes=20, is_pretrained=True).to(device)
+    model = DE_CCFNet18(bands1=bands1, bands2=bands2, n_classes=20, is_pretrained=True).to(device)
     output = model(x, y)
     print("output", output.shape)
     # model = SKBlock(64,M=2,G=64)

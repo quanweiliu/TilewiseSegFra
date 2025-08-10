@@ -29,7 +29,7 @@ class ConvBN(nn.Sequential):
         )
 
 class ACNet(nn.Module):
-    def __init__(self, bands1, bands2, num_class=2, pretrained=True):
+    def __init__(self, bands1, bands2, num_class=2, classification="Multi", pretrained=True):
         super(ACNet, self).__init__()
 
         layers = [3, 4, 6, 3]
@@ -102,8 +102,6 @@ class ACNet(nn.Module):
         #                                        stride=2, padding=0, bias=True)
         self.final_deconv = nn.Sequential(
             nn.ConvTranspose2d(self.inplanes, num_class, kernel_size=2, stride=2, padding=0, bias=True),
-            # nn.ConvTranspose2d(self.inplanes, num_class, kernel_size=2, stride=2, padding=0, bias=True),
-            nn.Sigmoid()
         )
 
         # self.out5_conv = nn.Conv2d(256, num_class, kernel_size=1, stride=1, bias=True)
@@ -127,6 +125,7 @@ class ACNet(nn.Module):
             nn.Sigmoid()
         )
 
+        self.classification = classification
 
         # weight initial
         for m in self.modules():
@@ -220,10 +219,11 @@ class ACNet(nn.Module):
         x = self.final_conv(x)
         out = self.final_deconv(x)
 
-        # if self.training:
-        return out, out2, out3, out4, out5
+        if self.classification == "Multi":
+            return out, out2, out3, out4, out5
+        elif self.classification == "Binary":
+            return F.sigmoid(out), F.sigmoid(out2), F.sigmoid(out3), F.sigmoid(out4), F.sigmoid(out5)
 
-        # return out
 
     def forward(self, rgb, depth, phase_checkpoint=False):
         # rgb = self.pre_conv(rgb)
