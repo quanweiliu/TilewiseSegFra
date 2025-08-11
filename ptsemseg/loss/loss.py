@@ -134,6 +134,25 @@ def MSE(input, target, size_average=True):
     input= input.squeeze(1)
     return F.mse_loss(input, target, size_average=True)
 
+# def dice_loss(y_pred, y_true):
+#     smooth = 1.0
+#
+#     y_pred = y_pred.view(-1)
+#     # print(y_pred.type())
+#     y_true = y_true.view(-1)
+#     # print(y_true.type())
+#     y_true = y_true.float()
+#     # print(y_true.type())
+#
+#     i = torch.sum(y_true)
+#     j = torch.sum(y_pred)
+#     intersection = torch.sum(y_true * y_pred)
+#     score = (2. * intersection + smooth) / (i + j + smooth)
+#     soft_dice_coeff = score.mean()
+#
+#     soft_dice_loss = 1 - soft_dice_coeff
+#
+#     return soft_dice_loss
 
 def dice_loss(input, target):
     # input = F.sigmoid(input)
@@ -182,7 +201,7 @@ def dice_loss(input, target):
 
     return soft_dice_loss
 
-def bce_loss(input, target, size_average=True):
+def bce_loss(input, target):
 
     # input = F.sigmoid(input)
     _, _, h, w = input.size()
@@ -211,63 +230,8 @@ def bce_loss(input, target, size_average=True):
     loss = F.binary_cross_entropy(input, target)
     return loss
 
-class GapLoss(nn.Module):
-    def __init__(self, K=60):
-        super(GapLoss, self).__init__()
-        self.K = K
 
-    def forward(self, pred, target):
-        # Input is processed by softmax function to acquire cross-entropy map L
-        # criterion = CrossEntropyLoss(reduction='none')
-        # criterion=F.binary_cross_entropy(reduction=None)
-        # L = criterion(pred, target)
-        L = F.binary_cross_entropy(pred, target, reduction="none")
-
-        # Input is binarized to acquire image A
-        # A = copy.deepcopy(pred)
-        # A[A >= 0.5] = 1
-        # A[A < 0.5] = 0
-        pred_np=pred.detach().cpu().numpy()
-        A_np=pred_np
-        A_np[A_np >= 0.5] = 1
-        A_np[A_np < 0.5] = 0
-
-
-        # Skeleton image B is obtained from A
-        # A_np = A.detach().cpu().numpy()
-        B = np.zeros_like(A_np)
-        for n in range(A_np.shape[0]):
-            temp = skeletonize(A_np[n])
-            temp = np.where(temp == True, 1, 0)
-            B[n] = temp
-        B = torch.from_numpy(B).to(pred.device).float()
-        # B = torch.unsqueeze(B, dim=1)
-
-        # Generate endpoint map C
-        kernel = torch.ones((1, 1, 3, 3), dtype=torch.float).to(pred.device)
-        kernel[0][0][1][1] = 0
-        C = F.conv2d(B, weight=kernel, bias=None, stride=1, padding=1, dilation=1, groups=1)
-        C = torch.mul(B, C)
-        C = torch.where(C == 1, 1, 0).float()
-
-        # Generate weight map W
-        kernel = torch.ones((1, 1, 9, 9), dtype=torch.float).to(pred.device)
-        N = F.conv2d(C, weight=kernel, bias=None, stride=1, padding=4, dilation=1, groups=1)
-        N = N * self.K
-        temp = torch.where(N == 0, 1, 0)
-        W = N + temp
-
-        loss = torch.mean(W * L)
-        return loss
-
-def gaploss(input, target, K=60, device=None):
-    criterion=GapLoss(K)
-    # alpha = 0.3
-    # loss = (1-alpha)*bceloss + alpha*diceloss
-    loss=criterion(input,target)
-    return loss,loss,loss
-
-def bce_loss2(input, target, device_num, weight=None, size_average=True):
+def bce_loss2(input, target, device_num, weight=None):
 
     # input = F.sigmoid(input)
     _, _, h, w = input.size()
@@ -277,9 +241,9 @@ def bce_loss2(input, target, device_num, weight=None, size_average=True):
     # Handle inconsistent size between input and target
     if h > ht and w > wt:  # upsample labels
         target = target.float()
-        target = target.unsequeeze(1)
+        target = target.unsqueeze(1)
         target = F.interpolate(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
+        target = target.squeeze(1)
     elif h < ht and w < wt:  # upsample images
         target = target.float()
         target = torch.unsqueeze(target, 1)
@@ -297,7 +261,7 @@ def bce_loss2(input, target, device_num, weight=None, size_average=True):
     class_weight = torch.gather(weight, 0, target.long())
     # target = target.float()
     # loss = F.binary_cross_entropy_with_logits(input, target, class_weight, size_average)
-    loss = F.binary_cross_entropy(input, target,class_weight)
+    loss = F.binary_cross_entropy(input, target, class_weight)
     return loss
 
 def focal_loss(input, target, device, gamma=2, alpha=None, size_average=True):
@@ -354,45 +318,19 @@ def focal_loss(input, target, device, gamma=2, alpha=None, size_average=True):
 
     return loss
 
-# def dice_loss(y_pred, y_true):
-#     smooth = 1.0
-#
-#     y_pred = y_pred.view(-1)
-#     # print(y_pred.type())
-#     y_true = y_true.view(-1)
-#     # print(y_true.type())
-#     y_true = y_true.float()
-#     # print(y_true.type())
-#
-#     i = torch.sum(y_true)
-#     j = torch.sum(y_pred)
-#     intersection = torch.sum(y_true * y_pred)
-#     score = (2. * intersection + smooth) / (i + j + smooth)
-#     soft_dice_coeff = score.mean()
-#
-#     soft_dice_loss = 1 - soft_dice_coeff
-#
-#     return soft_dice_loss
 
-def focal_dice_loss(input, target, device,gamma = 2, alpha = 0.25, size_average=True):
+def focal_dice_loss(input, target, device, gamma = 2, alpha = 0.25, size_average=True):
     f_loss = focal_loss(input, target,device, gamma, alpha, size_average)
     d_loss = dice_loss(input, target)
     loss = f_loss + d_loss
     return loss
+
 
 def focal_bce_loss(input, target, device, gamma = 2, alpha = 0.25, size_average=True):
     f_loss = focal_loss(input, target, device, gamma, alpha, size_average)
     b_loss = bce_loss(input, target, size_average=size_average)
     loss = f_loss + b_loss
     return loss, b_loss, f_loss
-
-def dice_bce_loss_re(input, target, a, b, size_average=True):
-    bceloss = bce_loss(input, target, size_average=size_average)
-    diceloss = dice_loss(input, target)
-    # alpha = 0.3
-    # loss = (1-alpha)*bceloss + alpha*diceloss
-    loss=a*bceloss + b*diceloss
-    return loss, bceloss, diceloss
 
 
 def multiclass_dice_loss(input, target, classes=None, epsilon=1e-6):
@@ -428,12 +366,21 @@ def multiclass_ce_dice_loss(input, target, a, b, classes):
     return loss, ce_loss, dice
 
 
-def dice_bce_loss_re2(input, target, device, weight, a, b, size_average=True):
-    bceloss = bce_loss2(input, target,device_num=device,weight=weight,size_average=size_average)
+def dice_bce_loss_re(input, target, a, b, size_average=True):
+    bceloss = bce_loss(input, target, size_average=size_average)
     diceloss = dice_loss(input, target)
     # alpha = 0.3
     # loss = (1-alpha)*bceloss + alpha*diceloss
-    loss=a*bceloss+b*diceloss
+    loss = a * bceloss + b * diceloss
+    return loss, bceloss, diceloss
+
+
+def dice_bce_loss_re2(input, target, device, weight, a, b, size_average=True):
+    bceloss = bce_loss2(input, target, device_num=device, weight=weight, size_average=size_average)
+    diceloss = dice_loss(input, target)
+    # alpha = 0.3
+    # loss = (1-alpha)*bceloss + alpha*diceloss
+    loss = a * bceloss + b * diceloss
     return loss, bceloss, diceloss
 
 class DiceLoss(nn.Module):
@@ -544,7 +491,6 @@ def multiclass_multi_loss(input, target, a, b, classes, aux_weight=1):
     return loss, loss1, loss2
 
 
-
 def multi_loss(input, target, device, a, b, size_average=True, aux_weight=1):
     out_feats= input[0]
     aux_feats, aux_loss = input[1:], []
@@ -596,5 +542,3 @@ def multi_loss3(input, target, device, a, b, size_average=True, aux_weight=1):
         aux_loss.append(a*bceloss + b*diceloss)
     loss = sum(aux_loss)
     return loss, loss, loss
-
-

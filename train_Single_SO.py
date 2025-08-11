@@ -57,7 +57,6 @@ def train(cfg, rundir):
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
 
-
     # Setup Dataloader
     if data_name == "OSTD":
         t_loader = OSTD_loader(data_path, train_split, img_size, is_augmentation=True)
@@ -307,13 +306,15 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MANet.yml",
         help="Configuration file to use")
     parser.add_argument(
         "--model_path",
         nargs = "?",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
         default = None,
         help="Path to the saved model")
     args = parser.parse_args()

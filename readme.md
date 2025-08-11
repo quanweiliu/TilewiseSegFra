@@ -4,7 +4,8 @@
 | Code      | Paper |  Journal |  Year | 
 | ----------- | ----------- |----------- |----------- |
 ||**Single modality models**||
-| [FDGC](https://github.com/quanweiliu/FDGC)      | [A Fast Dynamic Graph Convolutional Network and CNN Parallel Network for Hyperspectral Image Classification](https://ieeexplore-ieee-org.elibrary.jcu.edu.au/abstract/document/9785802)       | TGRS       | 2022       | 
+| [ABCNet](https://github.com/lironui/ABCNet)      | [ABCNet: Attentive Bilateral Contextual Network for Efficient Semantic Segmentation of Fine-Resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | ISPRS       | 2021       | 
+| [AMSUnet](https://github.com/llluochen/AMSUnet)      | [AMSUnet: A neural network using atrous multi-scale convolution for medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | Computers in Biology and Medicine       | 2023       | 
 ||**Multimodal models**||
 | RDFNet      | [RDFNet: RGB-D Multi-level Residual Feature Fusion for Indoor Semantic Segmentation](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | CVPR       | 2017       |
 | FAFNet      | [FAFNet: Fully aligned fusion network for RGBD semanticsegmentation based on hierarchical semantic ﬂows](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | IET IP       | 2022       |

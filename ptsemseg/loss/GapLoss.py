@@ -56,6 +56,62 @@ class GapLoss(nn.Module):
         return loss
 
 
+class BinaryGapLoss(nn.Module):
+    def __init__(self, K=60):
+        super(BinaryGapLoss, self).__init__()
+        self.K = K
+    
+    def forward(self, pred, target):
+        # Input is processed by softmax function to acquire cross-entropy map L
+        # criterion = CrossEntropyLoss(reduction='none')
+        # criterion=F.binary_cross_entropy(reduction=None)
+        # L = criterion(pred, target)
+        L = F.binary_cross_entropy(pred, target, reduction="none")
+
+        # Input is binarized to acquire image A
+        # A = copy.deepcopy(pred)
+        # A[A >= 0.5] = 1
+        # A[A < 0.5] = 0
+        pred_np=pred.detach().cpu().numpy()
+        A_np=pred_np
+        A_np[A_np >= 0.5] = 1
+        A_np[A_np < 0.5] = 0
+
+
+        # Skeleton image B is obtained from A
+        # A_np = A.detach().cpu().numpy()
+        B = np.zeros_like(A_np)
+        for n in range(A_np.shape[0]):
+            temp = skeletonize(A_np[n])
+            temp = np.where(temp == True, 1, 0)
+            B[n] = temp
+        B = torch.from_numpy(B).to(pred.device).float()
+        # B = torch.unsqueeze(B, dim=1)
+
+        # Generate endpoint map C
+        kernel = torch.ones((1, 1, 3, 3), dtype=torch.float).to(pred.device)
+        kernel[0][0][1][1] = 0
+        C = F.conv2d(B, weight=kernel, bias=None, stride=1, padding=1, dilation=1, groups=1)
+        C = torch.mul(B, C)
+        C = torch.where(C == 1, 1, 0).float()
+
+        # Generate weight map W
+        kernel = torch.ones((1, 1, 9, 9), dtype=torch.float).to(pred.device)
+        N = F.conv2d(C, weight=kernel, bias=None, stride=1, padding=4, dilation=1, groups=1)
+        N = N * self.K
+        temp = torch.where(N == 0, 1, 0)
+        W = N + temp
+
+        loss = torch.mean(W * L)
+        return loss
+
+
+def gaploss(input, target, K=60, device=None):
+    criterion = GapLoss(K)
+    # alpha = 0.3
+    # loss = (1-alpha)*bceloss + alpha*diceloss
+    loss = criterion(input, target)
+    return loss, loss, loss
 
 
 class GapLoss_demonstration(nn.Module):

@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
-print('using GPU %s' % ','.join(map(str, [0])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 
 import cv2
 import csv
@@ -159,10 +159,7 @@ def test(args):
 
 
     id_to_color, legend_elements = train_id_to_color(classes)
-    if cfg['data']['modality'] == "rgb":
-        model = get_model(cfg['model'], args.bands1, args.bands2, args.classes, args.img_size, args.classification).to(args.device)
-    elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-        model = get_model(cfg['model'], args.bands2, args.bands1, args.classes, args.img_size, args.classification).to(args.device)
+    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.classification).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)
@@ -225,11 +222,7 @@ def test(args):
                 running_metrics_test.update(mask.numpy(), pred)
 
             else:
-                if args.modality == "rgb":
-                    outputs = model(gaofen)
-                elif args.modality == "lidar" or args.modality == "sar":
-                    outputs = model(lidar)
-
+                outputs = model(gaofen, lidar)
                 if args.classification == "Multi":
                     pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
 
@@ -242,7 +235,6 @@ def test(args):
         ############################### save pred image ###############################
             if args.save_img:
                 pred = pred.reshape(args.img_size, args.img_size)
-                # print(str(img_id), type(str(img_id)), type(img_id))
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred.astype(np.uint8))
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
@@ -268,11 +260,12 @@ def test(args):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
-    parser.add_argument('--model', 
-                        choices=['baseline18_single', \
-                                'baseline34_single_decoder1', \
-                                'baseline34_single_decoder2'],
-                        default='baseline18_single', help="the model architecture that should be trained")
+    parser.add_argument('--model',
+                         choices=['DE_CCFNet18', 'DE_CCFNet34', 'DE_DCGCN', 'Zhiyang', \
+                                "AsymFormer", "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', 
+                                "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet34", \
+                                "SFAFMA50", 'SOLC', 'DE_DCGCN', 'PACSCNet50', 'FAFNet'], \
+                        default="AsymFormer", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -280,9 +273,13 @@ if __name__=='__main__':
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
-    parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1201-baseline18_single"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1507-baseline18_single"),
+    parser.add_argument("--file_path", nargs = "?", type = str,
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-0757-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-0004-MGFNet_Wei50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1007-MGFNet_Wu34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1044-MGFNet_Wu50"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1612-AsymFormer"),
                         help="Path to the saved model")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])
@@ -297,7 +294,6 @@ if __name__=='__main__':
     args.bands2 = cfg['data']['bands2']
     args.classes = cfg['data']['classes']
     args.classification = cfg['data']['classification']
-    args.modality = cfg['data']['modality']
     args.img_size = cfg['data']['img_size']
     args.split = cfg['data']['test_split']
     args.batch_size = cfg['training']['test_batch_size']

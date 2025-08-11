@@ -118,7 +118,7 @@ class PRIM(nn.Module):
 
 
 class PACSCNet(nn.Module):
-    def __init__(self, bands1, bands2, num_classes=2, ind=50, pretrained=False):
+    def __init__(self, bands1, bands2, num_classes=2, classification="Multi", ind=50, pretrained=False):
         super(PACSCNet, self).__init__()
         # Backbone model
         self.layer_rgb = Res2Net_model(ind, pretrained=pretrained)
@@ -181,6 +181,8 @@ class PACSCNet(nn.Module):
             nn.ReLU(inplace=True),
         )
         self.predict = nn.Conv2d(16, num_classes, 1, 1, 0)
+
+        self.classification = classification
 
     def forward(self, rgb, dsm):
         # Encoder
@@ -260,7 +262,10 @@ class PACSCNet(nn.Module):
 
         final_output = self.predict(self.up4(self.d1_CBR(d1)) + self.up4(self.d2_CBR(d2)))
 
-        return final_output
+        if self.classification == "Multi":
+            return final_output
+        elif self.classification == "Binary":
+            return F.sigmoid(final_output)
 
 
 if __name__ == "__main__":
@@ -271,7 +276,7 @@ if __name__ == "__main__":
     x = torch.randn(4, bands1, 256, 256, device=device)
     y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = PACSCNet(bands1, bands2, num_classes=1, ind=50, pretrained=True)
+    model = PACSCNet(bands1, bands2, num_classes=1, classification="Multi", ind=50, pretrained=True)
     model = model.to(device)
     output = model(x, y)
     print(output.shape)

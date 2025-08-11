@@ -5,6 +5,9 @@ from ptsemseg.models.Baseline.Resnet18_double_branch import CRFN_base18_double
 from ptsemseg.models.Baseline.Resnet34_single_decoder1 import Resnet_base34_decoder1
 from ptsemseg.models.Baseline.Resnet34_single_decoder2 import Resnet_base34_decoder2
 from ptsemseg.models.Baseline.Resnet34_double_branch import Resnet_base34_double
+from ptsemseg.models.AMSUnet import AMSUnet
+from ptsemseg.models.MANet import MANet
+from ptsemseg.models.ABCNet.ABCNet import ABCNet
 
 from ptsemseg.models.ACNet.ACNet import ACNet
 from ptsemseg.models.AsymFormer.AsymFormer import B0_T
@@ -54,6 +57,12 @@ def get_model(model_dict, bands1, bands2, classes, input_size, classification="M
         model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
     elif name == "baseline34_single_decoder2":
         model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
+    elif name == "AMSUnet":
+        model = model(bands1, bands2, num_classes=classes, classification=classification)
+    elif name == "MANet":
+        model = model(bands1, bands2, num_classes=classes, classification=classification)
+    elif name == "ABCNet":
+        model = model(bands1, bands2, n_classes=classes, classification=classification)
 
     elif name == "baseline18_double":
         model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
@@ -125,6 +134,9 @@ def _get_model_instance(name):
             "baseline34_single_decoder1": Resnet_base34_decoder1,
             "baseline34_single_decoder2": Resnet_base34_decoder2,
             "baseline34_double": Resnet_base34_double,
+            "AMSUnet": AMSUnet,
+            "MANet": MANet,
+            "ABCNet": ABCNet,
 
             "ACNet": ACNet,
             "AsymFormer": B0_T,
