@@ -6,7 +6,6 @@ import torch.nn.functional as F
 # from thop import profile
 # from torchsummary import summary
 # from torchsummaryX import summary
-import torch.nn.functional as F
 
 # from tensorboardX import SummaryWriter
 
@@ -370,9 +369,9 @@ class RefineAgent(nn.Module):
         return out
 
 
-class CMAnet(nn.Module):
-    def __init__(self, n_classes, pretrained=True, classification="Multi"):
-        super(CMAnet, self).__init__()
+class CMANet(nn.Module):
+    def __init__(self,  bands1, bands2, n_classes, classification="Multi", pretrained=True):
+        super(CMANet, self).__init__()
         self.backbone = 'resnet50'
         self.freezedict = {}
 
@@ -382,7 +381,7 @@ class CMAnet(nn.Module):
         ca_ratio = 8
 
         # RGB encoder
-        self.first_rgb = nn.Conv2d(in_channels=193, out_channels=3, \
+        self.first_rgb = nn.Conv2d(in_channels=bands1, out_channels=3, \
                                  kernel_size=1, stride=1, padding=0, bias=False)
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, \
                                kernel_size=7, padding=3, stride=2, bias=False)
@@ -396,7 +395,7 @@ class CMAnet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
 
         # depth/HHA encoder
-        self.first_d = nn.Conv2d(in_channels=3, out_channels=3, \
+        self.first_d = nn.Conv2d(in_channels=bands2, out_channels=3, \
                                  kernel_size=1, stride=1, padding=0, bias=False)
         self.conv1_d = nn.Conv2d(in_channels=3, out_channels=64, \
                                  kernel_size=7, padding=3, stride=2, bias=False)
@@ -681,15 +680,12 @@ class CMAnet(nn.Module):
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    # x = torch.randn(1, 64, 256, 256, device=device)
-    # y = torch.randn(1, 64, 256, 256, device=device)
+    bands1 = 3
+    bands2 = 1
 
-    # x = torch.randn(4, 4, 512, 512, device=device)
-    # y = torch.randn(4, 2, 512, 512, device=device)
-
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128, 128, device=device)
-    model = CMAnet(n_classes=1).to(device)
+    x = torch.randn(4, bands1, 128, 128, device=device)
+    y = torch.randn(4, bands2, 128, 128, device=device)
+    model = CMANet(bands1, bands2, n_classes=1, classification="Multi").to(device)
     output = model(x, y)
 
     print("output", output[0].shape, output[1].shape, \

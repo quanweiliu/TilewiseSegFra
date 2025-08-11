@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import logging
 import random
@@ -89,15 +89,13 @@ def train(cfg, rundir):
     #     break
 
     # Set Model
-    model_name = cfg['model']
-    model = get_model(model_name, bands1, bands2, classes, img_size, classification).to(device)
+    model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
 
     # 单一 学习率 更新 (?)
     optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items() if k != 'name'}
-    # print("optimizer_params", optimizer_params)    # {'lr': 0.001}
 
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
     # optimizer=torch.optim.Adam(model.parameters(), lr=cfg['training']['optimizer']['lr'],
@@ -170,7 +168,6 @@ def train(cfg, rundir):
             # print("lidars", lidars.shape)
             # print("labels", labels.shape)
 
-            model = model.to(device)
             multi_outputs = model(gaofens, lidars)
             loss, loss1, loss2 = loss_fn(multi_outputs, labels)
             optimizer.zero_grad()
@@ -282,7 +279,7 @@ def train(cfg, rundir):
     # plot results
     results_train = pd.DataFrame(results_train)
     results_val = pd.DataFrame(results_val)
-    plot_training_results(results_train, results_val, model_name)
+    plot_training_results(results_train, results_val, cfg['model'])
 
 
 def initLogger(model_name, run_dir):
@@ -311,24 +308,22 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/config/extraction_epoch_CANet.yml",
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CMANet.yml",
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CMGF.yml",
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_CMGFNet_U.yml",
-        help = "Configuration file to use")
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
+        help="Configuration file to use")
     parser.add_argument(
         "--model_path",
         nargs = "?",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1452-CMGFNet18", "best.pt"),
         default = None,
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
-
+    
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)

@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from .resnet import resnet101
+from .resnet import resnet50
 from .backbone import BN_MOMENTUM, hrnet_classification
 
 # from resnet import sresnet50, resnet101
@@ -135,11 +135,11 @@ class HRnet_Backbone(nn.Module):
         
         return y_list
 
-class MGFNet50(nn.Module):
-    def __init__(self, bands1, bands2, num_classes=21, backbone='hrnetv2_w48', pretrained=False):
-        super(MGFNet50, self).__init__()
+class MGFNet_Wei50(nn.Module):
+    def __init__(self, bands1, bands2, num_classes=21, classification="Multi", backbone='hrnetv2_w48', pretrained=False):
+        super(MGFNet_Wei50, self).__init__()
         self.opt_encoder = HRnet_Backbone(bands1, backbone=backbone, pretrained=pretrained)
-        self.sar_encoder = sresnet50(in_channels=bands2, pretrained=pretrained)
+        self.sar_encoder = resnet50(in_channels=bands2, pretrained=pretrained)
         last_inp_channels = np.sum(self.opt_encoder.model.pre_stage_channels)
 
         self.last_layer = nn.Sequential(
@@ -195,6 +195,9 @@ class MGFNet50(nn.Module):
             nn.BatchNorm2d(24),
             nn.ReLU(inplace=True)
         )
+
+        self.classification = classification
+
     def forward(self, x, y):
         H, W = x.size(2), y.size(3)
 
@@ -228,7 +231,10 @@ class MGFNet50(nn.Module):
         x = self.last_layer(x)
         x = F.interpolate(x, size=(H, W), mode='bilinear', align_corners=True)
 
-        return x
+        if self.classification == "Multi":
+            return x
+        elif self.classification == "Binary":
+            return F.sigmoid(x)
 
     def freeze_backbone(self):
         for param in self.opt_encoder.parameters():
@@ -251,5 +257,5 @@ if __name__ == "__main__":
     x = torch.randn(2, bands1, 512, 512, device=device)
     y = torch.randn(2, bands2, 512, 512, device=device)
 
-    model = MGFNet50(bands1, bands2, num_classes=1, pretrained=True).to(device)
+    model = MGFNet_Wei50(bands1, bands2, num_classes=1, pretrained=True).to(device)
     print("output:", model(x, y).shape)

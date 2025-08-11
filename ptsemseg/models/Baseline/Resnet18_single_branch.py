@@ -24,7 +24,7 @@ nonlinearity = partial(F.relu, inplace=True)
 
 
 class CRFN_base18_single(nn.Module):
-    def __init__(self, bands, n_classes=2, is_pretrained="ResNet18_Weights.DEFAULT"):
+    def __init__(self, bands, bands2=None, n_classes=2, classification="Multi", is_pretrained="ResNet18_Weights.DEFAULT"):
         super(CRFN_base18_single, self).__init__()
         filters = [64, 128, 256, 512]  # ResNet18
         resnet = models.resnet18(weights=is_pretrained)
@@ -59,6 +59,8 @@ class CRFN_base18_single(nn.Module):
             # nn.Dropout(0.1),
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
+
+        self.classification = classification
 
         self._initalize_weights()
 
@@ -95,7 +97,10 @@ class CRFN_base18_single(nn.Module):
         # print("d1", d1.shape)   # [32, 64, 64, 64
         out = self.final(d1)
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":

@@ -2,9 +2,9 @@ model:
   # arch: baseline18
   # arch: baseline34
   arch: ACNet
-  # arch: CANet
+  # arch: CANet50
   # arch: CMANet
-  # arch: CMGFNet
+  # arch: CMGFNet18
   # arch: CMGFNet_U
   # arch: DE_CCFNet18
   # arch: DE_CCFNet34
@@ -55,8 +55,6 @@ training:
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-
-
   loss:
     # name: 'dice_bce_loss_re'
     # size_average: True

@@ -2,7 +2,7 @@ model:
   # arch: baseline18
   # arch: baseline34
   # arch: ACNet
-  arch: CANet50
+  # arch: CANet
   # arch: CMANet
   # arch: CMGFNet
   # arch: CMGFNet_U
@@ -10,6 +10,8 @@ model:
   # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
+  # arch: MGFNet_Wei50
+  arch: MGFNet_Wu34
   # arch: HAFNetE
   # arch: PACSCNet
   # arch: PCGNet
@@ -41,7 +43,6 @@ data:
   ignore_index: 5
   classification: Multi
 
-
 training:
   train_epoch: 100
   batch_size: 32
@@ -55,13 +56,11 @@ training:
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-
-
   loss:
     # name: 'dice_bce_loss_re'
     # size_average: True
 
-    name: 'multiclass_multi_loss'
+    name: 'multiclass_ce_dice_loss'
     classes: 6
 
     # name: 'dice_loss'

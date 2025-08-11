@@ -135,9 +135,9 @@ class HRnet_Backbone(nn.Module):
         
         return y_list
 
-class MGFNet101(nn.Module):
-    def __init__(self, bands1, bands2, num_classes=21, backbone='hrnetv2_w48', pretrained=False):
-        super(MGFNet101, self).__init__()
+class MGFNet_Wei101(nn.Module):
+    def __init__(self, bands1, bands2, num_classes=21, classification="Multi", backbone='hrnetv2_w48', pretrained=False):
+        super(MGFNet_Wei101, self).__init__()
         self.opt_encoder = HRnet_Backbone(bands1, backbone=backbone, pretrained=pretrained)
         self.sar_encoder = resnet101(in_channels=bands2, pretrained=pretrained)
         last_inp_channels = np.sum(self.opt_encoder.model.pre_stage_channels)
@@ -195,6 +195,9 @@ class MGFNet101(nn.Module):
             nn.BatchNorm2d(24),
             nn.ReLU(inplace=True)
         )
+
+        self.classification = classification
+
     def forward(self, x, y):
         H, W = x.size(2), y.size(3)
 
@@ -228,7 +231,10 @@ class MGFNet101(nn.Module):
         x = self.last_layer(x)
         x = F.interpolate(x, size=(H, W), mode='bilinear', align_corners=True)
 
-        return x
+        if self.classification == "Multi":
+            return x
+        elif self.classification == "Binary":
+            return F.sigmoid(x)
 
     def freeze_backbone(self):
         for param in self.opt_encoder.parameters():
@@ -251,5 +257,5 @@ if __name__ == "__main__":
     x = torch.randn(2, bands1, 512, 512, device=device)
     y = torch.randn(2, bands2, 512, 512, device=device)
 
-    model = MGFNet101(bands1, bands2, num_classes=1, pretrained=True).to(device)
+    model = MGFNet_Wei101(bands1, bands2, num_classes=1, pretrained=True).to(device)
     print("output:", model(x, y).shape)

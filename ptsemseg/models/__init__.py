@@ -10,7 +10,7 @@ from ptsemseg.models.ACNet.ACNet import ACNet
 from ptsemseg.models.AsymFormer.AsymFormer import B0_T
 from ptsemseg.models.CANet.CANet import CANet
 
-from ptsemseg.models.CMANet.CMANet import CMAnet
+from ptsemseg.models.CMANet.CMANet import CMANet
 from ptsemseg.models.CMFNet.CMFNet import CMFNet
 from ptsemseg.models.CMGFNet.CMGFNet18 import CMGFNet18
 from ptsemseg.models.CMGFNet.CMGFNet34 import CMGFNet34
@@ -21,8 +21,10 @@ from ptsemseg.models.DE_DCGCN.DE_DCGCN import DEDCGCNEE
 from ptsemseg.models.FAFNet.fafnet_alignD import FAFNet
 
 from ptsemseg.models.MCANet.mcanet import MCANet
-from ptsemseg.models.MGFNet.MGFNet50 import MGFNet50
-from ptsemseg.models.MGFNet.MGFNet101 import MGFNet101
+from ptsemseg.models.MGFNet_Wei.MGFNet_Wei50 import MGFNet_Wei50
+from ptsemseg.models.MGFNet_Wei.MGFNet_Wei101 import MGFNet_Wei101
+from ptsemseg.models.MGFNet_Wu.MGFNet_Wu34 import MGFNet_Wu34
+from ptsemseg.models.MGFNet_Wu.MGFNet_Wu50 import MGFNet_Wu50
 
 from ptsemseg.models.PCGNet.PCGNet18 import PCGNet18
 from ptsemseg.models.PCGNet.PCGNet34 import PCGNet34
@@ -47,11 +49,11 @@ def get_model(model_dict, bands1, bands2, classes, input_size, classification="M
     print("model name", name)
 
     if name == "baseline18_single":
-        model = model(bands1, n_classes=classes, classification=classification, **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
     elif name == "baseline34_single_decoder1":
-        model = model(bands1, n_classes=classes, classification=classification, **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
     elif name == "baseline34_single_decoder2":
-        model = model(bands1, n_classes=classes, classification=classification, **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
 
     elif name == "baseline18_double":
         model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
@@ -84,11 +86,14 @@ def get_model(model_dict, bands1, bands2, classes, input_size, classification="M
         model = model(in_x=bands1, in_y=bands2, n_classes=classes, classification=classification)
     elif name == "FAFNet":
         model = model(bands1, bands2, n_classes=classes, classification=classification)
-    elif name == "MGFNet50":
+    elif name == "MGFNet_Wei50":
         model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
-    elif name == "MGFNet101":
+    elif name == "MGFNet_Wei101":
         model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
-
+    elif name == "MGFNet_Wu34":
+        model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
+    elif name == "MGFNet_Wu50":
+        model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
     elif name == "SOLC":
         model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
     elif name == "SFAFMA50":
@@ -125,7 +130,7 @@ def _get_model_instance(name):
             "AsymFormer": B0_T,
             "CANet50": CANet,
             "CANet101": CANet,
-            "CMANet": CMAnet,
+            "CMANet": CMANet,
             "CMFNet": CMFNet,
             "CMGFNet18": CMGFNet18,
             "CMGFNet34": CMGFNet34,
@@ -134,8 +139,10 @@ def _get_model_instance(name):
             "DE_DCGCN": DEDCGCNEE,
             "FAFNet": FAFNet,
             "MCANet": MCANet,
-            "MGFNet50": MGFNet50,
-            "MGFNet101": MGFNet101,
+            "MGFNet_Wei50": MGFNet_Wei50,
+            "MGFNet_Wei101": MGFNet_Wei101,
+            "MGFNet_Wu34": MGFNet_Wu34,
+            "MGFNet_Wu50": MGFNet_Wu50,
             "PCGNet18": PCGNet18,
             "PCGNet34": PCGNet34,
             "SFAFMA50": SFAFMA50,

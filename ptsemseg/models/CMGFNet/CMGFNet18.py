@@ -443,7 +443,7 @@ if __name__=="__main__":
     classes = 1
     x = torch.randn(4, bands1, 128, 128, device=device)
     y = torch.randn(4, bands2, 128, 128, device=device)
-    model = CMGFNet18(bands1=bands1, bands2=bands2, n_classes=classes, pretrained=True)
+    model = CMGFNet18(bands1=bands1, bands2=bands2, n_classes=classes, classification="Multi", pretrained=True)
     # model=CRFN_CMF(n_classes=2,is_pretrained=True)
     # model = CRFN_HFM(n_classes=2, is_pretrained=True)
     # model=rectification(64,128,128)

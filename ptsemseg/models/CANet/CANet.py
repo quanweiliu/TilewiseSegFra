@@ -34,8 +34,8 @@ class ConvBN(nn.Sequential):
         )
 
 class CANet(nn.Module):
-    def __init__(self, bands1, bands2, num_class=37, backbone='ResNet-101', \
-                 pretrained=True, pcca5=False, classification="Multi"):
+    def __init__(self, bands1, bands2, num_class=37, classification="Multi", 
+                 backbone='ResNet-101', pretrained=True, pcca5=False):
         super(CANet, self).__init__()
 
         self.pcca5 = pcca5
@@ -477,7 +477,8 @@ if __name__=="__main__":
 
     x = torch.randn(4, bands1, 128, 128, device=device)
     y = torch.randn(4, bands2, 128, 128, device=device)
-    model = CANet(bands1, bands2, num_class=1, backbone='ResNet-50', pretrained=True, pcca5=True).to(device)
+    model = CANet(bands1, bands2, num_class=1, classification="Multi", 
+                  backbone='ResNet-50', pretrained=True, pcca5=True).to(device)
     model = model.to(device)
     output = model(x, y)
     print(output[0].shape)

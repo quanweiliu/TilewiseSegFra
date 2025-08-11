@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
-print('using GPU %s' % ','.join(map(str, [0])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 
 import logging
 import random
@@ -20,7 +20,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
-# from dataLoader.dataloader_ISPRS import ISPRS_loader
+from dataLoader.ISPRS_loader import ISPRS_loader
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -44,6 +44,7 @@ def train(cfg, rundir):
     # random.seed(cfg.get('seed', seed))
 
     # cfg parameters
+    data_name = cfg['data']['name']
     data_path = cfg['data']['path']
     train_split = cfg['data']['train_split']
     val_split = cfg['data']['val_split']
@@ -54,11 +55,22 @@ def train(cfg, rundir):
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
+    classification = cfg["data"]["classification"]
 
 
     # Setup Dataloader
-    t_loader = OSTD_loader(data_path, train_split, img_size, is_augmentation=True)
-    v_loader = OSTD_loader(data_path, val_split, img_size, is_augmentation=False)
+    if data_name == "OSTD":
+        t_loader = OSTD_loader(data_path, train_split, img_size, is_augmentation=True)
+        v_loader = OSTD_loader(data_path, val_split, img_size, is_augmentation=False)
+        running_metrics_train = runningScore(classes+1)
+        running_metrics_val = runningScore(classes+1)
+
+    elif data_name == "Vaihingen":
+        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        running_metrics_train = runningScore(classes)
+        running_metrics_val = runningScore(classes)
+
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
@@ -76,16 +88,11 @@ def train(cfg, rundir):
     #     print("val labels", labels.shape)
     #     break
 
-    # Setup Metrics
-    running_metrics_train = runningScore(classes+1)
-    running_metrics_val = runningScore(classes+1)
-
     # Set Model
-    model_name = cfg['model']
     if cfg['data']['modality'] == "rgb":
-        model = get_model(model_name, bands1, bands2, classes=classes).to(device)
+        model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification).to(device)
     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-        model = get_model(model_name, bands2, bands1, classes=classes).to(device)
+        model = get_model(cfg['model'], bands2, bands1, classes, img_size, classification).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -163,24 +170,17 @@ def train(cfg, rundir):
                 outputs = model(gaofens)
             elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
                 outputs = model(lidars)
-
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            if cfg["data"]["classification"] == "Multi":
+            if classification == "Multi":
                 pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
-                # print("outputs", outputs.shape, "pred", pred.shape)   
-                # # torch.Size([32, 1, 128, 128]) pred (32, 128, 128)
-
-            elif cfg["data"]["classification"] == "Binary":
+            elif classification == "Binary":
                 outputs[outputs > cfg['threshold']] = 1
                 outputs[outputs <= cfg['threshold']] = 0
                 pred = outputs.data.cpu().numpy()
-                # print("outputs", outputs.shape, "pred", pred.shape)  
-                # #  torch.Size([32, 1, 128, 128]) pred (32, 1, 128, 128)
-
             gt = labels.data.cpu().numpy()
             # update each train batchsize metric and loss
             running_metrics_train.update(gt, pred)  # update confusion_matrix
@@ -219,11 +219,10 @@ def train(cfg, rundir):
                     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
                         outputs = model(lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
-                    
-                    if cfg["data"]["classification"] == "Multi":
+                    if classification == "Multi":
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
 
-                    elif cfg["data"]["classification"] == "Binary":
+                    elif classification == "Binary":
                         outputs[outputs > cfg['threshold']] = 1
                         outputs[outputs <= cfg['threshold']] = 0
                         pred = outputs.data.cpu().numpy()
@@ -279,7 +278,7 @@ def train(cfg, rundir):
     # plot results
     results_train = pd.DataFrame(results_train)
     results_val = pd.DataFrame(results_val)
-    plot_training_results(results_train, results_val, model_name)
+    plot_training_results(results_train, results_val, cfg['model'])
 
 
 def initLogger(model_name, run_dir):
@@ -308,26 +307,23 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extraction_epoch_baseline18_single.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline34.yml",
         help="Configuration file to use")
     parser.add_argument(
-        "--model_path", 
-        type = str, 
-        default = None, 
+        "--model_path",
+        nargs = "?",
+        type = str,
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
+        default = None,
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
-
-    # print("args.config", args.config)
-    # print("basename", os.path.basename(args.config))
-    # print("basename[-4]", os.path.basename(args.config)[:-4])
     
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)
-    print('RUNDIR: {}'.format(rundir))
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 

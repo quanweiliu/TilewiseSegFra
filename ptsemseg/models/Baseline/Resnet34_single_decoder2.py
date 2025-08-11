@@ -35,7 +35,7 @@ nonlinearity = partial(F.relu, inplace=True)
 
 
 class Resnet_base34_decoder2(nn.Module):
-    def __init__(self, bands, n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
+    def __init__(self, bands, bands2=None, n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
         super(Resnet_base34_decoder2, self).__init__()
         filters = [64, 128, 256, 512]  # ResNet34
         resnet = models.resnet34(weights=is_pretrained)

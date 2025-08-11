@@ -89,8 +89,7 @@ def train(cfg, rundir):
     #     break
 
     # Set Model
-    model_name = cfg['model']
-    model = get_model(model_name, bands1, bands2, classes, img_size, classification).to(device)
+    model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -179,14 +178,10 @@ def train(cfg, rundir):
 
             if classification == "Multi":
                 pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
-                # print("outputs", outputs.shape, "pred", pred.shape)   # torch.Size([32, 1, 128, 128]) pred (32, 128, 128)
-
             elif classification == "Binary":
                 outputs[outputs > cfg['threshold']] = 1
                 outputs[outputs <= cfg['threshold']] = 0
                 pred = outputs.data.cpu().numpy()
-                # print("outputs", outputs.shape, "pred", pred.shape)  #  torch.Size([32, 1, 128, 128]) pred (32, 1, 128, 128)
-
             gt = labels.data.cpu().numpy()
             # update each train batchsize metric and loss
             running_metrics_train.update(gt, pred)  # update confusion_matrix
@@ -282,7 +277,7 @@ def train(cfg, rundir):
     # plot results
     results_train = pd.DataFrame(results_train)
     results_val = pd.DataFrame(results_val)
-    plot_training_results(results_train, results_val, model_name)
+    plot_training_results(results_train, results_val, cfg['model'])
 
 
 def initLogger(model_name, run_dir):
@@ -314,12 +309,14 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/baseline18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/AsymFormer.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_DE_CCFNet34.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_Zhiyang.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu34.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_RDFNet.yml",
-        # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_AsymFormer.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/RDFNet50.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_PCG.yml",
         # default = "/home/leo/Semantic_Segmentation/multiRoadHSI/config/extraction_epoch_SFAFMA.yml",
         help="Configuration file to use")
@@ -333,7 +330,7 @@ if __name__ ==  "__main__":
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
-
+    
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(cfg['results']['path'], str(run_id))
     os.makedirs(rundir, exist_ok=True)
