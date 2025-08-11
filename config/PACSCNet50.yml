@@ -1,18 +1,20 @@
 model:
-  arch: AsymFormer
-  # arch: baseline18
+  # arch: baseline18_single
+  # arch: baseline18_double
+  # arch: baseline34_single_decoder1
+  # arch: baseline34_single_decoder2
+  # arch: baseline34_double
   # arch: baseline34
   # arch: ACNet
   # arch: CANet
   # arch: CMANet
   # arch: CMGFNet
-  # arch: CMGFNet_U
-  # arch: DE_CCFNet_18
-  # arch: DE_CCFNet_34
-  # arch: CMFNet      # 这个不能用
+  # arch: DE_CCFNet18
+  # arch: DE_CCFNet34
+  # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
-  # arch: PACSCNet    # 这个不能用
+  arch: PACSCNet
   # arch: PCGNet
   # arch: SFAFMA50
   # arch: SFAFMA101
@@ -81,11 +83,6 @@ results:
   path: /home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run
 
 threshold: 0.5
-
-
-
-
-
 
 
 

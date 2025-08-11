@@ -308,7 +308,6 @@ if __name__ ==  "__main__":
         nargs = "?",
         type = str,
         default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISPRS/config/extraction_epoch_baseline34.yml",
         help="Configuration file to use")
     parser.add_argument(
         "--model_path",

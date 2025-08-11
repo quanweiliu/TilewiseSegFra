@@ -265,7 +265,7 @@ if __name__=='__main__':
                                 "AsymFormer", "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', 
                                 "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet34", \
                                 "SFAFMA50", 'SOLC', 'DE_DCGCN', 'PACSCNet50', 'FAFNet'], \
-                        default="MGFNet_Wu50", help="the model architecture that should be trained")
+                        default="AsymFormer", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -278,7 +278,8 @@ if __name__=='__main__':
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-0004-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1007-MGFNet_Wu34"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1044-MGFNet_Wu50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1044-MGFNet_Wu50"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1612-AsymFormer"),
                         help="Path to the saved model")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])

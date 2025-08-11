@@ -1,4 +1,6 @@
 import os
+import torch
+from torch import nn
 from torch.nn import functional as F
 from thop import profile, clever_format
 
@@ -39,9 +41,6 @@ model2 = mit_b0()
 stem2 = [model2.patch_embed1, model2.patch_embed2, model2.patch_embed3, model2.patch_embed4]
 layers2 = [model2.block1, model2.block2, model2.block3, model2.block4]
 norm2 = [model2.norm1, model2.norm2, model2.norm3, model2.norm4]
-
-import torch
-from torch import nn
 
 
 def channel_shuffle(x, groups: int):
@@ -231,7 +230,7 @@ class down_sample_block(nn.Module):
 
 
 class B0_T(nn.Module):
-    def __init__(self, bands1, bands2, n_classes):
+    def __init__(self, bands1, bands2, n_classes, classification="Multi", **param_dict):
         super(B0_T, self).__init__()
 
         self.channel = [32, 64, 160, 256]
@@ -259,6 +258,8 @@ class B0_T(nn.Module):
                                    dropout_ratio=0.1,
                                    norm_layer=nn.BatchNorm2d,
                                    embed_dim=256)
+        
+        self.classification = classification
 
     def forward(self, image, depth):
         # print("image", image.shape, "depth", depth.shape)
@@ -284,9 +285,10 @@ class B0_T(nn.Module):
                                 depth_out])
         rgb_out = F.interpolate(rgb_out, size=input_shape, mode='bilinear', align_corners=False)
         
-        rgb_out = torch.sigmoid(rgb_out)
-
-        return rgb_out
+        if self.classification == "Multi":
+            return rgb_out
+        elif self.classification == "Binary":
+            return torch.sigmoid(rgb_out)
 
 
 if __name__ == '__main__':
@@ -302,7 +304,7 @@ if __name__ == '__main__':
     depth = torch.randn(8, bands2, 512, 512)
     # image = torch.randn(8, 193, 128, 128)
     # depth = torch.randn(8, 3, 128, 128)
-    model = B0_T(bands1, bands2, n_classes=2)
+    model = B0_T(bands1, bands2, n_classes=2, classification="Multi")
     out = model(image, depth)
     print(out.shape)
     # print("Done")

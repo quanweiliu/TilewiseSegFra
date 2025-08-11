@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import cv2
 import csv
@@ -159,7 +159,10 @@ def test(args):
 
 
     id_to_color, legend_elements = train_id_to_color(classes)
-    model = get_model({"arch":args.model}, args.bands2, args.bands1, args.classes, args.classification).to(args.device)
+    if cfg['data']['modality'] == "rgb":
+        model = get_model(cfg['model'], args.bands1, args.bands2, args.classes, args.img_size, args.classification).to(args.device)
+    elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
+        model = get_model(cfg['model'], args.bands2, args.bands1, args.classes, args.img_size, args.classification).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)

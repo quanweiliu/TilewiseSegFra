@@ -9,7 +9,6 @@ model:
   # arch: CANet
   # arch: CMANet
   # arch: CMGFNet
-  # arch: CMGFNet_U
   arch: DE_CCFNet18
   # arch: DE_CCFNet34
   # arch: CMFNet

@@ -9,6 +9,7 @@
 | RDFNet      | [RDFNet: RGB-D Multi-level Residual Feature Fusion for Indoor Semantic Segmentation](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | CVPR       | 2017       |
 | FAFNet      | [FAFNet: Fully aligned fusion network for RGBD semanticsegmentation based on hierarchical semantic ﬂows](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | IET IP       | 2022       |
 | DECCFNet      | [A Deep Cross-Modal Fusion Network for Road Extraction With High-Resolution Imagery and LiDAR Data](https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_RDFNet_RGB-D_Multi-Level_ICCV_2017_paper.pdf)       | TGRS       | 2024       |
+| [AsymFormer](https://github.com/Fourier7754/AsymFormer)      | [AsymFormer: Asymmetrical Cross-Modal Representation Learning for Mobile Platform Real-Time RGB-D Semantic Segmentation](github.com/Fourier7754/AsymFormer?tab=readme-ov-file)       | CVPR       | 2024       |
 | [MGFNet](https://github.com/yeyuanxin110/YESeg-OPT-SAR)      | [MGFNet: An MLP-dominated gated fusion network for semantic segmentation of high-resolution multi-modal remote sensing images](https://www.sciencedirect.com/science/article/pii/S1569843224005971)       | JAG       | 2024       |
 | [MGFNet](https://github.com/DrWuHonglin/MGFNet)      | [MGFNet: a multiscale gated fusion network for multimodal semantic segmentation](https://link.springer.com/article/10.1007/s00371-025-03912-x)       | The Visual Computer       | 2025       |
 
