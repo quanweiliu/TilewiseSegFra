@@ -103,6 +103,7 @@ class DE_CCFNet18(nn.Module):
             # nn.Dropout(0.1),
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
+        
         self.classification = classification
 
         # self.final = nn.Sequential(

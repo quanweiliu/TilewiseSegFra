@@ -50,7 +50,7 @@ class _DecoderBlock(nn.Module):
 
 
 class MCANet(nn.Module):
-    def __init__(self, bands1, bands2, num_classes, atrous_rates=[6,12,18]):
+    def __init__(self, bands1, bands2, num_classes, classification="Multi", atrous_rates=[6,12,18]):
         super(MCANet, self).__init__()
         self.sar_en1 = _EncoderBlock(bands2, 64) # 256->128, 1->64
         self.sar_en2 = _EncoderBlock(64, 256)  # 128->64, 64->256
@@ -89,6 +89,8 @@ class MCANet(nn.Module):
             nn.Conv2d(32, num_classes, kernel_size=1),
         )
 
+        self.classification = classification
+
         initialize_weights(self)
 
     def forward(self, opt, sar):
@@ -123,8 +125,12 @@ class MCANet(nn.Module):
         sar_opt_decoder = self.decoder(low_high)    # [num_cls,64,64]
         final = sar_opt_decoder
         # final = self.final(sar_opt_decoder)
-        return F.interpolate(final, sar.size()[2:], mode='bilinear')   # [num_cls,256,256]
+        final = F.interpolate(final, sar.size()[2:], mode='bilinear')  # [num_cls,256,256]
 
+        if self.classification == "Multi":
+            return final
+        elif self.classification == "Binary":
+            return F.sigmoid(final)
 
 if __name__ == "__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -137,5 +143,5 @@ if __name__ == "__main__":
     x = torch.randn(2, bands1, 512, 512, device=device)
     y = torch.randn(2, bands2, 512, 512, device=device)
 
-    model = MCANet(bands1, bands2, num_classes=1).to(device)
+    model = MCANet(bands1, bands2, num_classes=1, classification="Multi").to(device)
     print("output:", model(x, y).shape)

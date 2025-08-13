@@ -36,7 +36,7 @@ class Cross_identity(nn.Module):
 
 
 class Resnet_base34_double(nn.Module):
-    def __init__(self, bands1, bands2, n_classes=2, is_pretrained="ResNet34_Weights.DEFAULT"):
+    def __init__(self, bands1, bands2, n_classes=2, classification="Multi", is_pretrained="ResNet34_Weights.DEFAULT"):
         super(Resnet_base34_double, self).__init__()
         filters = [64, 128, 256, 512]  # ResNet34
         rgb_resnet = models.resnet34(weights=is_pretrained)
@@ -93,6 +93,8 @@ class Resnet_base34_double(nn.Module):
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
 
+        self.classification = classification
+
         self._initalize_weights()
 
     def _initalize_weights(self):
@@ -131,7 +133,10 @@ class Resnet_base34_double(nn.Module):
         ## final classification
         out = self.final(d1)
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
@@ -142,7 +147,7 @@ if __name__=="__main__":
     x = torch.randn(4, bands1, 256, 256, device=device)
     y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = Resnet_base34(bands1, bands2, n_classes=1).to(device)
+    model = Resnet_base34_double(bands1, bands2, n_classes=1, classification="Multi").to(device)
     output = model(x, y)
     print("output", output.shape)
 

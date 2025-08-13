@@ -1,7 +1,7 @@
 model:
   # arch: baseline18_single
-  arch: baseline18_double
-  # arch: baseline34_double
+  # arch: baseline18_double
+  arch: baseline34_double
   # arch: baseline34_single_decoder1
   # arch: baseline34_single_decoder2
   # arch: baseline34_double

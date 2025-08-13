@@ -93,6 +93,8 @@ def get_model(model_dict, bands1, bands2, classes, input_size, classification="M
         model = model(in_x=bands1, in_y=bands2, n_classes=classes, classification=classification)
     elif name == "FAFNet":
         model = model(bands1, bands2, n_classes=classes, classification=classification)
+    elif name == "MCANet":
+        model = model(bands1, bands2, num_classes=classes, classification=classification)
     elif name == "MGFNet_Wei50":
         model = model(bands1, bands2, num_classes=classes, classification=classification, **param_dict)
     elif name == "MGFNet_Wei101":
