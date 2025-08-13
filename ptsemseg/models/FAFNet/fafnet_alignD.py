@@ -621,7 +621,7 @@ class UperNetAlignHead(nn.Module):
 
 
 class TestNet(nn.Module):
-    def __init__(self, backbone, num_classes, fpn_dsn=False):
+    def __init__(self, backbone, num_classes, classification="Multi", fpn_dsn=False):
         super(TestNet, self).__init__()
         self.backbone = backbone
         self.dilate = 2
@@ -638,13 +638,18 @@ class TestNet(nn.Module):
         self.head = UperNetAlignHead(
             2048, num_class=num_classes, norm_layer=nn.BatchNorm2d, fpn_dsn=fpn_dsn)
 
+        self.classification = classification
+
     def forward(self, rgb, hha):
         b, c, h, w = rgb.shape
         blocks, merges = self.backbone(rgb, hha)
         pred = self.head(merges)
-        pred = F.interpolate(pred, size=(
-            h, w), mode='bilinear', align_corners=True)
-        return pred
+        pred = F.interpolate(pred, size=(h, w), mode='bilinear', align_corners=True)
+
+        if self.classification == "Multi":
+            return pred
+        elif self.classification == "Single":
+            return torch.sigmoid(pred)
 
     def _nostride_dilate(self, m, dilate):
         if isinstance(m, nn.Conv2d):
@@ -673,7 +678,7 @@ class TestNet(nn.Module):
         return params
 
 
-def FAFNet(bands1, bands2, num_classes, pretrained=True):
+def FAFNet(bands1, bands2, num_classes, classification, pretrained=True):
     # bkb=None
     # if pretrained == True:
     #     bkb = '/home/wzj/PycharmProjects/multi_road_extraction/pretrained/resnet101_v1c.pth'
@@ -685,7 +690,7 @@ def FAFNet(bands1, bands2, num_classes, pretrained=True):
                               bn_momentum=0.1,
                               deep_stem=True, 
                               stem_width=64)
-    model = TestNet(backbone, num_classes)
+    model = TestNet(backbone, num_classes, classification)
     return model
 
 

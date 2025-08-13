@@ -32,8 +32,6 @@ from ptsemseg.models.MGFNet_Wu.MGFNet_Wu50 import MGFNet_Wu50
 from ptsemseg.models.PCGNet.PCGNet18 import PCGNet18
 from ptsemseg.models.PCGNet.PCGNet34 import PCGNet34
 from ptsemseg.models.PACSCNet.PACSCNet import PACSCNet
-from ptsemseg.models.RDFNet.rdfnet50 import RDF50
-from ptsemseg.models.RDFNet.rdfnet101 import RDF101
 
 from ptsemseg.models.SFAFMA.SFAFMA50 import SFAFMA50
 from ptsemseg.models.SFAFMA.SFAFMA101 import SFAFMA101
@@ -117,10 +115,6 @@ def get_model(model_dict, bands1, bands2, classes, input_size, classification="M
         model = model(bands1, bands2, num_classes=classes, classification=classification, ind=50, **param_dict)
     elif name == "PACSCNet101":
         model = model(bands1, bands2, num_classes=classes, classification=classification, ind=101, **param_dict)
-    elif name == "RDFNet50":
-        model = model(bands1, bands2, input_size=input_size, num_classes=classes, classification=classification, **param_dict)
-    elif name == "RDFNet101":
-        model = model(bands1, bands2, input_size=input_size, num_classes=classes, classification=classification, **param_dict)
     else:
         raise("you havn't set the model parameters")
     return model
@@ -163,8 +157,6 @@ def _get_model_instance(name):
             "SOLC": SOLCV7,
             "PACSCNet50": PACSCNet,
             "PACSCNet101": PACSCNet,
-            "RDFNet50": RDF50,
-            "RDFNet101": RDF101,
         }[name]
     except:
         raise("Model {} not available".format(name))

@@ -9,13 +9,13 @@ model:
   # arch: CANet
   # arch: CMANet
   # arch: CMGFNet
-  arch: DE_CCFNet18
+  # arch: DE_CCFNet18
   # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
   # arch: PACSCNet
-  # arch: PCGNet18
+  arch: PCGNet18
   # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101

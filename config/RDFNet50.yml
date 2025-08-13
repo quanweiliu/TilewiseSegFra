@@ -14,6 +14,7 @@ model:
   # arch: MGFNet_Wu34
   # arch: HAFNetE
   arch: RDFNet50
+  # arch: RDFNet101
   # arch: PACSCNet
   # arch: PCGNet
   # arch: SFAFMA50

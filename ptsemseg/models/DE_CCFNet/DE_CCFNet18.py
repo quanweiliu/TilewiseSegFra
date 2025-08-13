@@ -171,7 +171,7 @@ if __name__=="__main__":
     x = torch.randn(4, bands1, 256, 256, device=device)
     y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = DE_CCFNet18(bands1=bands1, bands2=bands2, n_classes=20, is_pretrained=True).to(device)
+    model = DE_CCFNet18(bands1=bands1, bands2=bands2, n_classes=20, classification="Multi", is_pretrained=True).to(device)
     output = model(x, y)
     print("output", output.shape)
     # model = SKBlock(64,M=2,G=64)

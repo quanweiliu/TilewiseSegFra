@@ -414,12 +414,12 @@ class CA_Block(nn.Module):
 
 
 class PCGNet34(nn.Module):
-    def __init__(self, bands1, bands2, n_classes=1, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
+    def __init__(self, bands1, bands2, n_classes=2, classification="Multi", is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
         super(PCGNet34, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         reduction=[1, 2, 4, 8, 16]
-        resnet = models.resnet34(weights= is_pretrained)
+        resnet = models.resnet34(weights=is_pretrained)
 
         # rgb-decoder
         # self.rgb_first=nn.Sequential(
@@ -503,6 +503,8 @@ class PCGNet34(nn.Module):
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
 
+        self.classification = classification
+
     def forward(self,x,y):
         # encoder
         x_first=self.rgb_first(x)
@@ -554,20 +556,21 @@ class PCGNet34(nn.Module):
         ## final classification
         out=self.final(d1)
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
     # model = SEBlock(128)
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    # x = torch.randn(4, 3, 512, 512, device=device)
-    # y = torch.randn(4, 2, 512, 512, device=device)
-    bands1 = 224  # Example for RGB bands
-    bands2 = 3    # Example for LiDAR bands
+    bands1 = 16  # gaofen
+    bands2 = 3
     x = torch.randn(4, bands1, 128, 128, device=device)
     y = torch.randn(4, bands2, 128, 128, device=device)
-    model = PCGNet34(bands1=bands1, bands2=bands2, n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1").to(device)
+    model = PCGNet34(bands1, bands2, n_classes=2, classification="Multi", is_pretrained="ResNet34_Weights.IMAGENET1K_V1").to(device)
 
     output = model(x, y)
     print("output", output.shape)

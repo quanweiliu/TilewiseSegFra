@@ -72,4 +72,26 @@ I have collected a range of models based this taxonomy. If you want to contribut
 
 
 
+Feel free to cite 
 
+
+
+
+# Reference
+
+You may want to cite:
+
+```
+@article{liu2025pixels,
+  title={From Pixels to Images: Deep Learning Advances in Remote Sensing Image Semantic Segmentation},
+  author={Liu, Quanwei and Huang, Tao and Dong, Yanni and Yang, Jiaqi and Xiang, Wei},
+  journal={arXiv preprint arXiv:2505.15147},
+  year={2025}
+}
+```
+
+
+
+### License
+
+Code in this repo is for non-commercial use only.

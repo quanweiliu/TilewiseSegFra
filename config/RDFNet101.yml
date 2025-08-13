@@ -1,22 +1,22 @@
 model:
-  # arch: baseline18_single
-  # arch: baseline18_double
-  # arch: baseline34_single_decoder1
-  # arch: baseline34_single_decoder2
-  # arch: baseline34_double
+  # arch: baseline18
   # arch: baseline34
   # arch: ACNet
   # arch: CANet
   # arch: CMANet
   # arch: CMGFNet
-  arch: DE_CCFNet18
+  # arch: CMGFNet_U
+  # arch: DE_CCFNet18
   # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
+  # arch: MGFNet_Wei50
+  # arch: MGFNet_Wu34
   # arch: HAFNetE
+  # arch: RDFNet50
+  arch: RDFNet101
   # arch: PACSCNet
-  # arch: PCGNet18
-  # arch: PCGNet34
+  # arch: PCGNet
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -47,7 +47,7 @@ data:
 
 training:
   train_epoch: 100
-  batch_size: 32
+  batch_size: 16
   test_batch_size: 1
   n_workers: 6
   optimizer:

@@ -414,13 +414,12 @@ class CA_Block(nn.Module):
 
 
 class PCGNet18(nn.Module):
-    def __init__(self,n_classes=2, is_pretrained="ResNet18_Weights.IMAGENET1K_V1"):
+    def __init__(self, bands1, bands2, n_classes=2, classification="Multi", is_pretrained="ResNet18_Weights.IMAGENET1K_V1"):
         super(PCGNet18, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         reduction=[1, 2, 4, 8, 16]
-        # resnet = models.resnet34(weights= is_pretrained)
-        resnet = models.resnet18(weights= is_pretrained)
+        resnet = models.resnet18(weights=is_pretrained)
 
         # rgb-decoder
         # self.rgb_first=nn.Sequential(
@@ -430,7 +429,7 @@ class PCGNet18(nn.Module):
         #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         # )
         self.rgb_first=nn.Sequential(
-            ConvBNReLU(224, filters[0],ks=3,stride=1,padding=1),
+            ConvBNReLU(bands1, filters[0], ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -450,7 +449,7 @@ class PCGNet18(nn.Module):
         #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         # )
         self.lidar_first=nn.Sequential(
-            ConvBNReLU(3, filters[0],ks=3,stride=1,padding=1),
+            ConvBNReLU(bands2, filters[0], ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             ConvBNReLU(filters[0], filters[0], ks=3, stride=1, padding=1),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -501,8 +500,10 @@ class PCGNet18(nn.Module):
             nn.Conv2d(32, 32, 3, 1, 1, bias=False),
             nn.ReLU(inplace=True),
             nn.Dropout(0.1),
-            nn.Conv2d(32, n_classes - 1, 3, padding=1),
+            nn.Conv2d(32, n_classes, 3, padding=1),
         )
+
+        self.classification = classification
 
     def forward(self,x,y):
         # encoder
@@ -555,19 +556,21 @@ class PCGNet18(nn.Module):
         ## final classification
         out=self.final(d1)
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
     # model = SEBlock(128)
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    # x = torch.randn(4, 3, 512, 512, device=device)
-    # y = torch.randn(4, 2, 512, 512, device=device)
-
-    x = torch.randn(4, 224, 128, 128, device=device)
-    y = torch.randn(4, 3, 128, 128, device=device)
-    model = PCGNet18(n_classes=2, is_pretrained="ResNet18_Weights.IMAGENET1K_V1").to(device)
+    bands1 = 16  # gaofen
+    bands2 = 3
+    x = torch.randn(4, bands1, 128, 128, device=device)
+    y = torch.randn(4, bands2, 128, 128, device=device)
+    model = PCGNet18(bands1, bands2, n_classes=2, classification="Multi", is_pretrained="ResNet18_Weights.IMAGENET1K_V1").to(device)
 
     output = model(x, y)
     print("output", output.shape)
