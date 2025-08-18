@@ -82,8 +82,8 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.relu = nn.ReLU(inplace=True)
-        self.para = torch.nn.Parameter(torch.ones((1, channel, 16, 16), dtype=torch.float32))
-        # self.para = torch.nn.Parameter(torch.ones((1, channel, 32, 32), dtype=torch.float32))
+        # self.para = torch.nn.Parameter(torch.ones((1, channel, 16, 16), dtype=torch.float32))
+        self.para = torch.nn.Parameter(torch.ones((1, channel, 32, 32), dtype=torch.float32))
         self.adj = torch.nn.Parameter(torch.ones((channel, channel), dtype=torch.float32))
 
     def forward(self, x):
@@ -137,7 +137,7 @@ class EEblock(nn.Module):
 
 
 class DEDCGCNEE(nn.Module):
-    def __init__(self, in_x=193, in_y=3, n_classes=2):
+    def __init__(self, in_x=193, in_y=3, n_classes=2, classification="Multi"):
         super(DEDCGCNEE, self).__init__()
         self.n_classes = n_classes
         self.down = downsample()
@@ -168,6 +168,8 @@ class DEDCGCNEE(nn.Module):
         self.Up_conv2 = Decoder(128, 64)
 
         self.fconv = nn.Conv2d(64, self.n_classes, kernel_size=1, padding=0)
+
+        self.classification = classification
 
     def forward(self, x, y):
         x1 = self.Conv1(x)
@@ -217,7 +219,10 @@ class DEDCGCNEE(nn.Module):
 
         out = self.fconv(d2)
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
@@ -225,15 +230,15 @@ if __name__=="__main__":
 
     bands1 = 16
     bands2 = 3
-    x = torch.randn(4, bands1, 16, 16, device=device)
-    model = GCN(bands1).to(device)
-    output = model(x)
-    print("output", output.shape)
+    # x = torch.randn(4, bands1, 16, 16, device=device)
+    # model = GCN(bands1).to(device)
+    # output = model(x)
+    # print("output", output.shape)
 
     # 不同的尺寸，需要改 91-93 行的参数
-    x = torch.randn(4, bands1, 128, 128, device=device)
-    y = torch.randn(4, bands2, 128, 128, device=device)
-    model = DEDCGCNEE(in_x=bands1, in_y=bands2, n_classes=20).to(device)
+    x = torch.randn(4, bands1, 256, 256, device=device)
+    y = torch.randn(4, bands2, 256, 256, device=device)
+    model = DEDCGCNEE(in_x=bands1, in_y=bands2, n_classes=20, classification="Multi").to(device)
     output = model(x, y)
     print("output", output.shape)
 

@@ -54,9 +54,6 @@ class runningScore(object):
         # FWIoU=((TP+FN)/(TP+TN+FP+FN)*IoU)+((TN+FP)/(TP+TN+FP+FN)*(TN/(TN+FP+FN)))
         # MPA=0.5*(TP/(TP+FN)+TN/(FP+TN))
 
-
-
-
         return (
             {
                 # "Overall Acc/PA: \t": acc,

@@ -59,9 +59,6 @@ training:
   lr_schedule:
     name: ReduceLROnPlateau
 
-results:
-  path: /home/leo/Semantic_Segmentation/multiRoadHSI/runs
-
 threshold: 0.5
 
 

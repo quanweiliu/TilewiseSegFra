@@ -1,22 +1,22 @@
 import os
-import tifffile
-import numpy as np
-from PIL import Image
-import scipy.io as scio
-
 import torch
+import numpy as np
+import scipy.io as scio
 from torch.utils import data
 from torchvision import transforms
 
 
 class OSTD_loader(data.DataLoader):
-    def __init__(self, root, split='train', img_size=512, is_augmentation=False):
+    def __init__(self,
+                  root,
+                  split='train',
+                  img_size=512,
+                  is_augmentation=False):
         self.root = root
         self.split = split
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size))
         
-        # self.tf = transforms.Compose([transforms.ToTensor()])
         self.gaofen_data_path = os.path.join(self.root, self.split, 'image128')
         self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path), key=self.sort_key)
         self.lidar_data_path = os.path.join(self.root, self.split, 'sar128')
@@ -35,95 +35,54 @@ class OSTD_loader(data.DataLoader):
         gaofen2np = np.array(scio.loadmat(gaofen_path)['img'], np.float32)
         lidar2np = np.array(scio.loadmat(lidar_path)['sar'], np.float32)
         mask2np = np.array(scio.loadmat(mask_path)['map'], np.float32)
-        # print("mask2np", mask2np.shape)   # 128, 128, 3
-        # mask2np = np.array(scio.loadmat(mask_path)['map'], np.float32)[:, :, 0]
-        # print("mask2np", mask2np.shape)
-
-        gaofen2np, lidar2np = self.norm(gaofen2np, lidar2np)
 
         if self.augmentation:
-            # print("gaofen2np", gaofen2np.shape, "lidar2np", lidar2np.shape, "mask2np", mask2np.shape)
-            # gaofen2np (128, 128, 193) lidar2np (128, 128, 3) mask2np (128, 128, 3)
             gaofen, lidar, mask = self.is_aug(gaofen2np, lidar2np, mask2np)
         else:
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
 
-        return gaofen, lidar, mask
+        gaofen, lidar = self.norm(gaofen, lidar)
 
-    def norm(self, gaofen2np, lidar2np):
+        return gaofen, lidar, mask.long()
 
-        _, _, gao_band = gaofen2np.shape
-        _, _, lidar_band = lidar2np.shape
+    def norm(self, gaofen, lidar):
+        _, _, gao_band = gaofen.shape
+        _, _, lidar_band = lidar.shape
 
         # 归一化
         for i in range(gao_band):
-            max = np.max(gaofen2np[:, :, i])
-            min = np.min(gaofen2np[:, :, i])
+            max = np.max(gaofen[i, :, :])
+            min = np.min(gaofen[i, :, :])
             if max == 0 and min == 0:
                 # print(" ############################## skip ############################## ")
                 continue
-            gaofen2np[:,:,i] = (gaofen2np[:,:,i] - min) / (max-min)
-
-        for i in range(lidar_band):
-            max = np.max(lidar2np[:, :, i])
-            min = np.min(lidar2np[:, :, i])
-            if max == 0 and min == 0:
-                # print(" ****************************** skip ****************************** ")
-                continue
-            lidar2np[:,:,i] = (lidar2np[:,:,i] - min) / (max-min)
-
-        return gaofen2np, lidar2np
+            gaofen[i, :, :] = (gaofen[i, :, :] - min) / (max-min)
+        lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+        return gaofen, lidar
 
     def is_aug(self, gaofen2np, lidar2np, mask2np):
-        # gaofen2np=np.array(gaofen)     # (512,512,*)
         _, _, gaofen_band = gaofen2np.shape
-        # lidar2np=np.array(lidar)       # (512,512,*)
         _, _, lidar_band = lidar2np.shape
-        # mask2np = np.expand_dims(np.array(mask2np), axis=2)  # (512,512,1)
-
-        trans_norm1 = transforms.Normalize(mean=[0.514, 0.498, 0.463, 0.620],
-                                           std=[0.188, 0.170, 0.157, 0.164])  # all_data
-
-        trans_norm2 = transforms.Normalize(mean=[0.102, 0.339],
-                                          std=[0.099, 0.211])  # all_data
 
         aug = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
                                 transforms.RandomVerticalFlip(p=0.5),
                                 transforms.RandomRotation(15)])
 
-        # print("gaofen2np", gaofen2np.shape, "lidar2np", lidar2np.shape, "mask2np", mask2np.shape)
-        # gaofen2np (128, 128, 193) lidar2np (128, 128, 3) mask2np (128, 128, 1, 3)
-        img = torch.cat((torch.tensor(gaofen2np), torch.tensor(lidar2np), torch.tensor(mask2np)), dim=2)  # (512,512,*)
-
+        img = torch.cat((torch.from_numpy(gaofen2np), 
+                         torch.from_numpy(lidar2np), 
+                         torch.from_numpy(mask2np)), dim=2)  # (512,512,*)
         img = aug(img.permute(2, 0, 1))
-        # print("img", img.shape)                 # 228, 128, 128
-
-        # mask_aug=(img_aug[-1,:,:]).unsqueeze(0)
-        # gaofen_aug = trans_norm1(img[0: gaofen_band, :, :])     
-        # lidar_aug = trans_norm2(img[gaofen_band : gaofen_band + lidar_band, :, :])
         gaofen_aug = img[0: gaofen_band, :, :]
-        lidar_aug = img[gaofen_band : gaofen_band + lidar_band, :, :]
+        lidar_aug = img[gaofen_band: gaofen_band + lidar_band, :, :]
         mask_aug = img[-1, :, :].unsqueeze(0)
 
         return gaofen_aug, lidar_aug, mask_aug
 
     def no_aug(self, gaofen2np, lidar2np, mask2np):
+        gaofen = torch.from_numpy(gaofen2np).permute(2, 0, 1)
+        lidar = torch.from_numpy(lidar2np).permute(2, 0, 1)
+        mask = torch.from_numpy(mask2np[:, :, 0]).unsqueeze(0)
 
-        # trans_norm1 = transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]) #imagenet
-        trans_norm1 = transforms.Normalize(mean = [0.514, 0.498, 0.463, 0.620],
-                                           std = [0.188, 0.170, 0.157, 0.164])  # all_data
-
-        trans_norm2 = transforms.Normalize(mean = [0.102, 0.339],
-                                          std = [0.099, 0.211])  # all_data
-
-        # gaofen = trans_norm1(torch.tensor(gaofen2np).permute(2, 0, 1))
-        # lidar = trans_norm2(torch.tensor(lidar2np).permute(2, 0, 1))
-        gaofen = torch.tensor(gaofen2np).permute(2, 0, 1)
-        lidar = torch.tensor(lidar2np).permute(2, 0, 1)
-        # mask = torch.tensor(mask2np).unsqueeze(0)
-        mask = torch.tensor(mask2np[:, : , 0]).unsqueeze(0)
-
-        # return gaofen, lidar[1:2,:,:], mask
         return gaofen, lidar, mask
 
     def __len__(self):
@@ -136,13 +95,13 @@ class OSTD_loader(data.DataLoader):
 
 
 if __name__ == '__main__':
-    root = "/home/leo/DatasetMMF/OSDT"
+    root = "/home/icclab/Documents/lqw/DatasetMMF/OSTD"
     dataset = OSTD_loader(root, split='train', img_size=128, is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=2, shuffle=True)
     print(len(dataset))
 
     for gaofen, lidar, mask in trainloader:
-        print(gaofen.shape)
-        print(lidar.shape)
-        print(mask.shape)
+        print(gaofen.shape, gaofen.dtype, gaofen.min(), gaofen.max())
+        print(lidar.shape, lidar.dtype, lidar.min(), lidar.max())
+        print(mask.shape, mask.dtype, mask.min(), mask.max())
         break

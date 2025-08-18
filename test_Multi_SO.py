@@ -119,6 +119,8 @@ def sort_key(filename, args):
         name = filename.split('.')[0][5:]
     elif args.data_name == 'Vaihingen':
         name = filename.split('.')[0][20:]
+    # print("name", name)
+    # print("int name", int(name))
     return int(name)
 
 def test(args):
@@ -160,7 +162,7 @@ def test(args):
 
 
     id_to_color, legend_elements = train_id_to_color(classes)
-    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.img_size, args.classification).to(args.device)
+    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.classification).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)
@@ -266,7 +268,7 @@ if __name__=='__main__':
                                 "AsymFormer", "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
                                 "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
                                 "SFAFMA50", 'SOLC', 'DE_DCGCN', 'PACSCNet50', 'FAFNet'], \
-                        default="baseline34_double", help="the model architecture that should be trained")
+                        default="SOLC", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -275,6 +277,8 @@ if __name__=='__main__':
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-0951-baseline18_double"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-0757-DE_CCFNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-0004-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1007-MGFNet_Wu34"),
@@ -285,7 +289,7 @@ if __name__=='__main__':
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1357-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
                         help="Path to the saved model")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])

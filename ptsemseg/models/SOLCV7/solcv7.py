@@ -140,10 +140,8 @@ if __name__ == "__main__":
     bands1 = 193  # gaofen
     bands2 = 3  # lidar
 
-    # x = torch.randn(4, bands1, 480, 640, device=device)
-    # y = torch.randn(4, bands2, 480, 640, device=device)
-    x = torch.randn(4, bands1, 512, 512, device=device)
-    y = torch.randn(4, bands2, 512, 512, device=device)
+    x = torch.randn(4, bands1, 256, 256, device=device)
+    y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = SOLCV7(bands1, bands2, num_classes=8).to(device)
+    model = SOLCV7(bands1, bands2, num_classes=8, classification="Multi").to(device)
     print("output:", model(x, y).shape)

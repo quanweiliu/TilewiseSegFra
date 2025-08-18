@@ -88,9 +88,6 @@ training:
   lr_schedule:
     name: ReduceLROnPlateau
 
-results:
-  path: /home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run
-
 threshold: 0.5
 
 

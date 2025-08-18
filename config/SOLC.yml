@@ -1,18 +1,23 @@
 model:
-  # arch: baseline18
+  # arch: baseline18_single
+  # arch: baseline18_double
+  # arch: baseline34_single_decoder1
+  # arch: baseline34_single_decoder2
+  # arch: baseline34_double
   # arch: baseline34
   # arch: ACNet
-  arch: CANet50
+  # arch: CANet
   # arch: CMANet
   # arch: CMGFNet
-  # arch: CMGFNet_U
   # arch: DE_CCFNet18
   # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
   # arch: PACSCNet
-  # arch: PCGNet
+  # arch: PCGNet18
+  # arch: PCGNet34
+  arch: SOLC
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -41,7 +46,6 @@ data:
   ignore_index: 5
   classification: Multi
 
-
 training:
   train_epoch: 100
   batch_size: 32
@@ -55,13 +59,11 @@ training:
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-
-
   loss:
     # name: 'dice_bce_loss_re'
     # size_average: True
 
-    name: 'multiclass_multi_loss'
+    name: 'multiclass_ce_dice_loss'
     classes: 6
 
     # name: 'dice_loss'

@@ -40,7 +40,7 @@ from ptsemseg.models.SOLCV7.solcv7 import SOLCV7
 
 
 
-def get_model(model_dict, bands1, bands2, classes, input_size, classification="Multi"):
+def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
 
     name = model_dict['arch']
     model = _get_model_instance(name)

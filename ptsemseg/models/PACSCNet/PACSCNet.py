@@ -165,7 +165,7 @@ class PACSCNet(nn.Module):
         self.uni_D_512 = Unified(512)
 
         self.up2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.up4 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up4 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
         # Decoder
         self.decoder1 = PRIM()
