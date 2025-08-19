@@ -1,6 +1,6 @@
 # Multimodal semantic segmentation
 
-# Summary
+## Summary
 | Code      | Paper |  Journal |  Year | 
 | ----------- | ----------- |----------- |----------- |
 ||**Single modality models**||
@@ -14,7 +14,7 @@
 | [MGFNet](https://github.com/yeyuanxin110/YESeg-OPT-SAR)      | [MGFNet: An MLP-dominated gated fusion network for semantic segmentation of high-resolution multi-modal remote sensing images](https://www.sciencedirect.com/science/article/pii/S1569843224005971)       | JAG       | 2024       |
 | [MGFNet](https://github.com/DrWuHonglin/MGFNet)      | [MGFNet: a multiscale gated fusion network for multimodal semantic segmentation](https://link.springer.com/article/10.1007/s00371-025-03912-x)       | The Visual Computer       | 2025       |
 
-# Description
+## Description
 This repository proposed a new taxonomy to descibe existed tile based image semantic segmenation models.
 
 Based the input and output of the model, we categorized these pixel-level classification model into singlesacle singlemodality input and singleoutput (SSISO), singlesacle multimodelity input and singleoutput (SMISO), singlesacle multimodelity input and multioutput (SMIMO), mutlisacle multimodelity input and singleoutput (MMISO), mutlisacle multimodelity input and multiouput (MMIMO).
@@ -22,7 +22,20 @@ Based the input and output of the model, we categorized these pixel-level classi
 Of course, there are multiscale singlemodality input, singleoutput (MSISO) and multiscale singlemodality input and multioutput (MSIMO) and so on. We will continue and add them in this framework.
 
 
-# Nomalization:
+
+
+## Files
+
+ISPRS_loader 和 ISPRS_loader2 两个文件都是用于加载数据。
+
+- ISPRS_loader 是通过 train / val / test 文件夹加载数据。
+- ISPRS_loader2 是通过 train.txt / val.txt / test.txt 文件加载数据。
+
+ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一致的，但是 ISPRS_loader2 采用了更强的数据增强，复杂的数据增强过程导致模型训练非常慢，并且需要更长的训练周期。去掉多尺度等复杂的变化过程，会极大的加快训练过程。
+
+
+
+## Nomalization:
 1. MinMax normalization
 $$
 x_i' = \frac{x_i - \min(x)}{\max(x) - \min(x)}
@@ -46,7 +59,7 @@ $$
 - 不保留幅值大小
 > 在高光谱图像处理任务中，单位范数归一化更适合注重“光谱形状”的任务；而 Min-Max 更适合需要统一数值尺度或可视化展示的场景.但是要明确，**使用单位范数归一化的时候，不要使用降维**。
 
-# Tricks
+## Tricks
 - 添加环境变量
 
 ```pyhon
@@ -72,12 +85,7 @@ I have collected a range of models based this taxonomy. If you want to contribut
 
 
 
-Feel free to cite 
-
-
-
-
-# Reference
+## Reference
 
 You may want to cite:
 
@@ -95,3 +103,8 @@ You may want to cite:
 ### License
 
 Code in this repo is for non-commercial use only.
+
+
+### Acknowledge
+
+

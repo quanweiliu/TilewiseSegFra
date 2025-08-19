@@ -42,21 +42,21 @@ class OSTD_loader(data.DataLoader):
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
 
         gaofen, lidar = self.norm(gaofen, lidar)
-
         return gaofen, lidar, mask.long()
 
     def norm(self, gaofen, lidar):
         _, _, gao_band = gaofen.shape
-        _, _, lidar_band = lidar.shape
 
-        # 归一化
-        for i in range(gao_band):
-            max = np.max(gaofen[i, :, :])
-            min = np.min(gaofen[i, :, :])
-            if max == 0 and min == 0:
-                # print(" ############################## skip ############################## ")
-                continue
-            gaofen[i, :, :] = (gaofen[i, :, :] - min) / (max-min)
+        # # 归一化
+        # for i in range(gao_band):
+        #     max = np.max(gaofen[i, :, :])
+        #     min = np.min(gaofen[i, :, :])
+        #     if max == 0 and min == 0:
+        #         # print(" ############################## skip ############################## ")
+        #         continue
+        #     gaofen[i, :, :] = (gaofen[i, :, :] - min) / (max-min)
+        # _, _, lidar_band = lidar.shape
+        
         lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
         return gaofen, lidar
 

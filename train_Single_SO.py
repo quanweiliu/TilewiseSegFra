@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import logging
 import random
@@ -89,9 +89,9 @@ def train(cfg, rundir):
 
     # Set Model
     if cfg['data']['modality'] == "rgb":
-        model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification).to(device)
+        model = get_model(cfg['model'], bands1, bands2, classes, classification).to(device)
     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-        model = get_model(cfg['model'], bands2, bands1, classes, img_size, classification).to(device)
+        model = get_model(cfg['model'], bands2, bands1, classes, classification).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -306,10 +306,18 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_single.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MANet.yml",
         help="Configuration file to use")
+
+    parser.add_argument(
+        "--results",
+        type = str,
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        help="Path to the saved model")
+    
     parser.add_argument(
         "--model_path",
         nargs = "?",
@@ -322,7 +330,7 @@ if __name__ ==  "__main__":
         cfg = yaml.safe_load(fp)
     
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-    rundir = os.path.join(cfg['results']['path'], str(run_id))
+    rundir = os.path.join(args.results, str(run_id))
     os.makedirs(rundir, exist_ok=True)
 
     shutil.copy(args.config, rundir)   # copy config file to rundir

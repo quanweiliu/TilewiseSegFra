@@ -139,22 +139,20 @@ def test(args):
 
     # Setup Dataloader
     if args.data_name == "OSTD":
+        classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
+        running_metrics_test = runningScore(args.classes+1)
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')), \
                               key=lambda fname: sort_key(fname, args))
-        classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
-        # print("imgname_list: ", imgname_list)
         test_dataset = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
-        running_metrics_test = runningScore(args.classes+1)
 
     elif args.data_name == "Vaihingen":
+        classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
+        running_metrics_test = runningScore(args.classes)
         # key cannot accept a function, so we use a lambda function to call sort_key
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')), \
                                key=lambda fname: sort_key(fname, args))
-        classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        # print("imgname_list: ", imgname_list)
+        # print("imgname_list: ", imgname_list, len(imgname_list))
         test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
-        running_metrics_test = runningScore(args.classes)
-
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
 
@@ -266,7 +264,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
     parser.add_argument('--model',
                         choices=['ACNet', 'CANet50', 'CMANet', 'CMGFNet18', 'CMGFNet34'], \
-                        default='CMGFNet18', help="the model architecture that should be trained")    
+                        default='ACNet', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -275,10 +273,10 @@ if __name__=='__main__':
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-0831-ACNet"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-2315-ACNet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1028-CANet50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1129-CMANet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),
                         help="Path to the saved model")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])

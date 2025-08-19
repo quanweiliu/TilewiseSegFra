@@ -35,7 +35,7 @@ nonlinearity = partial(F.relu, inplace=True)
 
 
 class Resnet_base34_decoder2(nn.Module):
-    def __init__(self, bands, bands2=None, n_classes=2, is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
+    def __init__(self, bands, bands2=None, n_classes=2, classification="Multi", is_pretrained="ResNet34_Weights.IMAGENET1K_V1"):
         super(Resnet_base34_decoder2, self).__init__()
         filters = [64, 128, 256, 512]  # ResNet34
         resnet = models.resnet34(weights=is_pretrained)
@@ -80,6 +80,7 @@ class Resnet_base34_decoder2(nn.Module):
         #     nn.Conv2d(32, n_classes - 1, kernel_size=1),
         # )
 
+        self.classification = classification
 
         # self._initalize_weights()
 
@@ -117,7 +118,10 @@ class Resnet_base34_decoder2(nn.Module):
         ## final classification
         out = self.final(d1)
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
@@ -125,14 +129,14 @@ if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     bands = 10
     x = torch.randn(4, bands, 128, 128, device=device)
-    model = Resnet_base34_decoder2(bands).to(device)
+    model = Resnet_base34_decoder2(bands, n_classes=12).to(device)
     output = model(x)
     print("output", output.shape)
 
 
     bands = 5
     y = torch.randn(1, bands, 128, 128, device=device)
-    model = Resnet_base34_decoder2(bands).to(device)
+    model = Resnet_base34_decoder2(bands, n_classes=12).to(device)
     output = model(y)
     print("output", output.shape)
 

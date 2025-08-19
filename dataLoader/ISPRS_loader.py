@@ -72,6 +72,7 @@ class ISPRS_loader(data.DataLoader):
         # 在这里把三维变成了一维！！！ 0 - 5
         if self.classes == 6:
             mask2np = rgb_to_2D_label(mask2np)
+            # print("mask2np", mask2np.shape)
         mask2np = mask2np[:, :, 0].astype(np.int64)
 
         if self.augmentation:
@@ -80,8 +81,6 @@ class ISPRS_loader(data.DataLoader):
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
 
         gaofen, lidar = self.norm(gaofen, lidar)
-        # print("gaofen2np shape:", gaofen2np.max(), gaofen2np.min())
-        # print("lidar2np shape:", lidar2np.max(), lidar2np.min())
         return gaofen, lidar, mask.long()
 
     def norm(self, gaofen, lidar):
@@ -93,10 +92,11 @@ class ISPRS_loader(data.DataLoader):
         # # vaihingen
         gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
                                          std=[0.1970, 0.1306, 0.1276])(gaofen)
-        # print("have normalized")
+
         # # potsdam
         # gaofen2np = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
-        #                                  std=[0.1196, 0.1164, 0.1197])(gaofen2np)  
+        #                                  std=[0.1196, 0.1164, 0.1197])(gaofen2np) 
+
         # potsdam_irrg
         # gaofen2np = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
         #                                  std=[0.1172, 0.1167, 0.1203])(gaofen2np)  

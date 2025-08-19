@@ -21,7 +21,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
-from dataLoader.ISPRS_loader2 import ISPRS_loader2
+import torchvision.transforms as transforms
+import dataLoader.ISPRS_loader2 as dataPre
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -67,8 +68,26 @@ def train(cfg, rundir):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        # t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
+        # v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+
+        train_transform = transforms.Compose([dataPre.scaleNorm(img_size, img_size),
+                                              dataPre.RandomScale((1.0, 1.4, 2.0)),
+                                              dataPre.RandomHSV((0.9, 1.1),
+                                                                (0.9, 1.1),
+                                                                (25, 25)),
+                                              dataPre.RandomCrop(th=img_size, tw=img_size),
+                                              dataPre.RandomFlip(),
+                                              dataPre.ToTensor(),
+                                              dataPre.Normalize()])
+        
+        val_transform = transforms.Compose([dataPre.scaleNorm(img_size, img_size),
+                                            dataPre.ToTensor(),
+                                            dataPre.Normalize()])
+
+        t_loader = dataPre.ISPRS_loader2(transform=train_transform, data_dir=data_path)
+        v_loader = dataPre.ISPRS_loader2(transform=val_transform, data_dir=data_path)
+
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
@@ -77,17 +96,17 @@ def train(cfg, rundir):
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
-    # for gaofens, lidars, labels in trainloader:
-    #     print("train gaofens", gaofens.shape)
-    #     print("train lidars", lidars.shape)
-    #     print("train labels", labels.shape)
-    #     break
+    for sample in trainloader:
+        print("train gaofens", sample['image'].shape)
+        print("train lidars", sample['depth'].shape)
+        print("train labels", sample['label'].shape)
+        break
 
-    # for gaofens, lidars, labels in valloader:
-    #     print("val gaofens", gaofens.shape)
-    #     print("val lidars", lidars.shape)
-    #     print("val labels", labels.shape)
-    #     break
+    for sample in valloader:
+        print("val gaofens", sample['image'].shape)
+        print("val lidars", sample['depth'].shape)
+        print("val labels", sample['label'].shape)
+        break
 
     # Set Model
     model = get_model(cfg['model'], bands1, bands2, classes, classification).to(device)
@@ -160,15 +179,22 @@ def train(cfg, rundir):
         i += 1
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
-        for (gaofens, lidars, labels) in tqdm(trainloader):
-            model.train()
-            gaofens = gaofens.to(device)
-            lidars = lidars.to(device)
-            labels = labels.to(device)
-            # print("gaofens", gaofens.shape)
-            # print("lidars", lidars.shape)
-            # print("labels", labels.shape)
+        # for (gaofens, lidars, labels) in tqdm(trainloader):
+        #     gaofens = gaofens.to(device)
+        #     lidars = lidars.to(device)
+        #     labels = labels.to(device)
+        #     # print("gaofens", gaofens.shape)
+        #     # print("lidars", lidars.shape)
+        #     # print("labels", labels.shape)
 
+        for batch_idx, sample in enumerate(tqdm(trainloader)):
+
+            gaofens = sample['image'].to(device)
+            lidars = sample['depth'].to(device)
+            labels = sample['label'].to(device)
+
+
+            model.train()
             multi_outputs = model(gaofens, lidars)
             loss, loss1, loss2 = loss_fn(multi_outputs, labels)
             optimizer.zero_grad()
@@ -211,10 +237,15 @@ def train(cfg, rundir):
         if i % 1 == 0:
             model.eval()
             with torch.no_grad():
-                for gaofens_val, lidars_val, labels_val in tqdm(valloader):
-                    gaofens_val = gaofens_val.to(device)
-                    lidars_val = lidars_val.to(device)
-                    labels_val = labels_val.to(device)
+                # for gaofens_val, lidars_val, labels_val in tqdm(valloader):
+                #     gaofens_val = gaofens_val.to(device)
+                #     lidars_val = lidars_val.to(device)
+                #     labels_val = labels_val.to(device)
+                for batch_idx, sample in enumerate(tqdm(valloader)):
+
+                    gaofens_val = sample['image'].to(device)
+                    lidars_val = sample['depth'].to(device)
+                    labels_val = sample['label'].to(device)
 
                     # ################ output ################
                     multi_outputs = model(gaofens_val, lidars_val)

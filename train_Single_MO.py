@@ -308,9 +308,6 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MANet.yml",
         default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ABCNet.yml",
         help="Configuration file to use")
     parser.add_argument(
