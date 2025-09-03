@@ -1,4 +1,5 @@
 import os
+import cv2
 import torch
 import rasterio
 import numpy as np
@@ -48,58 +49,55 @@ class ISPRS_loader(data.DataLoader):
             img_size if isinstance(img_size, tuple) else (img_size, img_size))
         
         self.gaofen_data_path = os.path.join(self.root, self.split, 'images256')
-        self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path), key=self.sort_key)
-        # self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path))
+        # self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path), key=self.sort_key)
+        self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path))
         self.lidar_data_path = os.path.join(self.root, self.split, 'DSM256')
-        self.lidar_imgs = sorted(os.listdir(self.lidar_data_path), key=self.sort_key)
-        # self.lidar_imgs = sorted(os.listdir(self.lidar_data_path))
+        # self.lidar_imgs = sorted(os.listdir(self.lidar_data_path), key=self.sort_key)
+        self.lidar_imgs = sorted(os.listdir(self.lidar_data_path))
         self.mask_data_path = os.path.join(self.root, self.split, 'masks256')
-        self.masks = sorted(os.listdir(self.mask_data_path), key=self.sort_key)
-        # self.masks = sorted(os.listdir(self.mask_data_path))
+        # self.masks = sorted(os.listdir(self.mask_data_path), key=self.sort_key)
+        self.masks = sorted(os.listdir(self.mask_data_path))
         self.augmentation = is_augmentation
         
     def __getitem__(self, index):
         img_name = self.gaofen_imgs[index]
-        img_id = img_name[20:]
-        gaofen_path = os.path.join(self.gaofen_data_path, "top_mosaic_09cm_area" + str(img_id))
-        lidar_path = os.path.join(self.lidar_data_path, "top_mosaic_09cm_area" + str(img_id))
-        mask_path = os.path.join(self.mask_data_path, "top_mosaic_09cm_area" + str(img_id))
+        # img_id = img_name[20:]
+        gaofen_path = os.path.join(self.gaofen_data_path, img_name)
+        lidar_path = os.path.join(self.lidar_data_path, img_name)
+        mask_path = os.path.join(self.mask_data_path, img_name)
 
         gaofen2np = rasterio.open(gaofen_path).read().transpose(1, 2, 0)
         lidar2np = rasterio.open(lidar_path).read().transpose(1, 2, 0)
         mask2np = rasterio.open(mask_path).read().transpose(1, 2, 0)
-        
         # 在这里把三维变成了一维！！！ 0 - 5
         if self.classes == 6:
             mask2np = rgb_to_2D_label(mask2np)
-            # print("mask2np", mask2np.shape)
         mask2np = mask2np[:, :, 0].astype(np.int64)
 
         if self.augmentation:
             gaofen, lidar, mask = self.is_aug(gaofen2np, lidar2np, mask2np)
         else:
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
-
         gaofen, lidar = self.norm(gaofen, lidar)
+        # lidar = lidar.expand(3, -1, -1)
         return gaofen, lidar, mask.long()
 
     def norm(self, gaofen, lidar):
         gaofen = gaofen.float() / 255.0
         # imagenet
-        # gaofen2np = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-        #                                  std=[0.229, 0.224, 0.225])(gaofen2np)
+        # gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+        #                                  std=[0.229, 0.224, 0.225])(gaofen)
         
         # # vaihingen
         gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
-                                         std=[0.1970, 0.1306, 0.1276])(gaofen)
-
+                                        std=[0.1970, 0.1306, 0.1276])(gaofen)
         # # potsdam
-        # gaofen2np = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
-        #                                  std=[0.1196, 0.1164, 0.1197])(gaofen2np) 
+        # gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
+        #                                  std=[0.1196, 0.1164, 0.1197])(gaofen) 
 
         # potsdam_irrg
-        # gaofen2np = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
-        #                                  std=[0.1172, 0.1167, 0.1203])(gaofen2np)  
+        # gaofen = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
+        #                                  std=[0.1172, 0.1167, 0.1203])(gaofen)
         lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
         return gaofen, lidar
 

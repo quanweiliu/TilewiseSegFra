@@ -1,99 +1,148 @@
 import os
-import cv2
 import argparse
-import scipy.io as sio
-import numpy as np
-import matplotlib.pyplot as plt
+import rasterio
+import cv2
 
-def make_patches(im_dir, out_dir, patch_size=256, stride=200, format='map'):
+def make_patches(im_dir, out_dir, patch_size = 512, step = 200, out_format='tif'):
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-
+        
     # image_dataset = []  
     for path, subdirs, files in os.walk(im_dir):
         subdirs.sort()
         dirname = path.split(os.path.sep)[-1]
         images = sorted(os.listdir(path))  #List of all image names in this subdirectory
-        # print("images: ", images)
-        
-        # TODO: create out folder if not exists
         
         index = 0
-        for i, image_name in enumerate(images):
-            if image_name.endswith(".jpg") \
-                or image_name.endswith(".png") \
-                or image_name.endswith(".mat") \
-                or image_name.endswith(".tif"):   # Only read jpg images...
+        for image_name in images:
+            if image_name.endswith(".jpg") or \
+				image_name.endswith(".png") or \
+				image_name.endswith(".tif"):   # Only read jpg images...
 
-                # image = cv2.imread(path + "/" + image_name, 1)  # Read each image as BGR
-                if format == 'img' or format == 'map':
-                    image = sio.loadmat(path + "/" + image_name)[format]
-                else:
-                    image = cv2.imread(path + "/" + image_name)
-                # print(image.shape)
+                with rasterio.open(os.path.join(path, image_name)) as src:
+                    # image = cv2.imread(os.path.join(path, image_name), 1)  # Read each image as BGR
+                    image = src.read().transpose(1, 2, 0)
+                    profile = src.profile
+                    # print(os.path.join(path, image_name))
+                    # print(image)
+                    print(image.shape)
                 
                 '''
                 如果 x + patch_size > image.shape[1]，则 x = image.shape[1] - patch_size
                 x = image.shape[1] - patch_size 这句话的意思是，在最后一个patch的时候通过向后重叠的方式来生成patch，以保证不会有遗漏
                 '''
-                print("image.shape: ", image.shape[0], image.shape[1])
-                for x in range(0, image.shape[0], stride): 
-                    for y in range(0, image.shape[1], stride):
-
-                        # print("im_name 1", image_name)
-                        im_name = image_name[:-4] + '_' + str(x) + '_' + str(y)
-                        # print("im_name ", image_name[:-4], str(x), str(y))
-
-                        if (x + patch_size > image.shape[0]): # check if x is out of bound
-                            x = image.shape[0] - patch_size
-                        if (y + patch_size > image.shape[1]): # check if y is out of bounds
-                            y = image.shape[1] - patch_size
-                        tile = image[x : x + patch_size, y : y + patch_size]
+                for x in range(0, image.shape[0], step):
+                    for y in range(0, image.shape[1], step):
                         
-                        print("tile.shape: ", tile.shape)
-                        # print("tile.range: ", x, x + patch_size, y, y + patch_size)
-                        # cv2.imwrite(os.path.join(out_dir, im_name + ".png"), tile)
-                        
+                        # im_name = image_name[:-4] + '_' + str(x) + '_' + str(y) + '.'+ out_format
+                        # print(im_name)
 
-                        out_img_path = os.path.join(out_dir, "{}.mat".format(index))
-                        sio.savemat(out_img_path, {"img": tile}, do_compression=True)
+                        if (y + patch_size > image.shape[0]): # check if x is out of bound
+                            y = image.shape[0] - patch_size
+                        if (x + patch_size > image.shape[1]): # check if y is out of bounds
+                            x = image.shape[1] - patch_size
+                        tile = image[y : y+patch_size, x : x+patch_size]
 
-                        # out_sar_path = os.path.join(out_dir, "{}.mat".format(index))
-                        # sio.savemat(out_sar_path, {"sar": tile}, do_compression=True)
-                        # out_sar_path = os.path.join(out_dir, "{}.png".format(str(index)))
-                        # cv2.imwrite(out_sar_path, tile)
-                        
-                        # out_mask_path = os.path.join(out_dir, "{}.mat".format(index))
-                        # sio.savemat(out_mask_path, {"map": tile}, do_compression=True)
-                        # out_mask_path = os.path.join(out_dir, "{}.png".format(index))
-                        # # # print(np.unique(tile))
-                        # tile[tile == 1] = 255
-                        # image_3d = np.repeat(tile[:, :, np.newaxis], 3, axis=2)
-                        # print("image_3d.shape: ", image_3d.shape)
-                        # cv2.imwrite(out_mask_path, image_3d)
-                        # # plt.imsave(out_mask_path, image_3d)
-                        index += 1
+                        im_name = "test_" + str(index) + '.'+ out_format
+                        index = index + 1
+                        print(im_name)
 
+                        # with rasterio.open(os.path.join(out_dir, im_name), 'w', **profile) as dst:
+                        #     dst.write(tile)
+                        cv2.imwrite(os.path.join(out_dir, im_name), tile)
+                # print("tile", tile.shape)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_dir', type=str, default=None, help='directory containing images to be patchified', required=True)
     parser.add_argument('--out_dir', type=str, default=None, help='directory to save the patches to', required=True)
-    parser.add_argument('--patch_size', type=int, default=256, help='size of the square patches to be created in pixels per side')
-    parser.add_argument('--stride', type=int, default=200, help='number of pixels to move the window creating the patches')
-    parser.add_argument('--format', type=str, choices=['img', 'map', 'sar'], default='img')
+    parser.add_argument('--patch_size', type=int, default=512, help='size of the square patches to be created in pixels per side') # 256
+    parser.add_argument('--stride', type=int, default=400, help='number of pixels to move the window creating the patches') # 400
+    parser.add_argument('--output_format', choices=['png', 'tif', 'jpg'], default='tif')
     opt = parser.parse_args()
 
-    make_patches(opt.in_dir, opt.out_dir, opt.patch_size, opt.stride, format=opt.format)
+    make_patches(opt.in_dir, opt.out_dir, opt.patch_size, opt.stride, out_format=opt.output_format)
 
 
-# python tools/patchify.py --format img --in_dir /home/leo/MMF/OSD/TestCopyPost --out_dir /home/leo/MMF/OSDT/test2/imagesPng128 --patch_size 128 --stride 64
-# python tools/patchify.py --format map --in_dir /home/leo/MMF/OSD/TestCopyPost --out_dir /home/leo/MMF/OSDT/test2/masksPng128 --patch_size 128 --stride 64
-# python tools/patchify.py --format sar --in_dir /home/leo/MMF/OSD/TestSAR --out_dir /home/leo/MMF/OSDT/test2/sarPng128 --patch_size 128 --stride 64
+
+# ls -l | grep "^-" | wc -l
+# ls -lR | grep "^-" | wc -l
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/test/DSM256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/test/images256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/test/masks256 --patch_size 256 --stride 200
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/Train_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/train/DSM256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/train_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/train/images256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/train_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/train/masks256 --patch_size 256 --stride 200
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/Val_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/val/DSM256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/val_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/val/images256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/val_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/val/masks256 --patch_size 256 --stride 200
 
 
-# python tools/patchify.py --format img --in_dir /home/leo/MMF/OSD/TestCopyPost --out_dir /home/leo/MMF/OSDT/test2/imagesOrder128 --patch_size 128 --stride 64
-# python tools/patchify.py --format map --in_dir /home/leo/MMF/OSD/TestCopyPost --out_dir /home/leo/MMF/OSDT/test2/masksOrder128 --patch_size 128 --stride 64
-# python tools/patchify.py --format sar --in_dir /home/leo/MMF/OSD/TestSAR --out_dir /home/leo/MMF/OSDT/test2/sarOrder128 --patch_size 128 --stride 64
 
+
+
+# test
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/DSM256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/images256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/masks256 --patch_size 256 --stride 200
+
+
+# train
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/Train_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/DSM256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/train_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/images256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/train_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/masks256 --patch_size 256 --stride 200
+
+
+# val
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/Val_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/DSM256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/val_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/images256 --patch_size 256 --stride 200
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/val_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/masks256 --patch_size 256 --stride 200
+
+
+
+
+
+
+#############################################################################################################################################################################
+
+
+
+
+
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/test_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/test/DSM256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/test_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/test/masks256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/test_RGBCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/test/images256 --patch_size 512 --stride 400
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/train_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/train/DSM256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/train_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/train/masks256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/train_RGBCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/train/images256 --patch_size 512 --stride 400
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/val_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/val/DSM256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/val_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/val/masks256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/val_RGBCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/val/images256 --patch_size 512 --stride 400
+
+
+
+
+
+# test
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/test_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/DSM256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/test_RGBCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/images256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/test_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/masks256 --patch_size 512 --stride 400
+
+
+# train
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/train_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/DSM256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/train_RGBCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/images256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/train_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/masks256 --patch_size 512 --stride 400
+
+
+# val
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/val_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/DSM256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/val_RGBCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/images256 --patch_size 512 --stride 400
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam_Orgin/val_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Potsdam/masks256 --patch_size 512 --stride 400
