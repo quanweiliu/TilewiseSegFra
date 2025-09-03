@@ -33,6 +33,9 @@ ISPRS_loader 和 ISPRS_loader2 两个文件都是用于加载数据。
 
 ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一致的，但是 ISPRS_loader2 采用了更强的数据增强，复杂的数据增强过程导致模型训练非常慢，并且需要更长的训练周期。去掉多尺度等复杂的变化过程，会极大的加快训练过程。
 
+- train_Multi_MO and train_Multi_MO2 / test_Multi_MO and test_Multi_MO2 分别就是用 ISPRS_loader 和 ISPRS_loader2 文件加载数据。
+
+因为得到的精度一致，ISPRS_loader2加载会显著拖慢训练时间，所以以后都用 ISPRS_loader 文件加载数据。
 
 
 ## Nomalization:
@@ -78,6 +81,13 @@ Noting:
 - 更换数据集后，需要在dataloader文件中修改数据的mean和std
 - dataLoader 构造训练和测试数据集。
 - dataLoader2 专为高光谱图像构造双分支输入的数据集。
+
+## pretrains
+
+The segformer pretrains for AsymFormer comes from  "Official PyTorch implementation of SegFormer" https://github.com/NVlabs/SegFormer?tab=readme-ov-file.
+
+
+
 
 
 

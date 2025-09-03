@@ -1,5 +1,8 @@
 model:
-  arch: AsymFormer
+  # arch: AsymFormer_b0
+  # arch: AsymFormer_b1
+  # arch: AsymFormer_b3
+  arch: AsymFormer_b5
   # arch: baseline18
   # arch: baseline34
   # arch: ACNet

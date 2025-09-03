@@ -96,17 +96,17 @@ def train(cfg, rundir):
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
-    for sample in trainloader:
-        print("train gaofens", sample['image'].shape)
-        print("train lidars", sample['depth'].shape)
-        print("train labels", sample['label'].shape)
-        break
+    # for sample in trainloader:
+    #     print("train gaofens", sample['image'].shape)
+    #     print("train lidars", sample['depth'].shape)
+    #     print("train labels", sample['label'].shape)
+    #     break
 
-    for sample in valloader:
-        print("val gaofens", sample['image'].shape)
-        print("val lidars", sample['depth'].shape)
-        print("val labels", sample['label'].shape)
-        break
+    # for sample in valloader:
+    #     print("val gaofens", sample['image'].shape)
+    #     print("val lidars", sample['depth'].shape)
+    #     print("val labels", sample['label'].shape)
+    #     break
 
     # Set Model
     model = get_model(cfg['model'], bands1, bands2, classes, classification).to(device)

@@ -21,6 +21,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+import torchvision.transforms as transforms
 from dataLoader.ISPRS_loader2 import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function

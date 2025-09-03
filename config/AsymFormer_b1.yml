@@ -1,22 +1,21 @@
 model:
-  arch: AMSUnet
-  # arch: baseline18_single
-  # arch: baseline18_double
-  # arch: baseline34_single_decoder1
-  # arch: baseline34_single_decoder2
-  # arch: baseline34_double
+  # arch: AsymFormer_b0
+  arch: AsymFormer_b1
+  # arch: AsymFormer_b3
+  # arch: AsymFormer_b5
+  # arch: baseline18
   # arch: baseline34
-  arch: ACNet
-  # arch: CANet50
+  # arch: ACNet
+  # arch: CANet
   # arch: CMANet
-  # arch: CMGFNet18
+  # arch: CMGFNet
   # arch: CMGFNet_U
-  # arch: DE_CCFNet18
-  # arch: DE_CCFNet34
-  # arch: CMFNet
+  # arch: DE_CCFNet_18
+  # arch: DE_CCFNet_34
+  # arch: CMFNet      # 这个不能用
   # arch: DE_DCGCN
   # arch: HAFNetE
-  # arch: PACSCNet
+  # arch: PACSCNet    # 这个不能用
   # arch: PCGNet
   # arch: SFAFMA50
   # arch: SFAFMA101
@@ -33,9 +32,6 @@ data:
   # classes: 1
   # ignore_index: 999
   # classification: Binary
-  # # modality: rgb
-  # # modality: lidar
-  # modality: sar
 
   name: Vaihingen
   path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
@@ -48,9 +44,6 @@ data:
   classes: 6
   ignore_index: 5
   classification: Multi
-  modality: rgb
-  # modality: lidar
-  # modality: sar
 
 training:
   train_epoch: 100
@@ -69,7 +62,7 @@ training:
     # name: 'dice_bce_loss_re'
     # size_average: True
 
-    name: 'multiclass_multi_loss'
+    name: 'multiclass_ce_dice_loss'
     classes: 6
 
     # name: 'dice_loss'
@@ -88,6 +81,11 @@ training:
     name: ReduceLROnPlateau
 
 threshold: 0.5
+
+
+
+
+
 
 
 

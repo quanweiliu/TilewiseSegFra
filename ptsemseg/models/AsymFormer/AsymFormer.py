@@ -15,7 +15,7 @@ from .MLPDecoder import DecoderHead
 
 def load_pretrain2(net, pretrain_name):
     dir_path = os.getcwd()
-    pretrain_path = os.path.join(dir_path, 'src/model_zoo/segformer/imagenet_pretrain', pretrain_name)
+    pretrain_path = os.path.join(dir_path, '/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains', pretrain_name)
     print("Pretrain_path:", pretrain_path)
     net_dict = net.state_dict()
 
@@ -37,7 +37,7 @@ layers1 = [ft1[0],
             ft1[3]]
 
 model2 = mit_b0()
-# model2 = load_pretrain2(model2, pretrain_name='mit_b0.pth')
+model2 = load_pretrain2(model2, pretrain_name='mit_b0.pth')
 stem2 = [model2.patch_embed1, model2.patch_embed2, model2.patch_embed3, model2.patch_embed4]
 layers2 = [model2.block1, model2.block2, model2.block3, model2.block4]
 norm2 = [model2.norm1, model2.norm2, model2.norm3, model2.norm4]

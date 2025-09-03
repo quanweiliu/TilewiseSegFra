@@ -135,7 +135,10 @@ def _get_model_instance(name):
             "ABCNet": ABCNet,
 
             "ACNet": ACNet,
-            "AsymFormer": B0_T,
+            "AsymFormer_b0": B0_T,
+            # "AsymFormer_b1": B1_T,
+            # "AsymFormer_b3": B3_T,
+            # "AsymFormer_b5": B5_T,
             "CANet50": CANet,
             "CANet101": CANet,
             "CMANet": CMANet,
