@@ -31,6 +31,7 @@ Based the input and output of the model, we categorized these pixel-level classi
 Of course, there are multiscale singlemodality input, singleoutput (MSISO) and multiscale singlemodality input and multioutput (MSIMO) and so on. We will continue and add them in this framework.
 
 
+If you want to contribute this repository and make it better, feel free to contact me. My emial : quanwei.liu@my.jcu.edu.au
 
 
 ## Files
@@ -99,8 +100,6 @@ The segformer pretrains for AsymFormer comes from  "Official PyTorch implementat
 
 
 
-
-I have collected a range of models based this taxonomy. If you want to contribute this repository and make it better, feel free to contact me. My emial : quanwei.liu@my.jcu.edu.au
 
 
 
