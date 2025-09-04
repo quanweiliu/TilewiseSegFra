@@ -5,7 +5,7 @@
 | ----------- | ----------- |----------- |----------- |
 ||**Single modality models**||
 | [ABCNet](https://github.com/lironui/ABCNet)      | [ABCNet: Attentive Bilateral Contextual Network for Efficient Semantic Segmentation of Fine-Resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | ISPRS       | 2021       | 
-| [AMSUnet](https://github.com/llluochen/AMSUnet)      | [AMSUnet: A neural network using atrous multi-scale convolution for medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | Computers in Biology and Medicine       | 2023       | 
+| [AMSUnet](https://github.com/llluochen/AMSUnet)      | [AMSUnet: A neural network using atrous multi-scale convolution for medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0010482523005851)       | Computers in Biology and Medicine       | 2021    | 
 ||**Multimodal models**||
 | [ACNet](https://github.com/anheidelonghu/ACNet)      | [ACNET: Attention Based Network to Exploit Complementary Features for RGBD Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/8803025)       | ICIP       | 2019       |
 | [MCANet](https://github.com/yisun98/SOLC/tree/main)      | [MCANet: A joint semantic segmentation framework of optical and SAR images for land use classification](https://github.com/yisun98/SOLC/tree/main)       | JAG       | 2021       |
