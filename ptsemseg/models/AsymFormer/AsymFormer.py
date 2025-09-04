@@ -19,7 +19,7 @@ def load_pretrain2(net, pretrain_name):
     print("Pretrain_path:", pretrain_path)
     net_dict = net.state_dict()
 
-    pretrain_dict = torch.load(pretrain_path)
+    pretrain_dict = torch.load(pretrain_path, weights_only=True)
 
     dict = {k: v for k, v in pretrain_dict.items() if k in net_dict}
     net_dict.update(dict)

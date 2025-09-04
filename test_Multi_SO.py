@@ -141,8 +141,7 @@ def test(args):
 
     # Setup Dataloader
     if args.data_name == "OSTD":
-        imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')), \
-                              key=lambda fname: sort_key(fname, args))
+        imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')))
         classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
         # print("imgname_list: ", imgname_list)
         test_dataset = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
@@ -150,8 +149,7 @@ def test(args):
 
     elif args.data_name == "Vaihingen":
         # key cannot accept a function, so we use a lambda function to call sort_key
-        imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')), \
-                               key=lambda fname: sort_key(fname, args))
+        imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
         # print("imgname_list: ", imgname_list)
         test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
@@ -186,6 +184,7 @@ def test(args):
     model.eval()
     t0 = time.time()
     with torch.no_grad():
+        print("TTA is running...", args.TTA)
         for ind, (gaofen, lidar, mask) in tqdm(enumerate(testloader)):
             img_id = imgname_list[ind]
             gaofen = gaofen.to(args.device)  # (B, C, H, W)
@@ -241,6 +240,8 @@ def test(args):
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred.astype(np.uint8))
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
+                if ind == 10:
+                    break
 
         # print and save metrics result
         score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
@@ -264,34 +265,34 @@ def test(args):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
     parser.add_argument('--model',
-                         choices=["baseline18_double", "baseline34_double", 'DE_CCFNet18', 'DE_CCFNet34', 'DE_DCGCN', 'Zhiyang', \
-                                "AsymFormer", "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
+                         choices=["baseline18_double", "AsymFormer_b0", "baseline34_double", 'DE_CCFNet18', 'DE_CCFNet34', \
+                                'DE_DCGCN', 'Zhiyang', "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
                                 "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
                                 "SFAFMA50", 'SOLC', 'DE_DCGCN', 'PACSCNet50', 'FAFNet'], \
-                        default="SOLC", help="the model architecture that should be trained")
+                        default="AsymFormer_b0", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
+    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-0951-baseline18_double"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-0936-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-0757-DE_CCFNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-0004-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1007-MGFNet_Wu34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1044-MGFNet_Wu50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1612-AsymFormer"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-1954-PCGNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-2010-SFAFMA50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1357-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
                         help="Path to the saved model")
-    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])
 
     with open(os.path.join(args.file_path, args.model + '.yml')) as fp:

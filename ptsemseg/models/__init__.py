@@ -67,7 +67,7 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
     elif name == "baseline34_double":
         model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
 
-    elif name == "AsymFormer":
+    elif name == "AsymFormer_b0":
         model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "ACNet":
         model = model(bands1, bands2, num_class=classes, classification=classification, **param_dict)
