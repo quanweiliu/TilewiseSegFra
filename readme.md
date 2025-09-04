@@ -5,10 +5,10 @@
 | ----------- | ----------- |----------- |----------- |
 ||**Single modality models**||
 | [ABCNet](https://github.com/lironui/ABCNet)      | [ABCNet: Attentive Bilateral Contextual Network for Efficient Semantic Segmentation of Fine-Resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | ISPRS       | 2021       | 
-| [AMSUnet](https://github.com/llluochen/AMSUnet)      | [AMSUnet: A neural network using atrous multi-scale convolution for medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0010482523005851)       | Computers in Biology and Medicine       | 2021    | 
+| [AMSUnet](https://github.com/llluochen/AMSUnet)      | [AMSUnet: A neural network using atrous multi-scale convolution for medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0010482523005851)       | Computers in Biology and Medicine       | 2023    | 
 ||**Multimodal models**||
 | [ACNet](https://github.com/anheidelonghu/ACNet)      | [ACNET: Attention Based Network to Exploit Complementary Features for RGBD Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/8803025)       | ICIP       | 2019       |
-| [MCANet](https://github.com/yisun98/SOLC/tree/main)      | [MCANet: A joint semantic segmentation framework of optical and SAR images for land use classification](https://github.com/yisun98/SOLC/tree/main)       | JAG       | 2021       |
+| [MCANet](https://github.com/yisun98/SOLC/tree/main)      | [MCANet: A joint semantic segmentation framework of optical and SAR images for land use classification](https://www.sciencedirect.com/science/article/pii/S0303243421003457)       | JAG       | 2021       |
 | [SOLC](https://github.com/yisun98/SOLC/tree/main)      | [Remote Sensing Sar-Optical Land-use Classfication](https://github.com/yisun98/SOLC/tree/main)       | GitHub       | 2022       |
 | FAFNet      | [FAFNet: Fully aligned fusion network for RGBD semantic segmentation based on hierarchical semantic ﬂows](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | IET IP       | 2022       |
 | CMANet      | [CMANet: Cross-Modality Attention Network for Indoor-Scene Semantic Segmentation](https://www.mdpi.com/1424-8220/22/21/8520)       | Sensors      | 2022       |
