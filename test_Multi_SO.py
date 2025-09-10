@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import cv2
 import csv
@@ -21,6 +21,11 @@ from torch.utils import data
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from torchvision import transforms
+from dataLoader import ISPRS_loader2
+from dataLoader import ISA_loader2
+from dataLoader.ISA_loader3 import ISA_loader3
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -34,14 +39,11 @@ def train_id_to_color(classes):
     Label = namedtuple( "Label", [ "name", "train_id", "color"])
     # print(len(classes))
     if len(classes) == 2:
-        # print("into here")
         drivables = [ 
             Label(classes[0], 0, (255, 255, 0)), 
             Label(classes[1], 1, (0, 0, 255)),
-            # Label(classes[2], 2, (255, 0, 0))
         ]
     elif len(classes) == 3:
-        # print("into here")
         drivables = [ 
             Label(classes[0], 0, (255, 255, 0)), 
             Label(classes[1], 1, (0, 0, 255)),
@@ -119,8 +121,6 @@ def sort_key(filename, args):
         name = filename.split('.')[0][5:]
     elif args.data_name == 'Vaihingen':
         name = filename.split('.')[0][20:]
-    # print("name", name)
-    # print("int name", int(name))
     return int(name)
 
 def test(args):
@@ -141,20 +141,26 @@ def test(args):
 
     # Setup Dataloader
     if args.data_name == "OSTD":
+        print("############ we use the OSTD dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')))
         classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
-        # print("imgname_list: ", imgname_list)
         test_dataset = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
         running_metrics_test = runningScore(args.classes+1)
 
-    elif args.data_name == "Vaihingen":
-        # key cannot accept a function, so we use a lambda function to call sort_key
+    elif args.data_name == "Vaihingen" or args.data_name == "Potsdam":
+        print("############ we use the ISPRS dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        # print("imgname_list: ", imgname_list)
-        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        test_dataset = ISPRS_loader3(args.imgs_path, 'test.txt', args.img_size, is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
-
+    elif args.data_name == "ISA":
+        print("############ we use the ISA dataset ############")
+        txt_path = os.path.join(args.imgs_path, 'val.txt')
+        with open(os.path.join(txt_path), "r") as f:
+            imgname_list = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
+        classes = ['NonISA', 'ISA'] # 其中 Clutter # 是指 background
+        test_dataset = ISA_loader3(args.imgs_path, 'val.txt', args.img_size, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes+1)
 
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
@@ -175,7 +181,6 @@ def test(args):
     
     plot_training_results(results_train, results_val, args.model, savefig_path)
 
-    model.eval()
     model.to(args.device)
 
     test_log = Logger(os.path.join(os.path.split(args.model_path)[0], 'test_result.log'))
@@ -238,10 +243,10 @@ def test(args):
             if args.save_img:
                 pred = pred.reshape(args.img_size, args.img_size)
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
-                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred.astype(np.uint8))
+                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
-                if ind == 10:
-                    break
+                # if ind == 10:
+                #     break
 
         # print and save metrics result
         score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
@@ -268,25 +273,24 @@ if __name__=='__main__':
                          choices=["baseline18_double", "AsymFormer_b0", "baseline34_double", 'DE_CCFNet18', 'DE_CCFNet34', \
                                 'DE_DCGCN', 'Zhiyang', "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
                                 "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
-                                "SFAFMA50", 'SOLC', 'DE_DCGCN', 'PACSCNet50', 'FAFNet'], \
-                        default="AsymFormer_b0", help="the model architecture that should be trained")
+                                "SFAFMA50", 'SOLC', 'PACSCNet50', 'FAFNet'], \
+                        default="DE_CCFNet18", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
-    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
+    parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-0951-baseline18_double"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-0936-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-0013-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1053-DE_DCGCN"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1625-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-0757-DE_CCFNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-0004-MGFNet_Wei50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1007-MGFNet_Wu34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1044-MGFNet_Wu50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2028-MGFNet_Wu34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-1954-PCGNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-2010-SFAFMA50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
@@ -306,8 +310,12 @@ if __name__=='__main__':
     args.classes = cfg['data']['classes']
     args.classification = cfg['data']['classification']
     args.img_size = cfg['data']['img_size']
+    args.img_size = 1600
     args.split = cfg['data']['test_split']
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
+    args.threshold = cfg['threshold']
+    # args.ignore_index = 1
+    print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 

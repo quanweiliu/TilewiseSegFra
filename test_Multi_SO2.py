@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
-print('using GPU %s' % ','.join(map(str, [0])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 
 import cv2
 import csv
@@ -26,6 +26,7 @@ from torchvision import transforms
 from dataLoader import ISPRS_loader2
 from dataLoader import ISA_loader2
 from dataLoader.ISA_loader3 import ISA_loader3
+from dataLoader.ISA_loader3_test import ISA_loader3_test
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -157,14 +158,13 @@ def test(args):
                                             ISPRS_loader2.Normalize()])
         test_dataset = ISPRS_loader2.ISPRS_loader2(transform=val_transform, data_dir=args.imgs_path)
         running_metrics_test = runningScore(args.classes)
+
     elif args.data_name == "ISA":
         print("############ we use the ISA dataset ############")
         txt_path = os.path.join(args.imgs_path, 'val.txt')
         with open(os.path.join(txt_path), "r") as f:
             imgname_list = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
         classes = ['NonISA', 'ISA'] # 其中 Clutter # 是指 background
-
-        # test_dataset = ISA_loader3(args.imgs_path, 'val.txt', args.img_size, is_augmentation=False)
         test_dataset = ISA_loader2.ISA_loader2(transforms.Compose([ISA_loader2.scaleNorm(),
                                                         ISA_loader2.ToTensor(),
                                                         ISA_loader2.Normalize()]),
@@ -225,8 +225,6 @@ def test(args):
                 # 模型推理
                 pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
                 pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
-                pred_a = pred_a[0]                                 # 取出预测结果
-                pred_b = pred_b[0]
                 pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
 
                 # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
@@ -245,11 +243,9 @@ def test(args):
             else:
                 outputs = model(gaofen, lidar)
                 if args.classification == "Multi":
-                    outputs = outputs[0]
                     pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
 
                 elif args.classification == "Binary":
-                    outputs = outputs[0]
                     outputs[outputs > args.threshold] = 1
                     outputs[outputs <= args.threshold] = 0
                     pred = outputs.data.cpu().numpy().astype(np.uint8)
@@ -261,8 +257,8 @@ def test(args):
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
-                # if ind == 10:
-                #     break
+                if ind == 10:
+                    break
 
         # print and save metrics result
         score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
@@ -282,28 +278,14 @@ def test(args):
         
         running_metrics_test.reset()
 
-def mask2rle(img):
-    '''
-    Convert mask to RLE.
-    img: numpy array,
-    1 - mask,
-    0 - background
-
-    Returns run length as string formatted
-    '''
-    pixels = img.T.flatten()
-    pixels = np.concatenate([[0], pixels, [0]])
-    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
-    runs[1::2] -= runs[::2]
-
-    return ' '.join(str(x) for x in runs)
-
-
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
     parser.add_argument('--model',
-                        choices=['ACNet', 'CANet50', 'CMANet', 'CMGFNet18', 'CMGFNet34'], \
-                        default='CANet50', help="the model architecture that should be trained")    
+                         choices=["baseline18_double", "AsymFormer_b0", "baseline34_double", 'DE_CCFNet18', 'DE_CCFNet34', \
+                                'DE_DCGCN', 'Zhiyang', "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
+                                "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
+                                "SFAFMA50", 'SOLC', 'PACSCNet50', 'FAFNet'], \
+                        default="DE_CCFNet18", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -312,12 +294,19 @@ if __name__=='__main__':
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
-    parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-2315-ACNet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-1905-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1028-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1129-CMANet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),
+    parser.add_argument("--file_path", nargs = "?", type = str,
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-0951-baseline18_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-2305-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1053-DE_DCGCN"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1625-MGFNet_Wei50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2028-MGFNet_Wu34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-1954-PCGNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-2010-SFAFMA50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -337,21 +326,5 @@ if __name__=='__main__':
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    # args.ignore_index = 1
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
-
-    csvfile = os.path.join(os.path.split(args.model_path)[0], "submit.csv")
-    with open(csvfile, 'w', newline='') as f:
-        csv_write = csv.writer(f, dialect='unix')
-        csv_head = ["ID", "Result","Usage"]
-        csv_write.writerow(csv_head)
-        for id in tqdm(os.listdir(os.path.join(os.path.split(args.model_path)[0], "test"))):
-            img_path = os.path.join(os.path.split(args.model_path)[0], "test", id)
-            if not os.path.isfile(img_path):
-                continue  # Skip if not a file
-            img = Image.open(img_path)
-            img = np.array(img)
-            result = mask2rle(img)
-            tmp = [id[0:-4], result,"Public"]
-            csv_write.writerow(tmp)

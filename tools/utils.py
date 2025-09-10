@@ -28,8 +28,8 @@ def plot_training_results(df_tr, df_ts, model_name, savefig_path=None):
     # ax4.tick_params(axis='y', labelcolor='tab:orange')
 
     ax5 = ax1.twinx()  
-    ax5.set_ylabel('mIOU', color='tab:green', labelpad=-82)
-    ax5.tick_params(axis="y",direction="in", pad=-83)
+    ax5.set_ylabel('mIOU', color='tab:green', labelpad=-80)
+    ax5.tick_params(axis="y",direction="in", pad=-80)
     ax5.plot(df_ts['epoch'].values, df_ts['mIOU'].values, color='tab:green')
     ax5.tick_params(axis='y', labelcolor='tab:green')
 

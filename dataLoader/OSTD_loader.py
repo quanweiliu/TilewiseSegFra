@@ -101,7 +101,7 @@ if __name__ == '__main__':
     print(len(dataset))
 
     for gaofen, lidar, mask in trainloader:
-        print(gaofen.shape, gaofen.dtype, gaofen.min(), gaofen.max())
-        print(lidar.shape, lidar.dtype, lidar.min(), lidar.max())
-        print(mask.shape, mask.dtype, mask.min(), mask.max())
-        break
+        print(gaofen.shape, gaofen.dtype, gaofen.max(), gaofen.min())
+        print(lidar.shape, lidar.dtype, lidar.max(), lidar.min())
+        print(mask.shape, mask.dtype, mask.max(), mask.min(), np.unique(mask))
+        # break

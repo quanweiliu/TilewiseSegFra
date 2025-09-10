@@ -30,6 +30,7 @@ class DE_CCFNet34(nn.Module):
         filters = [64, 128, 256, 512]  # ResNet34
         # reduction = [1, 2, 4, 8, 16]
         if is_pretrained:
+            print("Using ImageNet pre-trained ResNet-34 model")
             rgb_resnet = models.resnet34(weights="ResNet34_Weights.IMAGENET1K_V1")
             lidar_resnet = models.resnet34(weights="ResNet34_Weights.DEFAULT")
         else:

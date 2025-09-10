@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
-print('using GPU %s' % ','.join(map(str, [0])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 
 import cv2
 import csv
@@ -18,14 +18,15 @@ from matplotlib.patches import Patch
 
 import torch
 from torch.utils import data
+from torchvision import transforms
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from torchvision import transforms
 from dataLoader import ISPRS_loader2
-from dataLoader import ISA_loader2
+from dataLoader import ISA_loader2_test
 from dataLoader.ISA_loader3 import ISA_loader3
+from dataLoader.ISA_loader3_test import ISA_loader3_test
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -159,18 +160,16 @@ def test(args):
         running_metrics_test = runningScore(args.classes)
     elif args.data_name == "ISA":
         print("############ we use the ISA dataset ############")
-        txt_path = os.path.join(args.imgs_path, 'val.txt')
+        txt_path = os.path.join(args.imgs_path, 'test.txt')
         with open(os.path.join(txt_path), "r") as f:
             imgname_list = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
         classes = ['NonISA', 'ISA'] # 其中 Clutter # 是指 background
-
-        # test_dataset = ISA_loader3(args.imgs_path, 'val.txt', args.img_size, is_augmentation=False)
-        test_dataset = ISA_loader2.ISA_loader2(transforms.Compose([ISA_loader2.scaleNorm(),
-                                                        ISA_loader2.ToTensor(),
-                                                        ISA_loader2.Normalize()]),
+        test_dataset = ISA_loader2_test.ISA_loader2_test(transforms.Compose([ISA_loader2_test.scaleNorm(),
+                                                        ISA_loader2_test.ToTensor(),
+                                                        ISA_loader2_test.Normalize()]),
                                     phase_train=False,
                                     data_dir=args.imgs_path,
-                                    txt_name='val.txt')
+                                    txt_name='test.txt')
         running_metrics_test = runningScore(args.classes+1)
 
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
@@ -205,7 +204,7 @@ def test(args):
             img_id = imgname_list[ind]
             gaofen = sample["image"].to(args.device)
             lidar = sample["depth"].to(args.device)
-            mask = sample["label"]
+            # mask = sample["label"]
 
             if args.TTA:
                 # 原图 + 旋转90°
@@ -225,8 +224,6 @@ def test(args):
                 # 模型推理
                 pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
                 pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
-                pred_a = pred_a[0]                                 # 取出预测结果
-                pred_b = pred_b[0]
                 pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
 
                 # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
@@ -240,47 +237,45 @@ def test(args):
 
                 # 获取预测类别（最终结果）
                 pred = pred.argmax(dim=1).cpu().numpy().astype(np.uint8)  # (B, H, W)
-                running_metrics_test.update(mask.numpy(), pred)
+                # running_metrics_test.update(mask.numpy(), pred)
 
             else:
                 outputs = model(gaofen, lidar)
                 if args.classification == "Multi":
-                    outputs = outputs[0]
                     pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
 
                 elif args.classification == "Binary":
-                    outputs = outputs[0]
                     outputs[outputs > args.threshold] = 1
                     outputs[outputs <= args.threshold] = 0
                     pred = outputs.data.cpu().numpy().astype(np.uint8)
-                running_metrics_test.update(mask.numpy(), pred)
+                # running_metrics_test.update(mask.numpy(), pred)
 
         ############################### save pred image ###############################
             if args.save_img:
                 pred = pred.reshape(args.img_size, args.img_size)
-                cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
-                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
+                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
+                cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
                 # if ind == 10:
                 #     break
 
         # print and save metrics result
-        score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
+        # score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
         test_log.write('************test_result**********\n')
         test_log.write('{}: '.format(args.TTA) + '\n')
 
-        for k, v in score.items():
-            test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
+        # for k, v in score.items():
+        #     test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
         
-        t1 = time.time()
-        img_write_time = t1 - t0
-        test_log.write('{}    \t: {}'.format("time", round(img_write_time, 2)) + '\n')
+        # t1 = time.time()
+        # img_write_time = t1 - t0
+        # test_log.write('{}    \t: {}'.format("time", round(img_write_time, 2)) + '\n')
         
-        test_log.flush()
-        test_log.write('Finish!\n')
-        test_log.close()
+        # test_log.flush()
+        # test_log.write('Finish!\n')
+        # test_log.close()
         
-        running_metrics_test.reset()
+        # running_metrics_test.reset()
 
 def mask2rle(img):
     '''
@@ -298,26 +293,24 @@ def mask2rle(img):
 
     return ' '.join(str(x) for x in runs)
 
-
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
     parser.add_argument('--model',
-                        choices=['ACNet', 'CANet50', 'CMANet', 'CMGFNet18', 'CMGFNet34'], \
-                        default='CANet50', help="the model architecture that should be trained")    
+                         choices=["baseline18_double", "AsymFormer_b0", "baseline34_double", 'DE_CCFNet18', 'DE_CCFNet34', \
+                                'DE_DCGCN', 'Zhiyang', "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
+                                "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
+                                "SFAFMA50", 'SOLC', 'PACSCNet50', 'FAFNet'], \
+                        default="DE_CCFNet18", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
-    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
+    parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
 
-    parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-2315-ACNet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-1905-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1028-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1129-CMANet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),
+    parser.add_argument("--file_path", nargs = "?", type = str,
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-2305-DE_CCFNet18"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -337,7 +330,6 @@ if __name__=='__main__':
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    # args.ignore_index = 1
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 

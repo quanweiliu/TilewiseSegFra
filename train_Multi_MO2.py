@@ -21,8 +21,11 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
-import torchvision.transforms as transforms
-import dataLoader.ISPRS_loader2 as dataPre
+from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from dataLoader.ISA_loader3 import ISA_loader3
+from torchvision import transforms
+from dataLoader import ISA_loader2
+from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -67,30 +70,48 @@ def train(cfg, rundir):
         running_metrics_train = runningScore(classes+1)
         running_metrics_val = runningScore(classes+1)
 
-    elif data_name == "Vaihingen":
+    elif data_name == "Vaihingen" or data_name == "Potsdam":
         # t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
         # v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
 
-        train_transform = transforms.Compose([dataPre.scaleNorm(img_size, img_size),
-                                              dataPre.RandomScale((1.0, 1.4, 2.0)),
-                                              dataPre.RandomHSV((0.9, 1.1),
+        train_transform = transforms.Compose([ISPRS_loader2.scaleNorm(img_size, img_size),
+                                              ISPRS_loader2.RandomScale((1.0, 1.4, 2.0)),
+                                              ISPRS_loader2.RandomHSV((0.9, 1.1),
                                                                 (0.9, 1.1),
                                                                 (25, 25)),
-                                              dataPre.RandomCrop(th=img_size, tw=img_size),
-                                              dataPre.RandomFlip(),
-                                              dataPre.ToTensor(),
-                                              dataPre.Normalize()])
+                                              ISPRS_loader2.RandomCrop(th=img_size, tw=img_size),
+                                              ISPRS_loader2.RandomFlip(),
+                                              ISPRS_loader2.ToTensor(),
+                                              ISPRS_loader2.Normalize()])
         
-        val_transform = transforms.Compose([dataPre.scaleNorm(img_size, img_size),
-                                            dataPre.ToTensor(),
-                                            dataPre.Normalize()])
+        val_transform = transforms.Compose([ISPRS_loader2.scaleNorm(img_size, img_size),
+                                            ISPRS_loader2.ToTensor(),
+                                            ISPRS_loader2.Normalize()])
 
-        t_loader = dataPre.ISPRS_loader2(transform=train_transform, data_dir=data_path)
-        v_loader = dataPre.ISPRS_loader2(transform=val_transform, data_dir=data_path)
-
+        t_loader = ISPRS_loader2.ISPRS_loader2(transform=train_transform, data_dir=data_path, txt_name='train.txt')
+        v_loader = ISPRS_loader2.ISPRS_loader2(transform=val_transform, data_dir=data_path, txt_name='val.txt')
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
+    elif data_name == "ISA":
+        train_transform = transforms.Compose([ISA_loader2.scaleNorm(img_size, img_size),
+                                            #   ISA_loader2.RandomScale((1.0, 1.4, 2.0)),
+                                            #   ISA_loader2.RandomHSV((0.9, 1.1),
+                                            #                     (0.9, 1.1),
+                                            #                     (25, 25)),
+                                              ISA_loader2.RandomCrop(th=img_size, tw=img_size),
+                                              ISA_loader2.RandomFlip(),
+                                              ISA_loader2.ToTensor(),
+                                              ISA_loader2.Normalize()])
+        
+        val_transform = transforms.Compose([ISA_loader2.scaleNorm(img_size, img_size),
+                                            ISA_loader2.ToTensor(),
+                                            ISA_loader2.Normalize()])
+        t_loader = ISA_loader2.ISA_loader2(transform=train_transform, phase_train=True, data_dir=data_path)
+        v_loader = ISA_loader2.ISA_loader2(transform=val_transform, phase_train=False, data_dir=data_path, txt_name='val.txt' )
+        running_metrics_train = runningScore(classes+1)
+        running_metrics_val = runningScore(classes+1)
+        
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
@@ -177,6 +198,7 @@ def train(cfg, rundir):
     while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
+        model.train()
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
         # for (gaofens, lidars, labels) in tqdm(trainloader):
@@ -185,7 +207,7 @@ def train(cfg, rundir):
         #     labels = labels.to(device)
         #     # print("gaofens", gaofens.shape)
         #     # print("lidars", lidars.shape)
-        #     # print("labels", labels.shape)
+        #     # print("labels", labels.shape, labels.dtype)
 
         for batch_idx, sample in enumerate(tqdm(trainloader)):
 
@@ -193,8 +215,6 @@ def train(cfg, rundir):
             lidars = sample['depth'].to(device)
             labels = sample['label'].to(device)
 
-
-            model.train()
             multi_outputs = model(gaofens, lidars)
             loss, loss1, loss2 = loss_fn(multi_outputs, labels)
             optimizer.zero_grad()
@@ -340,8 +360,8 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
         help="Configuration file to use")
@@ -349,12 +369,11 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA"),
         help="Path to the saved model")
     
     parser.add_argument(
         "--model_path",
-        nargs = "?",
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1452-CMGFNet18", "best.pt"),
         default = None,

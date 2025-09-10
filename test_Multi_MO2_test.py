@@ -159,7 +159,7 @@ def test(args):
         running_metrics_test = runningScore(args.classes)
     elif args.data_name == "ISA":
         print("############ we use the ISA dataset ############")
-        txt_path = os.path.join(args.imgs_path, 'val.txt')
+        txt_path = os.path.join(args.imgs_path, 'test.txt')
         with open(os.path.join(txt_path), "r") as f:
             imgname_list = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
         classes = ['NonISA', 'ISA'] # 其中 Clutter # 是指 background
@@ -170,7 +170,7 @@ def test(args):
                                                         ISA_loader2.Normalize()]),
                                     phase_train=False,
                                     data_dir=args.imgs_path,
-                                    txt_name='val.txt')
+                                    txt_name='test.txt')
         running_metrics_test = runningScore(args.classes+1)
 
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
@@ -240,7 +240,7 @@ def test(args):
 
                 # 获取预测类别（最终结果）
                 pred = pred.argmax(dim=1).cpu().numpy().astype(np.uint8)  # (B, H, W)
-                running_metrics_test.update(mask.numpy(), pred)
+                # running_metrics_test.update(mask.numpy(), pred)
 
             else:
                 outputs = model(gaofen, lidar)
@@ -253,7 +253,7 @@ def test(args):
                     outputs[outputs > args.threshold] = 1
                     outputs[outputs <= args.threshold] = 0
                     pred = outputs.data.cpu().numpy().astype(np.uint8)
-                running_metrics_test.update(mask.numpy(), pred)
+                # running_metrics_test.update(mask.numpy(), pred)
 
         ############################### save pred image ###############################
             if args.save_img:
@@ -265,22 +265,22 @@ def test(args):
                 #     break
 
         # print and save metrics result
-        score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
+        # score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
         test_log.write('************test_result**********\n')
         test_log.write('{}: '.format(args.TTA) + '\n')
 
-        for k, v in score.items():
-            test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
+        # for k, v in score.items():
+        #     test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
         
-        t1 = time.time()
-        img_write_time = t1 - t0
-        test_log.write('{}    \t: {}'.format("time", round(img_write_time, 2)) + '\n')
+        # t1 = time.time()
+        # img_write_time = t1 - t0
+        # test_log.write('{}    \t: {}'.format("time", round(img_write_time, 2)) + '\n')
         
-        test_log.flush()
-        test_log.write('Finish!\n')
-        test_log.close()
+        # test_log.flush()
+        # test_log.write('Finish!\n')
+        # test_log.close()
         
-        running_metrics_test.reset()
+        # running_metrics_test.reset()
 
 def mask2rle(img):
     '''
@@ -314,7 +314,7 @@ if __name__=='__main__':
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-2315-ACNet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-1905-CANet50"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-2141-CANet50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1028-CANet50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1129-CMANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),

@@ -19,7 +19,7 @@
 | [SFAF-MA](https://github.com/hexunjie/SFAF-MA)      | [SFAF-MA: Spatial Feature Aggregation and Fusion With Modality Adaptation for RGB-Thermal Semantic Segmentation](https://ieeexplore.ieee.org/document/10103760)       | TIM       | 2023       |
 | [PACSCNet](https://github.com/F8AoMn/PACSCNet)      | [Progressive Adjacent-Layer coordination symmetric cascade network for semantic segmentation of Multimodal remote sensing images](https://www.sciencedirect.com/science/article/pii/S0957417423025010)       | ESA       | 2023       |
 | DECCFNet      | [A Deep Cross-Modal Fusion Network for Road Extraction With High-Resolution Imagery and LiDAR Data](https://ieeexplore.ieee.org/document/10439005)       | TGRS       | 2024       |
-| [AsymFormer](https://github.com/Fourier7754/AsymFormer)      | [AsymFormer: Asymmetrical Cross-Modal Representation Learning for Mobile Platform Real-Time RGB-D Semantic Segmentation](github.com/Fourier7754/AsymFormer?tab=readme-ov-file)       | CVPR       | 2024       |
+| [AsymFormer](https://github.com/Fourier7754/AsymFormer)      | [AsymFormer: Asymmetrical Cross-Modal Representation Learning for Mobile Platform Real-Time RGB-D Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024W/USM/papers/Du_AsymFormer_Asymmetrical_Cross-Modal_Representation_Learning_for_Mobile_Platform_Real-Time_RGB-D_CVPRW_2024_paper.pdf)       | CVPR       | 2024       |
 | [MGFNet](https://github.com/yeyuanxin110/YESeg-OPT-SAR)      | [MGFNet: An MLP-dominated gated fusion network for semantic segmentation of high-resolution multi-modal remote sensing images](https://www.sciencedirect.com/science/article/pii/S1569843224005971)       | JAG       | 2024       |
 | [MGFNet](https://github.com/DrWuHonglin/MGFNet)      | [MGFNet: a multiscale gated fusion network for multimodal semantic segmentation](https://link.springer.com/article/10.1007/s00371-025-03912-x)       | The Visual Computer       | 2025       |
 
@@ -36,16 +36,19 @@ If you want to contribute this repository and make it better, feel free to conta
 
 ## Files
 
-ISPRS_loader 和 ISPRS_loader2 两个文件都是用于加载数据。
+ISPRS_loader, ISPRS_loader2 和 ISPRS_loader3 三个文件都是用于加载数据。
 
 - ISPRS_loader 是通过 train / val / test 文件夹加载数据。
 - ISPRS_loader2 是通过 train.txt / val.txt / test.txt 文件加载数据。
+- ISPRS_loader3 融合 ISPRS_loader 和 ISPRS_loader2，得到一个加载速度快的 train.txt / val.txt / test.txt 文件加载数据。
 
-ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一致的，但是 ISPRS_loader2 采用了更强的数据增强，复杂的数据增强过程导致模型训练非常慢，并且需要更长的训练周期。去掉多尺度等复杂的变化过程，会极大的加快训练过程。
+ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一致的，但是 ISPRS_loader2 采用了更强的数据增强，复杂的数据增强过程导致模型训练非常慢，并且需要更长的训练周期。去掉多尺度等复杂的变化过程，会极大的加快训练过程。因此，我结合 ISPRS_loader 和 ISPRS_loader2，构建一个基于 train.txt / val.txt / test.txt 加载的data loader。
 
-- train_Multi_MO and train_Multi_MO2 / test_Multi_MO and test_Multi_MO2 分别就是用 ISPRS_loader 和 ISPRS_loader2 文件加载数据。
 
-因为得到的精度一致，ISPRS_loader2加载会显著拖慢训练时间，所以以后都用 ISPRS_loader 文件加载数据。
+
+- train_Multi_MO and train_Multi_MO2 / test_Multi_MO and test_Multi_MO2 分别就是用 ISPRS_loader, ISPRS_loader2 和 ISPRS_loader3 文件加载数据。
+
+因为得到的精度一致，ISPRS_loader2加载会显著拖慢训练时间，所以以后都用 ISPRS_loader, ISPRS_loader3 文件加载数据。
 
 
 ## Nomalization:

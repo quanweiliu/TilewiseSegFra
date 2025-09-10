@@ -37,7 +37,8 @@ def rgb_to_2D_label(label):
 
 # 这个用 txt 选择数据
 class ISPRS_loader2(Dataset):
-    def __init__(self, transform=None, 
+    def __init__(self, 
+                 transform=None, 
                  data_dir=None, 
                  txt_name='train.txt'):
         self.transform = transform
@@ -282,7 +283,7 @@ if __name__ == '__main__':
     image_w = 256
     image_h = 256
 
-    data_dir = "/home/icclab/Documents/lqw/DatasetMMF/Vaihingen"
+    data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg"
 
 
     transformer = transforms.Compose([scaleNorm(image_w, image_h),

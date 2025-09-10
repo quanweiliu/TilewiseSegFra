@@ -21,6 +21,11 @@ from torch.utils import data
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from torchvision import transforms
+from dataLoader import ISPRS_loader2
+from dataLoader import ISA_loader2
+from dataLoader.ISA_loader3 import ISA_loader3
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -34,14 +39,11 @@ def train_id_to_color(classes):
     Label = namedtuple( "Label", [ "name", "train_id", "color"])
     # print(len(classes))
     if len(classes) == 2:
-        # print("into here")
         drivables = [ 
             Label(classes[0], 0, (255, 255, 0)), 
             Label(classes[1], 1, (0, 0, 255)),
-            # Label(classes[2], 2, (255, 0, 0))
         ]
     elif len(classes) == 3:
-        # print("into here")
         drivables = [ 
             Label(classes[0], 0, (255, 255, 0)), 
             Label(classes[1], 1, (0, 0, 255)),
@@ -139,18 +141,18 @@ def test(args):
 
     # Setup Dataloader
     if args.data_name == "OSTD":
-        classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
-        running_metrics_test = runningScore(args.classes+1)
+        print("############ we use the OSTD dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')))
+        classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
         test_dataset = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes+1)
 
-    elif args.data_name == "Vaihingen":
-        classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        running_metrics_test = runningScore(args.classes)
-        # key cannot accept a function, so we use a lambda function to call sort_key
+    elif args.data_name == "Vaihingen" or args.data_name == "Potsdam":
+        print("############ we use the ISPRS dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
-        # print("imgname_list: ", imgname_list, len(imgname_list))
+        classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
         test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes)
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
 
@@ -170,7 +172,6 @@ def test(args):
     
     plot_training_results(results_train, results_val, args.model, savefig_path)
 
-    model.eval()
     model.to(args.device)
 
     test_log = Logger(os.path.join(os.path.split(args.model_path)[0], 'test_result.log'))
@@ -237,10 +238,10 @@ def test(args):
             if args.save_img:
                 pred = pred.reshape(args.img_size, args.img_size)
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
-                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred.astype(np.uint8))
+                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
-                if ind == 10:
-                    break
+                # if ind == 10:
+                #     break
 
         # print and save metrics result
         score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
@@ -265,7 +266,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
     parser.add_argument('--model',
                         choices=['ACNet', 'CANet50', 'CMANet', 'CMGFNet18', 'CMGFNet34'], \
-                        default='CANet50', help="the model architecture that should be trained")    
+                        default='CMANet', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -276,8 +277,9 @@ if __name__=='__main__':
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2314-ACNet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-0935-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1129-CMANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-0935-CANet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2128-CMANet"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2138-CMANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
@@ -293,8 +295,12 @@ if __name__=='__main__':
     args.classes = cfg['data']['classes']
     args.classification = cfg['data']['classification']
     args.img_size = cfg['data']['img_size']
+    args.img_size = 1600
     args.split = cfg['data']['test_split']
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
+    args.threshold = cfg['threshold']
+    # args.ignore_index = 1
+    print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 

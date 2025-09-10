@@ -13,10 +13,13 @@ model:
   # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
+  # arch: MGFNet_Wei50
+  # arch: MGFNet_Wu34
+  # arch: HAFNetE
+  # arch: RDFNet50
   # arch: HAFNetE
   # arch: PACSCNet
   arch: PCGNet18
-  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 

@@ -8,7 +8,7 @@ from .utils import ConvBNReLU, DecoderBlock6
 
 # from CMFs.CMF_re6 import CMF_re6
 # from utils import ConvBNReLU, DecoderBlock6
-# # from decoder import DecoderBlock, DecoderBlock6
+# from decoder import DecoderBlock, DecoderBlock6
 
 
 class ConvBN(nn.Sequential):
@@ -23,12 +23,13 @@ class ConvBN(nn.Sequential):
         )
 
 class DE_CCFNet18(nn.Module):
-    def __init__(self, bands1=16, bands2=3, n_classes=1, classification="Multi", is_pretrained=False):
+    def __init__(self, bands1=16, bands2=3, n_classes=1, classification="Multi", is_pretrained=True):
         super(DE_CCFNet18, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         # reduction = [1, 2, 4, 8, 16]
         if is_pretrained:
+            print("Using ImageNet pre-trained ResNet-18 model")
             rgb_resnet = models.resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
             lidar_resnet = models.resnet18(weights="ResNet18_Weights.DEFAULT")
         else:
@@ -144,6 +145,7 @@ class DE_CCFNet18(nn.Module):
 
         # d3 = self.decoder3(d4)
         # d3=self.att3(d3+e2)
+        # print("e3", e3.shape, "d4", d4.shape)
         d3 = self.decoder3(d4 + e3)
 
         # d2 = self.decoder2(d3)
@@ -167,10 +169,10 @@ class DE_CCFNet18(nn.Module):
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    bands1 = 16  # gaofen
+    bands1 = 3  # gaofen
     bands2 = 3
-    x = torch.randn(4, bands1, 256, 256, device=device)
-    y = torch.randn(4, bands2, 256, 256, device=device)
+    x = torch.randn(4, bands1, 384, 384, device=device)
+    y = torch.randn(4, bands2, 384, 384, device=device)
 
     model = DE_CCFNet18(bands1=bands1, bands2=bands2, n_classes=20, classification="Multi", is_pretrained=True).to(device)
     output = model(x, y)

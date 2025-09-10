@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
-print('using GPU %s' % ','.join(map(str, [0])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 
 import logging
 import random
@@ -21,8 +21,11 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
-import torchvision.transforms as transforms
-from dataLoader.ISPRS_loader2 import ISPRS_loader2
+from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from dataLoader.ISA_loader3 import ISA_loader3
+from torchvision import transforms
+from dataLoader import ISPRS_loader2
+from dataLoader import ISA_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -67,12 +70,14 @@ def train(cfg, rundir):
         running_metrics_train = runningScore(classes+1)
         running_metrics_val = runningScore(classes+1)
 
-    elif data_name == "Vaihingen":
+    elif data_name == "Vaihingen" or data_name == "Potsdam":
         t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
         v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
+        # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
-
+        
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
@@ -159,10 +164,10 @@ def train(cfg, rundir):
     while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
+        model.train()
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
         for (gaofens, lidars, labels) in tqdm(trainloader):
-            model.train()
             gaofens = gaofens.to(device)
             lidars = lidars.to(device)
             labels = labels.to(device)
@@ -324,7 +329,6 @@ if __name__ ==  "__main__":
     
     parser.add_argument(
         "--model_path",
-        nargs = "?",
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1452-CMGFNet18", "best.pt"),
         default = None,

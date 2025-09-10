@@ -86,9 +86,9 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
         model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
 
     elif name == "DE_CCFNet18":
-        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, is_pretrained=True, **param_dict)
     elif name == "DE_CCFNet34":
-        model = model(bands1, bands2, n_classes=classes, classification=classification, **param_dict)
+        model = model(bands1, bands2, n_classes=classes, classification=classification, is_pretrained=True, **param_dict)
     elif name == "DE_DCGCN":
         model = model(in_x=bands1, in_y=bands2, n_classes=classes, classification=classification)
     elif name == "FAFNet":

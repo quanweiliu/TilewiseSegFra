@@ -1,18 +1,22 @@
 model:
-  # arch: baseline18
+  # arch: baseline18_single
+  # arch: baseline18_double
+  # arch: baseline34_single_decoder1
+  # arch: baseline34_single_decoder2
+  # arch: baseline34_double
   # arch: baseline34
   # arch: ACNet
   arch: CANet50
   # arch: CMANet
   # arch: CMGFNet
-  # arch: CMGFNet_U
   # arch: DE_CCFNet18
   # arch: DE_CCFNet34
   # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
   # arch: PACSCNet
-  # arch: PCGNet
+  # arch: PCGNet18
+  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -26,25 +30,62 @@ data:
   # bands1: 193
   # bands2: 3
   # classes: 1
+  # batch_size: 32
   # ignore_index: 999
   # classification: Binary
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
 
-  name: Vaihingen
-  path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  # name: Vaihingen
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: 256
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # batch_size: 32
+  # ignore_index: 1
+  # classification: Multi
+
+  # name: Potsdam
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: 512
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # batch_size: 16
+  # ignore_index: 1
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
+
+  name: ISA
+  path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg
   train_split: train
   val_split: val
   test_split: test
   img_size: 256
   bands1: 3
-  bands2: 1
-  classes: 6
-  ignore_index: 5
-  classification: Multi
-
+  bands2: 2
+  classes: 1
+  train_epoch: 15
+  batch_size: 16
+  ignore_index: 999
+  classification: Binary
+  modality: rgb
+  # modality: lidar
+  # modality: sar
 
 training:
   train_epoch: 100
-  batch_size: 32
+  batch_size: 16
   test_batch_size: 1
   n_workers: 6
   optimizer:
@@ -56,13 +97,11 @@ training:
 #    name: 'adam'
 #    lr: 0.001
 
-
   loss:
-    # name: 'dice_bce_loss_re'
-    # size_average: True
+    name: 'multi_loss'
 
-    name: 'multiclass_multi_loss'
-    classes: 6
+    # name: 'multiclass_multi_loss'
+    # classes: 6
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
@@ -80,9 +119,6 @@ training:
     name: ReduceLROnPlateau
 
 threshold: 0.5
-
-
-
 
 
 

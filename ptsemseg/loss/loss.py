@@ -367,7 +367,7 @@ def multiclass_ce_dice_loss(input, target, a, b, classes):
 
 
 def dice_bce_loss_re(input, target, a, b, size_average=True):
-    bceloss = bce_loss(input, target, size_average=size_average)
+    bceloss = bce_loss(input, target)
     diceloss = dice_loss(input, target)
     # alpha = 0.3
     # loss = (1-alpha)*bceloss + alpha*diceloss
@@ -491,7 +491,7 @@ def multiclass_multi_loss(input, target, a, b, classes, aux_weight=1):
     return loss, loss1, loss2
 
 
-def multi_loss(input, target, device, a, b, size_average=True, aux_weight=1):
+def multi_loss(input, target, a, b, aux_weight=1):
     out_feats= input[0]
     aux_feats, aux_loss = input[1:], []
     _, _, h, w = target.size()
