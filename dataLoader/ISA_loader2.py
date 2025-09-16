@@ -22,8 +22,8 @@ class ISA_loader2(Dataset):
 
         """生成图像文件夹路径与标注(mask)文件夹路径"""
         image_dir = os.path.join(root, 'RGB_1m')
-        depth_dir = os.path.join(root, 'Sentinel1') # 2
-        # depth_dir = os.path.join(root, 'Sentinel2') # 12
+        # depth_dir = os.path.join(root, 'Sentinel1') # 2
+        depth_dir = os.path.join(root, 'Sentinel2') # 12
         mask_dir = os.path.join(root, 'Label_train')
 
         """读取图像列表-txt文件放在根目录"""
@@ -58,8 +58,9 @@ class ISA_loader2(Dataset):
         
         depth = rasterio.open(depth_dir[idx]).read()
         depth = depth.astype(np.float32).transpose(1, 2, 0)
-        channel_0 = depth[:, :, 0:1] # 使用切片保持维度
-        depth = np.concatenate((depth, channel_0), axis=2)
+        # channel_0 = depth[:, :, 0:1] # 使用切片保持维度
+        # depth = np.concatenate((depth, channel_0), axis=2)
+        # depth = depth[:, :, 1:4]
 
         label = cv2.imread(label_dir[idx], flags=cv2.IMREAD_UNCHANGED)
         label = np.all(label == [44, 160, 44], axis=-1).astype(np.uint8)
@@ -241,14 +242,17 @@ class Normalize(object):
         image = sample['image']
         depth = sample['depth']
         image = image / 255
-        depth = depth / 1000
+        # depth = depth / 1000
         # image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
         #                                          std=[0.229, 0.224, 0.225])(image)
         image = torchvision.transforms.Normalize(mean=[0.4850042694973687, 0.41627756261047333, 0.3981809741523051],
                                                  std=[0.26415541082494515, 0.2728415392982039, 0.2831175140191598])(
             image)
-        depth = torchvision.transforms.Normalize(mean=[2.8424503515351494],
-                                                 std=[0.9932836506164299])(depth)
+        # depth = torchvision.transforms.Normalize(mean=[2.8424503515351494],
+        #                                          std=[0.9932836506164299])(depth)
+
+        depth = (depth - depth.mean(dim=(1, 2), keepdim=True)) / (depth.std(dim=(1, 2), keepdim=True) + 1e-6)
+
         sample['image'] = image
         sample['depth'] = depth
 
@@ -282,14 +286,14 @@ class ToTensor(object):
 
 if __name__ == '__main__':
 
-    image_h = 256
-    image_w = 256
+    image_h = 384
+    image_w = 384
 
     # data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg"
     data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg_train"
 
     train_data = ISA_loader2(transform=transforms.Compose([
-                                                        scaleNorm(),
+                                                        scaleNorm(400, 400),
                                                         # RandomScale((1.0, 1.4, 2.0)),
                                                         # RandomHSV((0.9, 1.1),
                                                         #         (0.9, 1.1),
@@ -306,7 +310,7 @@ if __name__ == '__main__':
                             num_workers=0, \
                             pin_memory=False)
 
-    val_data = ISA_loader2(transform=transforms.Compose([scaleNorm(),
+    val_data = ISA_loader2(transform=transforms.Compose([scaleNorm(image_h, image_w),
                                                          ToTensor(),
                                                          Normalize()]),
                                  phase_train=False,

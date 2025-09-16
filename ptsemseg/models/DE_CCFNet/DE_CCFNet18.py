@@ -104,7 +104,6 @@ class DE_CCFNet18(nn.Module):
             # nn.Dropout(0.1),
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
-        
         self.classification = classification
 
         # self.final = nn.Sequential(
@@ -145,7 +144,6 @@ class DE_CCFNet18(nn.Module):
 
         # d3 = self.decoder3(d4)
         # d3=self.att3(d3+e2)
-        # print("e3", e3.shape, "d4", d4.shape)
         d3 = self.decoder3(d4 + e3)
 
         # d2 = self.decoder2(d3)

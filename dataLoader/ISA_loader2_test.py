@@ -22,7 +22,8 @@ class ISA_loader2_test(Dataset):
 
         """生成图像文件夹路径与标注(mask)文件夹路径"""
         image_dir = os.path.join(root, 'RGB_1m')
-        depth_dir = os.path.join(root, 'Sentinel1')
+        # depth_dir = os.path.join(root, 'Sentinel1')
+        depth_dir = os.path.join(root, 'Sentinel2')
 
         """读取图像列表-txt文件放在根目录"""
         txt_path = os.path.join(root, txt_name)
@@ -228,14 +229,17 @@ class Normalize(object):
         image = sample['image']
         depth = sample['depth']
         image = image / 255
-        depth = depth / 1000
+        # depth = depth / 1000
         # image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
         #                                          std=[0.229, 0.224, 0.225])(image)
         image = torchvision.transforms.Normalize(mean=[0.4850042694973687, 0.41627756261047333, 0.3981809741523051],
                                                  std=[0.26415541082494515, 0.2728415392982039, 0.2831175140191598])(
             image)
-        depth = torchvision.transforms.Normalize(mean=[2.8424503515351494],
-                                                 std=[0.9932836506164299])(depth)
+        # depth = torchvision.transforms.Normalize(mean=[2.8424503515351494],
+        #                                          std=[0.9932836506164299])(depth)
+
+        depth = (depth - depth.mean(dim=(1, 2), keepdim=True)) / (depth.std(dim=(1, 2), keepdim=True) + 1e-6)
+
         sample['image'] = image
         sample['depth'] = depth
 
@@ -270,8 +274,8 @@ if __name__ == '__main__':
     image_h = 400
     image_w = 400
 
-    # data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg"
-    data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg_train"
+    data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg"
+    # data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg_train"
 
     train_data = ISA_loader2_test(transform=transforms.Compose([
                                                             scaleNorm(),

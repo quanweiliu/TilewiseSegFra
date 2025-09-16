@@ -61,6 +61,7 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
+    print("img_size", img_size)
 
 
     # Setup Dataloader
@@ -95,7 +96,7 @@ def train(cfg, rundir):
 
     elif data_name == "ISA":
         train_transform = transforms.Compose([ISA_loader2.scaleNorm(1600, 1600),
-                                              ISA_loader2.RandomScale((0.8, 1.0, 1.5)),
+                                              ISA_loader2.RandomScale((1.0, 1.2, 1.5)),
                                             #   ISA_loader2.RandomHSV((0.9, 1.1),
                                             #                     (0.9, 1.1),
                                             #                     (25, 25)),
@@ -380,8 +381,7 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--model_path",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
-        default = None,
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0914-1048-DE_CCFNet34", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:

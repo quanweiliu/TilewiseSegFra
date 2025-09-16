@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import cv2
 import csv
@@ -17,6 +17,7 @@ from collections import namedtuple
 from matplotlib.patches import Patch
 
 import torch
+import torch.nn.functional as F
 from torch.utils import data
 from torchvision import transforms
 from ptsemseg.logger import Logger
@@ -25,8 +26,6 @@ from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
 from dataLoader import ISPRS_loader2
 from dataLoader import ISA_loader2_test
-from dataLoader.ISA_loader3 import ISA_loader3
-from dataLoader.ISA_loader3_test import ISA_loader3_test
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -124,15 +123,55 @@ def sort_key(filename, args):
         name = filename.split('.')[0][20:]
     return int(name)
 
+def tta_inference(model, gaofen, lidar, scales=[0.9, 0.96, 1.0, 1.06, 1.1], device="cuda"):
+    """
+    Test-Time Augmentation (TTA) with multi-scale + horizontal flip
+    Args:
+        model: segmentation model
+        gaofen: Tensor (B, C, H, W)
+        lidar: Tensor (B, C, H, W)
+        scales: list of scale ratios
+    Returns:
+        outputs: averaged prediction (B, C, H, W)
+    """
+    B, C, H, W = gaofen.shape
+    preds_all = []
+
+    for scale in scales:
+        # 1. resize to target scale
+        new_H, new_W = int(H * scale), int(W * scale)
+        gaofen_resized = F.interpolate(gaofen, size=(new_H, new_W), mode='bilinear', align_corners=True)
+        lidar_resized = F.interpolate(lidar, size=(new_H, new_W), mode='bilinear', align_corners=True)
+
+        # 2. inference on original
+        # print("gaofen_resized", gaofen_resized.shape, "lidar_resized", lidar_resized.shape)
+        pred = model(gaofen_resized, lidar_resized)
+        # resize back to original resolution
+        pred = F.interpolate(pred, size=(H, W), mode='bilinear', align_corners=True)
+        preds_all.append(pred)
+
+        # 3. inference on flipped
+        gaofen_flip = torch.flip(gaofen_resized, dims=[3])
+        lidar_flip = torch.flip(lidar_resized, dims=[3])
+        pred_flip = model(gaofen_flip, lidar_flip)
+        pred_flip = torch.flip(pred_flip, dims=[3])  # flip back
+        pred_flip = F.interpolate(pred_flip, size=(H, W), mode='bilinear', align_corners=True)
+        preds_all.append(pred_flip)
+
+    # 4. average predictions
+    outputs = torch.stack(preds_all, dim=0).mean(dim=0)  # (B, C, H, W)
+    return outputs
+
+
 def test(args):
     # Setup submits
     if args.out_path == '':
         if args.TTA:
             print("############ we use the test time augmentation ############")
-            out_path = os.path.join(os.path.split(args.model_path)[0], 'test_tta')
+            out_path = os.path.join(os.path.split(args.model_path)[0], 'test_tta2')
         else:
             print("############ we don't use the test time augmentation ############")
-            out_path = os.path.join(os.path.split(args.model_path)[0], 'test')
+            out_path = os.path.join(os.path.split(args.model_path)[0], 'test2')
     else:
         out_path = args.out_path
 
@@ -207,37 +246,42 @@ def test(args):
             # mask = sample["label"]
 
             if args.TTA:
-                # 原图 + 旋转90°
-                gaofen_90 = torch.rot90(gaofen, k=1, dims=[2, 3])
-                lidar_90 = torch.rot90(lidar, k=1, dims=[2, 3])
-                # print("gaofen_90 shape: ", gaofen_90.shape) # B, C, H, W
+                # 第一组：原图 + 旋转90°
+                # gaofen_90 = torch.rot90(gaofen, k=1, dims=[2, 3])
+                # lidar_90 = torch.rot90(lidar, k=1, dims=[2, 3])
+                # # print("gaofen_90 shape: ", gaofen_90.shape) # B, C, H, W
 
-                # 拼接 batch：原图 和 旋转图
-                gaofen_batch = torch.cat([gaofen, gaofen_90], dim=0)
-                lidar_batch = torch.cat([lidar, lidar_90], dim=0)
-                # print("gaofen_batch shape: ", gaofen_batch.shape) # 2B, C, H, W
+                # # 拼接 batch：原图 和 旋转图
+                # gaofen_batch = torch.cat([gaofen, gaofen_90], dim=0)
+                # lidar_batch = torch.cat([lidar, lidar_90], dim=0)
+                # # print("gaofen_batch shape: ", gaofen_batch.shape) # 2B, C, H, W
 
-                # 第二组：左右翻转
-                gaofen_flip = torch.flip(gaofen_batch, dims=[3])  # 翻转 W
-                lidar_flip = torch.flip(lidar_batch, dims=[3])
+                # # 第二组：左右翻转
+                # gaofen_flip = torch.flip(gaofen_batch, dims=[3])  # 翻转 W
+                # lidar_flip = torch.flip(lidar_batch, dims=[3])
 
-                # 模型推理
-                pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
-                pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
-                pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
+                # # 模型推理
+                # pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
+                # pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
+                # pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
 
-                # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
-                pred = (pred_a + pred_b) / 2                      # shape: (2B, C, H, W)
+                # # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
+                # pred = (pred_a + pred_b) / 2                      # shape: (2B, C, H, W)
 
-                # 拆分原图和旋转图的结果（复原旋转图）
-                B = gaofen.shape[0]
-                pred1 = pred[:B]                                  # 原图预测
-                pred2 = torch.rot90(pred[B:], k=-1, dims=[2, 3])  # 旋转回原角度
-                pred = (pred1 + pred2) / 2                        # 最终融合 (B, C, H, W)
+                # # 拆分原图和旋转图的结果（复原旋转图）
+                # B = gaofen.shape[0]
+                # pred1 = pred[:B]                                  # 原图预测
+                # pred2 = torch.rot90(pred[B:], k=-1, dims=[2, 3])  # 旋转回原角度
+                # outputs = (pred1 + pred2) / 2                        # 最终融合 (B, C, H, W)
 
-                # 获取预测类别（最终结果）
-                pred = pred.argmax(dim=1).cpu().numpy().astype(np.uint8)  # (B, H, W)
-                # running_metrics_test.update(mask.numpy(), pred)
+                outputs = tta_inference(model, gaofen, lidar, device=args.device)
+
+                if args.classification == "Multi":
+                    pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)
+                
+                elif args.classification == "Binary":
+                    outputs = (outputs > args.threshold).int()
+                    pred = outputs.data.cpu().numpy().astype(np.uint8)
 
             else:
                 outputs = model(gaofen, lidar)
@@ -291,6 +335,9 @@ def mask2rle(img):
     runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
     runs[1::2] -= runs[::2]
 
+    if len(runs) == 0:
+        return '0 0'   # 保持和比赛要求一致
+    
     return ' '.join(str(x) for x in runs)
 
 if __name__=='__main__':
@@ -300,7 +347,7 @@ if __name__=='__main__':
                                 'DE_DCGCN', 'Zhiyang', "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
                                 "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
                                 "SFAFMA50", 'SOLC', 'PACSCNet50', 'FAFNet'], \
-                        default="DE_CCFNet18", help="the model architecture that should be trained")
+                        default="DE_CCFNet34", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -310,7 +357,7 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-2305-DE_CCFNet18"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0914-1048-DE_CCFNet34"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -333,13 +380,13 @@ if __name__=='__main__':
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 
-    csvfile = os.path.join(os.path.split(args.model_path)[0], "submit.csv")
+    csvfile = os.path.join(os.path.split(args.model_path)[0], "submit_test.csv")
     with open(csvfile, 'w', newline='') as f:
         csv_write = csv.writer(f, dialect='unix')
         csv_head = ["ID", "Result","Usage"]
         csv_write.writerow(csv_head)
-        for id in tqdm(os.listdir(os.path.join(os.path.split(args.model_path)[0], "test"))):
-            img_path = os.path.join(os.path.split(args.model_path)[0], "test", id)
+        for id in tqdm(os.listdir(os.path.join(os.path.split(args.model_path)[0], "test2"))):
+            img_path = os.path.join(os.path.split(args.model_path)[0], "test2", id)
             if not os.path.isfile(img_path):
                 continue  # Skip if not a file
             img = Image.open(img_path)

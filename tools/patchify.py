@@ -49,9 +49,13 @@ def make_patches(im_dir, out_dir, folder_name="RGB_1m",
                     if (x + patch_size > image.shape[1]): # check if y is out of bounds
                         x = image.shape[1] - patch_size
                     tile = image[y : y+patch_size, x : x+patch_size]
+                    # tile = image[y : y+patch_size, x : x+patch_size, 1:4]
+                    # print("tile", tile.shape)
 
-                    channel_0 = tile[:, :, 0:1] # 使用切片保持维度
-                    tile = np.concatenate((tile, channel_0), axis=2)
+                    # channel_0 = tile[:, :, 1:2] # 使用切片保持维度
+                    # channel_1 = tile[:, :, 6:7] # 使用切片保持维度
+                    # channel_2 = tile[:, :, 10:11] # 使用切片保持维度
+                    # tile = np.concatenate((channel_0, channel_1, channel_2), axis=2)
 
                     im_name = txt_name.split('.')[0] + "_" + str(index) + '.'+ out_format
                     index = index + 1
@@ -85,13 +89,18 @@ if __name__ == '__main__':
 
 
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train/Sentinel1 --folder_name Sentinel1 --txt_name train.txt --output_format tif --patch_size 40 --stride 32
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train/Sentinel2 --folder_name Sentinel2 --txt_name train.txt --output_format tif --patch_size 40 --stride 32
 
 
 
 
 
-# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train/RGB_1m --folder_name RGB_1m --txt_name train.txt --output_format tif --patch_size 800 --stride 640
-# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train/Label_train --folder_name Label_train --txt_name train.txt --output_format png --patch_size 800 --stride 640
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train2/RGB_1m --folder_name RGB_1m --txt_name val.txt --output_format tif --patch_size 800 --stride 640
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train2/Label_train --folder_name Label_train --txt_name val.txt --output_format png --patch_size 800 --stride 640
+
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train2/Sentinel1 --folder_name Sentinel1 --txt_name val.txt --output_format tif --patch_size 80 --stride 64
+# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train2/Sentinel2 --folder_name Sentinel2 --txt_name val.txt --output_format tif --patch_size 80 --stride 64
 
 
-# python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg --out_dir /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train/Sentinel1 --folder_name Sentinel1 --txt_name train.txt --output_format tif --patch_size 80 --stride 64
+
+

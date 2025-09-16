@@ -67,12 +67,12 @@ data:
   train_split: train
   val_split: val
   test_split: test
-  img_size: 768
+  img_size: 1536
   bands1: 3
-  bands2: 3
+  bands2: 12
   classes: 1
   train_epoch: 100
-  batch_size: 8
+  batch_size: 2
   ignore_index: 999
   classification: Binary
   modality: rgb
@@ -81,12 +81,12 @@ data:
 
 training:
   train_epoch: 100
-  batch_size: 8
+  batch_size: 2
   test_batch_size: 1
   n_workers: 6
   optimizer:
     name: 'adam'
-    lr: 0.001
+    lr: 0.0001
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:
