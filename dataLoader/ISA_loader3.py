@@ -12,7 +12,7 @@ import random
 import torchvision
 
 
-class ISA_loader2(Dataset):
+class ISA_loader3(Dataset):
     def __init__(self, transform=None, phase_train=True, data_dir=None, txt_name='train.txt'):
         self.phase_train = phase_train
         self.transform = transform
@@ -22,8 +22,8 @@ class ISA_loader2(Dataset):
 
         """生成图像文件夹路径与标注(mask)文件夹路径"""
         image_dir = os.path.join(root, 'RGB_1m')
-        # depth_dir = os.path.join(root, 'Sentinel1') # 2
-        depth_dir = os.path.join(root, 'Sentinel2') # 12
+        depth_dir = os.path.join(root, 'Sentinel1') # 2
+        dsm_dir = os.path.join(root, 'Sentinel2') # 12
         mask_dir = os.path.join(root, 'Label_train')
 
         """读取图像列表-txt文件放在根目录"""
@@ -36,6 +36,7 @@ class ISA_loader2(Dataset):
             file_names = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
         self.img_dir_train = [os.path.join(image_dir, x + ".tif") for x in file_names]
         self.depth_dir_train = [os.path.join(depth_dir, x + ".tif") for x in file_names]
+        self.dsm_dir_train = [os.path.join(dsm_dir, x + ".tif") for x in file_names]
         self.label_dir_train = [os.path.join(mask_dir, x + ".png") for x in file_names]
 
         assert (len(self.img_dir_train) == len(self.label_dir_train) and len(self.img_dir_train) == len(
@@ -48,6 +49,7 @@ class ISA_loader2(Dataset):
 
         img_dir = self.img_dir_train
         depth_dir = self.depth_dir_train
+        dsm_dir = self.dsm_dir_train
         label_dir = self.label_dir_train
         # print("img_dir", img_dir[idx])
         # print("depth_dir", depth_dir[idx])
@@ -58,9 +60,12 @@ class ISA_loader2(Dataset):
         
         depth = rasterio.open(depth_dir[idx]).read()
         depth = depth.astype(np.float32).transpose(1, 2, 0)
+
+        dsm = rasterio.open(dsm_dir[idx]).read()
+        dsm = dsm.astype(np.float32).transpose(1, 2, 0)
         # channel_0 = depth[:, :, 0:1] # 使用切片保持维度
         # depth = np.concatenate((depth, channel_0), axis=2)
-        # depth = depth[:, :, 1:4] # 使用切片保持维度
+        # depth = depth[:, :, 1:4]
 
         label = cv2.imread(label_dir[idx], flags=cv2.IMREAD_UNCHANGED)
         label = np.all(label == [44, 160, 44], axis=-1).astype(np.uint8)
@@ -73,7 +78,7 @@ class ISA_loader2(Dataset):
         # print("depth 2", depth.shape)
         # print("label 2", label.shape)
 
-        sample = {'image': image, 'depth': depth, 'label': label}
+        sample = {'image': image, 'depth': depth, 'dsm': dsm, 'label': label}
 
         if self.transform:
             sample = self.transform(sample)
@@ -144,7 +149,7 @@ class scaleNorm(object):
         self.target_width = tw
 
     def __call__(self, sample):
-        image, depth, label = sample['image'], sample['depth'], sample['label']
+        image, depth, dsm, label = sample['image'], sample['depth'], sample['dsm'], sample['label']
         # Bi-linear
         image = cv2.resize(image, (self.target_width, self.target_height), cv2.INTER_LINEAR)
         # Nearest-neighbor
@@ -155,9 +160,17 @@ class scaleNorm(object):
                         interpolation=cv2.INTER_LINEAR)
                         for c in range(depth.shape[2])
                         ], axis=2)
+        
+        dsm = np.stack([
+                        cv2.resize(dsm[:, :, c], \
+                        (self.target_width, self.target_height), \
+                        interpolation=cv2.INTER_LINEAR)
+                        for c in range(dsm.shape[2])
+                        ], axis=2)
+        
         label = cv2.resize(label, (self.target_width, self.target_height), cv2.INTER_NEAREST)
 
-        return {'image': image, 'depth': depth, 'label': label}
+        return {'image': image, 'depth': depth, 'dsm': dsm, 'label': label}
 
 
 class RandomScale(object):
@@ -166,7 +179,7 @@ class RandomScale(object):
         self.scale_high = max(scale)
 
     def __call__(self, sample):
-        image, depth, label = sample['image'], sample['depth'], sample['label']
+        image, depth, dsm, label = sample['image'], sample['depth'], sample['dsm'], sample['label']
 
         target_scale = random.uniform(self.scale_low, self.scale_high)
         # (H, W, C)
@@ -177,12 +190,13 @@ class RandomScale(object):
         image = cv2.resize(image, (target_width, target_height), cv2.INTER_LINEAR)
         # Nearest-neighbor
         depth = cv2.resize(depth, (target_width, target_height), cv2.INTER_NEAREST)
+        dsm = cv2.resize(dsm, (target_width, target_height), cv2.INTER_NEAREST)
         label = cv2.resize(label, (target_width, target_height), cv2.INTER_NEAREST)
         # print("image", image.shape, image.dtype)
         # print("depth", depth.shape, depth.dtype)
         # print("label", label.shape, label.dtype)
 
-        return {'image': image, 'depth': depth, 'label': label}
+        return {'image': image, 'depth': depth, 'dsm': dsm, 'label': label}
 
 
 # class RandomCrop(object):
@@ -214,7 +228,7 @@ class RandomCrop(object):
         self.target_width = tw
 
     def __call__(self, sample):
-        image, depth, label = sample['image'], sample['depth'], sample['label']
+        image, depth, dsm, label = sample['image'], sample['depth'], sample['dsm'], sample['label']
         h = image.shape[0]
         w = image.shape[1]
         i = random.randint(0, h - self.target_height)
@@ -222,18 +236,20 @@ class RandomCrop(object):
 
         return {'image': image[i:i + self.target_height, j:j + self.target_width, :],
                 'depth': depth[i:i + self.target_height, j:j + self.target_width],
+                'dsm': dsm[i:i + self.target_height, j:j + self.target_width],
                 'label': label[i:i + self.target_height, j:j + self.target_width]}
 
 
 class RandomFlip(object):
     def __call__(self, sample):
-        image, depth, label = sample['image'], sample['depth'], sample['label']
+        image, depth, dsm, label = sample['image'], sample['depth'], sample['dsm'], sample['label']
         if random.random() > 0.5:
             image = np.fliplr(image).copy()
             depth = np.fliplr(depth).copy()
+            dsm = np.fliplr(dsm).copy()
             label = np.fliplr(label).copy()
 
-        return {'image': image, 'depth': depth, 'label': label}
+        return {'image': image, 'depth': depth, 'dsm': dsm, 'label': label}
 
 
 # Transforms on torch.*Tensor
@@ -241,8 +257,12 @@ class Normalize(object):
     def __call__(self, sample):
         image = sample['image']
         depth = sample['depth']
+        dsm = sample['dsm']
+        # print(image.max(), image.min(), depth.max(), depth.min(), dsm.max(), dsm.min())
         image = image / 255
-        # depth = depth / 1000
+        # depth = depth / 20
+        # dsm = dsm / 5000
+        # print(image.max(), image.min(), depth.max(), depth.min(), dsm.max(), dsm.min())
         # image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
         #                                          std=[0.229, 0.224, 0.225])(image)
         image = torchvision.transforms.Normalize(mean=[0.4850042694973687, 0.41627756261047333, 0.3981809741523051],
@@ -251,10 +271,15 @@ class Normalize(object):
         # depth = torchvision.transforms.Normalize(mean=[2.8424503515351494],
         #                                          std=[0.9932836506164299])(depth)
 
+        # Z-score 标准化（标准差归一化）
         depth = (depth - depth.mean(dim=(1, 2), keepdim=True)) / (depth.std(dim=(1, 2), keepdim=True) + 1e-6)
+        dsm = (dsm - dsm.mean(dim=(1, 2), keepdim=True)) / (dsm.std(dim=(1, 2), keepdim=True) + 1e-6)
+
+        # image = np.concatenate((image, depth), axis=0)
 
         sample['image'] = image
         sample['depth'] = depth
+        sample['dsm'] = dsm
 
         return sample
 
@@ -263,7 +288,7 @@ class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
 
     def __call__(self, sample):
-        image, depth, label = sample['image'], sample['depth'], sample['label']
+        image, depth, dsm, label = sample['image'], sample['depth'], sample['dsm'], sample['label']
         label = label.astype(np.int64)
         # # Generate different label scales
         # label3 = cv2.resize(label, (w // 4, h // 4), cv2.INTER_NEAREST)
@@ -275,9 +300,11 @@ class ToTensor(object):
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
         depth = depth.transpose((2, 0, 1))
-        # depth = np.expand_dims(depth, 0).astype(np.float64)
+        dsm = dsm.transpose((2, 0, 1))
+        
         return {'image': torch.from_numpy(image).float(),
                 'depth': torch.from_numpy(depth).float(),
+                'dsm': torch.from_numpy(dsm).float(),
                 'label': torch.from_numpy(label).unsqueeze(0)}
                 # 'label3': torch.from_numpy(label3).float(),
                 # 'label4': torch.from_numpy(label4).float(),
@@ -286,14 +313,14 @@ class ToTensor(object):
 
 if __name__ == '__main__':
 
-    image_h = 256
-    image_w = 256
+    image_h = 384
+    image_w = 384
 
     data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg"
     # data_dir = "/home/icclab/Documents/lqw/DatasetMMF/ISASeg_train"
 
-    train_data = ISA_loader2(transform=transforms.Compose([
-                                                        scaleNorm(),
+    train_data = ISA_loader3(transform=transforms.Compose([
+                                                        scaleNorm(400, 400),
                                                         # RandomScale((1.0, 1.4, 2.0)),
                                                         # RandomHSV((0.9, 1.1),
                                                         #         (0.9, 1.1),
@@ -301,8 +328,7 @@ if __name__ == '__main__':
                                                         RandomCrop(th=image_h, tw=image_w),
                                                         RandomFlip(),
                                                         ToTensor(),
-                                                        Normalize()
-                                                        ]),
+                                                        Normalize()]),
                                                         phase_train=True,
                                                         data_dir = data_dir)
     train_loader = DataLoader(train_data, \
@@ -311,10 +337,9 @@ if __name__ == '__main__':
                             num_workers=0, \
                             pin_memory=False)
 
-    val_data = ISA_loader2(transform=transforms.Compose([scaleNorm(),
+    val_data = ISA_loader3(transform=transforms.Compose([scaleNorm(image_h, image_w),
                                                          ToTensor(),
-                                                         Normalize()
-                                                         ]),
+                                                         Normalize()]),
                                  phase_train=False,
                                  data_dir=data_dir,
                                  txt_name='val.txt'
@@ -324,6 +349,7 @@ if __name__ == '__main__':
     for sample in train_loader:
         print(sample["image"].shape, sample["image"].dtype, sample["image"].max(), sample["image"].min())   # torch.Size([2, 3, 480, 640])
         print(sample["depth"].shape, sample["depth"].dtype, sample["depth"].max(), sample["depth"].min())   # torch.Size([2, 1, 480, 640])
+        print(sample["dsm"].shape, sample["dsm"].dtype, sample["dsm"].max(), sample["dsm"].min())   # torch.Size([2, 1, 480, 640])
         print(sample["label"].shape, sample["label"].dtype, np.unique(sample["label"]))   # torch.Size([2, 480, 640])
         # print(np.max(sample["image"].numpy()), np.min(sample["image"].numpy()))
         # print(np.max(sample["depth"].numpy()), np.min(sample["depth"].numpy()))

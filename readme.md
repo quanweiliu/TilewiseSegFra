@@ -31,6 +31,9 @@ Based the input and output of the model, we categorized these pixel-level classi
 Of course, there are multiscale singlemodality input, singleoutput (MSISO) and multiscale singlemodality input and multioutput (MSIMO) and so on. We will continue and add them in this framework.
 
 
+Distributed Training: The training process employs distributed training, while inference is validated solely on a single GPU to simplify the code.
+
+
 If you want to contribute this repository and make it better, feel free to contact me. My emial : quanwei.liu@my.jcu.edu.au
 
 
@@ -74,6 +77,10 @@ $$
 - 强调方向信息（如光谱形状）
 - 不保留幅值大小
 > 在高光谱图像处理任务中，单位范数归一化更适合注重“光谱形状”的任务；而 Min-Max 更适合需要统一数值尺度或可视化展示的场景.但是要明确，**使用单位范数归一化的时候，不要使用降维**。
+
+
+3. Z
+
 
 ## Tricks
 - 添加环境变量

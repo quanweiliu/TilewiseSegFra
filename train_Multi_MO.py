@@ -22,7 +22,6 @@ from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from dataLoader.ISA_loader3 import ISA_loader3
 from torchvision import transforms
 from dataLoader import ISPRS_loader2
 from dataLoader import ISA_loader2

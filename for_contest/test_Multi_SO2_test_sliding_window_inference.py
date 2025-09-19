@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import cv2
 import csv
@@ -17,13 +17,11 @@ from collections import namedtuple
 from matplotlib.patches import Patch
 
 import torch
-import torch.nn.functional as F
 from torch.utils import data
+from torch.nn import functional as F
 from torchvision import transforms
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
-from dataLoader.ISPRS_loader import ISPRS_loader
-from dataLoader.ISPRS_loader3 import ISPRS_loader3
 from dataLoader import ISPRS_loader2
 from dataLoader import ISA_loader2_test
 # from ptsemseg.loss import dice_bce_gScore
@@ -123,55 +121,87 @@ def sort_key(filename, args):
         name = filename.split('.')[0][20:]
     return int(name)
 
-def tta_inference(model, gaofen, lidar, scales=[0.9, 0.96, 1.0, 1.06, 1.1], device="cuda"):
+def _get_patch_coords(length, patch_size, stride):
+    """返回滑窗左上角坐标列表，保证最后一个 patch 覆盖图像右/下边缘"""
+    if length <= patch_size:
+        return [0]
+    coords = list(range(0, length - patch_size + 1, stride))
+    if coords[-1] != length - patch_size:
+        coords.append(length - patch_size)
+    return coords
+
+def sliding_window_predict(model, img, lidar, patch_size=400, stride=200, device="cuda"):
     """
-    Test-Time Augmentation (TTA) with multi-scale + horizontal flip
     Args:
-        model: segmentation model
-        gaofen: Tensor (B, C, H, W)
-        lidar: Tensor (B, C, H, W)
-        scales: list of scale ratios
+        model: torch model, 返回 (B, C, h, w) 或 (B,1,h,w)
+        img: Tensor, (B,C,H,W)
+        lidar: Tensor, (B,C,H,W)
+        patch_size, stride: int
     Returns:
-        outputs: averaged prediction (B, C, H, W)
+        outputs: Tensor (B, num_classes, H, W) 或 (B,1,H,W) （已经裁回原始 H,W 大小）
     """
-    B, C, H, W = gaofen.shape
-    preds_all = []
+    B, C, H, W = img.shape
+    outputs_all = []
 
-    for scale in scales:
-        # 1. resize to target scale
-        new_H, new_W = int(H * scale), int(W * scale)
-        gaofen_resized = F.interpolate(gaofen, size=(new_H, new_W), mode='bilinear', align_corners=True)
-        lidar_resized = F.interpolate(lidar, size=(new_H, new_W), mode='bilinear', align_corners=True)
+    # 逐样本处理（避免一次性把整个大图/批次放满显存）
+    for b in range(B):
+        single_gaofen = img[b:b+1]  # (1,C,H,W)
+        single_lidar = lidar[b:b+1]  # (1,C,H,W)
+        # 若图像任一边小于 patch_size，则 pad 到最小尺寸
+        pad_h = max(0, patch_size - H)
+        pad_w = max(0, patch_size - W)
+        if pad_h > 0 or pad_w > 0:
+            # pad = (left, right, top, bottom)
+            single_padded_gaofen = F.pad(single_gaofen, (0, pad_w, 0, pad_h), mode="reflect")
+            single_padded_lidar = F.pad(single_lidar, (0, pad_w, 0, pad_h), mode="reflect")
+        else:
+            single_padded_gaofen = single_gaofen
+            single_padded_lidar = single_lidar
+        _, _, Hp, Wp = single_padded_gaofen.shape
 
-        # 2. inference on original
-        # print("gaofen_resized", gaofen_resized.shape, "lidar_resized", lidar_resized.shape)
-        pred = model(gaofen_resized, lidar_resized)
-        # resize back to original resolution
-        pred = F.interpolate(pred, size=(H, W), mode='bilinear', align_corners=True)
-        preds_all.append(pred)
+        y_coords = _get_patch_coords(H, patch_size, stride)
+        x_coords = _get_patch_coords(W, patch_size, stride)
+        # print(f"b={b}, Hp={Hp}, Wp={Wp}, y_coords={y_coords}, x_coords={x_coords}")
 
-        # 3. inference on flipped
-        gaofen_flip = torch.flip(gaofen_resized, dims=[3])
-        lidar_flip = torch.flip(lidar_resized, dims=[3])
-        pred_flip = model(gaofen_flip, lidar_flip)
-        pred_flip = torch.flip(pred_flip, dims=[3])  # flip back
-        pred_flip = F.interpolate(pred_flip, size=(H, W), mode='bilinear', align_corners=True)
-        preds_all.append(pred_flip)
+        output_sum = None
+        # count map 用于重叠区域求平均
+        count_map = torch.zeros((1, 1, Hp, Wp), device=device, dtype=torch.float32)
 
-    # 4. average predictions
-    outputs = torch.stack(preds_all, dim=0).mean(dim=0)  # (B, C, H, W)
+        for y in y_coords:
+            for x in x_coords:
+                patch_gaofen = single_padded_gaofen[:, :, y:y+patch_size, x:x+patch_size]  # (1,C,ps,ps)
+                patch_lidar = single_padded_lidar[:, :, y:y+patch_size, x:x+patch_size]  # (1,C,ps,ps)
+                # print("patch", patch.shape)  # patch torch.Size([1, 3, 384, 384])
+                pred = model(patch_gaofen, patch_lidar)  # 期望 (1, num_classes, ps, ps) 或 (1,1,ps,ps)
+                # print("pred", pred.shape)  # pred torch.Size([1, 1, 384, 384])
+                # 如果 model 返回 tuple/list（有些模型返回 (pred, aux)），取第一个
+                if isinstance(pred, (tuple, list)):
+                    pred = pred[0]
+                pred = pred.detach()  # (1, nc, ps, ps)
+                if output_sum is None:
+                    nc = pred.shape[1]
+                    output_sum = torch.zeros((1, nc, Hp, Wp), device=device, dtype=pred.dtype)
+                output_sum[:, :, y:y+patch_size, x:x+patch_size] += pred
+                count_map[:, :, y:y+patch_size, x:x+patch_size] += 1.0
+
+        # 防止除0（理论上 count_map >0）
+        output_avg = output_sum / count_map
+        # 裁回原始大小（去掉前面的 padding）
+        output_cropped = output_avg[:, :, :H, :W].cpu()  # 放回 CPU，便于后续处理
+        outputs_all.append(output_cropped)
+
+    outputs = torch.cat(outputs_all, dim=0)  # (B, nc, H, W)
     return outputs
-
 
 def test(args):
     # Setup submits
     if args.out_path == '':
         if args.TTA:
             print("############ we use the test time augmentation ############")
-            out_path = os.path.join(os.path.split(args.model_path)[0], 'test_tta2')
+            out_path = os.path.join(os.path.split(args.model_path)[0], 'test_tta')
         else:
             print("############ we don't use the test time augmentation ############")
-            out_path = os.path.join(os.path.split(args.model_path)[0], 'test2')
+            out_path = os.path.join(os.path.split(args.model_path)[0], 'test')
     else:
         out_path = args.out_path
 
@@ -197,6 +227,7 @@ def test(args):
                                             ISPRS_loader2.Normalize()])
         test_dataset = ISPRS_loader2.ISPRS_loader2(transform=val_transform, data_dir=args.imgs_path)
         running_metrics_test = runningScore(args.classes)
+
     elif args.data_name == "ISA":
         print("############ we use the ISA dataset ############")
         txt_path = os.path.join(args.imgs_path, 'test.txt')
@@ -230,83 +261,37 @@ def test(args):
     
     plot_training_results(results_train, results_val, args.model, savefig_path)
 
-    model.to(args.device)
-
     test_log = Logger(os.path.join(os.path.split(args.model_path)[0], 'test_result.log'))
 
     ########################### test ####################################
     model.eval()
     t0 = time.time()
     with torch.no_grad():
-        print("TTA is running...", args.TTA)
         for ind, sample in enumerate(tqdm(testloader)):
             img_id = imgname_list[ind]
             gaofen = sample["image"].to(args.device)
             lidar = sample["depth"].to(args.device)
             # mask = sample["label"]
 
-            if args.TTA:
-                # 第一组：原图 + 旋转90°
-                # gaofen_90 = torch.rot90(gaofen, k=1, dims=[2, 3])
-                # lidar_90 = torch.rot90(lidar, k=1, dims=[2, 3])
-                # # print("gaofen_90 shape: ", gaofen_90.shape) # B, C, H, W
+            outputs = sliding_window_predict(model, gaofen, lidar, args.patch_size, args.stride, args.device)
 
-                # # 拼接 batch：原图 和 旋转图
-                # gaofen_batch = torch.cat([gaofen, gaofen_90], dim=0)
-                # lidar_batch = torch.cat([lidar, lidar_90], dim=0)
-                # # print("gaofen_batch shape: ", gaofen_batch.shape) # 2B, C, H, W
+            if args.classification == "Multi":
+                pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
 
-                # # 第二组：左右翻转
-                # gaofen_flip = torch.flip(gaofen_batch, dims=[3])  # 翻转 W
-                # lidar_flip = torch.flip(lidar_batch, dims=[3])
-
-                # # 模型推理
-                # pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
-                # pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
-                # pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
-
-                # # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
-                # pred = (pred_a + pred_b) / 2                      # shape: (2B, C, H, W)
-
-                # # 拆分原图和旋转图的结果（复原旋转图）
-                # B = gaofen.shape[0]
-                # pred1 = pred[:B]                                  # 原图预测
-                # pred2 = torch.rot90(pred[B:], k=-1, dims=[2, 3])  # 旋转回原角度
-                # outputs = (pred1 + pred2) / 2                        # 最终融合 (B, C, H, W)
-
-                outputs = tta_inference(model, gaofen, lidar, device=args.device)
-
-                if args.classification == "Multi":
-                    pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)
-                
-                elif args.classification == "Binary":
-                    outputs = (outputs > args.threshold).int()
-                    pred = outputs.data.cpu().numpy().astype(np.uint8)
-
-            else:
-                outputs = model(gaofen, lidar)
-                if args.classification == "Multi":
-                    pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
-
-                elif args.classification == "Binary":
-                    outputs[outputs > args.threshold] = 1
-                    outputs[outputs <= args.threshold] = 0
-                    pred = outputs.data.cpu().numpy().astype(np.uint8)
-                # running_metrics_test.update(mask.numpy(), pred)
+            elif args.classification == "Binary":
+                outputs = (outputs > args.threshold).int()
+                pred = outputs.data.cpu().numpy().astype(np.uint8)
+            # running_metrics_test.update(mask.numpy(), pred)
 
         ############################### save pred image ###############################
             if args.save_img:
                 pred = pred.reshape(args.img_size, args.img_size)
-                # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
-                # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
-                # if ind == 10:
-                #     break
 
         # print and save metrics result
-        # score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
+        score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
         test_log.write('************test_result**********\n')
-        test_log.write('{}: '.format(args.TTA) + '\n')
+        # test_log.write('{}: '.format(args.TTA) + '\n')
 
         # for k, v in score.items():
         #     test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
@@ -357,7 +342,18 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0916-0131-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-0951-baseline18_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0914-1048-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1053-DE_DCGCN"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1625-MGFNet_Wei50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2028-MGFNet_Wu34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-1954-PCGNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-2010-SFAFMA50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -377,16 +373,19 @@ if __name__=='__main__':
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
+    args.patch_size = 1280
+    args.stride = 600
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 
-    csvfile = os.path.join(os.path.split(args.model_path)[0], "submit_test.csv")
+
+    csvfile = os.path.join(os.path.split(args.model_path)[0], "submit.csv")
     with open(csvfile, 'w', newline='') as f:
         csv_write = csv.writer(f, dialect='unix')
         csv_head = ["ID", "Result","Usage"]
         csv_write.writerow(csv_head)
-        for id in tqdm(os.listdir(os.path.join(os.path.split(args.model_path)[0], "test2"))):
-            img_path = os.path.join(os.path.split(args.model_path)[0], "test2", id)
+        for id in tqdm(os.listdir(os.path.join(os.path.split(args.model_path)[0], "test"))):
+            img_path = os.path.join(os.path.split(args.model_path)[0], "test", id)
             if not os.path.isfile(img_path):
                 continue  # Skip if not a file
             img = Image.open(img_path)

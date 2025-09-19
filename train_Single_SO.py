@@ -30,7 +30,6 @@ from ptsemseg.optimizers import get_optimizer
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
 
-
 def train(cfg, rundir):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -56,6 +55,7 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
+    print("img_size", img_size)
 
     # Setup Dataloader
     if data_name == "OSTD":
@@ -64,7 +64,7 @@ def train(cfg, rundir):
         running_metrics_train = runningScore(classes+1)
         running_metrics_val = runningScore(classes+1)
 
-    elif data_name == "Vaihingen":
+    elif data_name == "Vaihingen" or data_name == "Potsdam":
         t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
         v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
@@ -107,7 +107,6 @@ def train(cfg, rundir):
 
     # loss_function
     loss_fn = get_loss_function(cfg)
-
     ################################# FLOPs and Params ###################################################
     # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
     # # input = torch.randn(2, 3, 128, 128).to(device)
@@ -154,10 +153,10 @@ def train(cfg, rundir):
     while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
+        model.train()
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
         for (gaofens, lidars, labels) in tqdm(trainloader):
-            model.train()
             gaofens = gaofens.to(device)
             lidars = lidars.to(device)
             labels = labels.to(device)
@@ -306,9 +305,9 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_single.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MANet.yml",
         help="Configuration file to use")
 
@@ -322,8 +321,8 @@ if __name__ ==  "__main__":
         "--model_path",
         nargs = "?",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
         default = None,
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
@@ -337,4 +336,3 @@ if __name__ ==  "__main__":
 
     train(cfg, rundir)
     time.sleep(30)
-

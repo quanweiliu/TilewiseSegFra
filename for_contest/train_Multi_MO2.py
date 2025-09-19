@@ -22,7 +22,6 @@ from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from dataLoader.ISA_loader3 import ISA_loader3
 from torchvision import transforms
 from dataLoader import ISA_loader2
 from dataLoader import ISPRS_loader2
@@ -34,7 +33,6 @@ from ptsemseg.optimizers import get_optimizer
 # from ptsemseg.schedulers2.warmuplr import WarmupCosineLR
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
-
 
 def train(cfg, rundir):
 
@@ -61,7 +59,7 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
-
+    print("img_size", img_size)
 
     # Setup Dataloader
     if data_name == "OSTD":
@@ -94,7 +92,7 @@ def train(cfg, rundir):
         running_metrics_val = runningScore(classes)
 
     elif data_name == "ISA":
-        train_transform = transforms.Compose([ISA_loader2.scaleNorm(img_size, img_size),
+        train_transform = transforms.Compose([ISA_loader2.scaleNorm(),
                                             #   ISA_loader2.RandomScale((1.0, 1.4, 2.0)),
                                             #   ISA_loader2.RandomHSV((0.9, 1.1),
                                             #                     (0.9, 1.1),
@@ -151,7 +149,6 @@ def train(cfg, rundir):
 
     # loss_function
     loss_fn = get_loss_function(cfg)
-
     ################################# FLOPs and Params ###################################################
     # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
     # # input = torch.randn(2, 3, 128, 128).to(device)
@@ -201,13 +198,6 @@ def train(cfg, rundir):
         model.train()
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
-        # for (gaofens, lidars, labels) in tqdm(trainloader):
-        #     gaofens = gaofens.to(device)
-        #     lidars = lidars.to(device)
-        #     labels = labels.to(device)
-        #     # print("gaofens", gaofens.shape)
-        #     # print("lidars", lidars.shape)
-        #     # print("labels", labels.shape, labels.dtype)
 
         for batch_idx, sample in enumerate(tqdm(trainloader)):
 
@@ -257,10 +247,6 @@ def train(cfg, rundir):
         if i % 1 == 0:
             model.eval()
             with torch.no_grad():
-                # for gaofens_val, lidars_val, labels_val in tqdm(valloader):
-                #     gaofens_val = gaofens_val.to(device)
-                #     lidars_val = lidars_val.to(device)
-                #     labels_val = labels_val.to(device)
                 for batch_idx, sample in enumerate(tqdm(valloader)):
 
                     gaofens_val = sample['image'].to(device)
@@ -374,9 +360,10 @@ if __name__ ==  "__main__":
     
     parser.add_argument(
         "--model_path",
+        nargs = "?",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1452-CMGFNet18", "best.pt"),
         default = None,
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1452-CMGFNet18", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:

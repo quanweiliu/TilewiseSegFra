@@ -85,6 +85,12 @@ class ISPRS_loader3(data.DataLoader):
         gaofen2np = rasterio.open(self.img_dir_train[index]).read().transpose(1, 2, 0)
         lidar2np = rasterio.open(self.depth_dir_train[index]).read().transpose(1, 2, 0)
         mask2np = rasterio.open(self.label_dir_train[index]).read().transpose(1, 2, 0)
+        # print(gaofen2np.shape, lidar2np.shape, mask2np.shape)
+
+        real_image_size = gaofen2np.shape[-2]
+        if real_image_size != self.img_size:
+            gaofen2np, lidar2np, mask2np = self.scaleNorm(self.img_size, self.img_size)
+        
         # 在这里把三维变成了一维！！！ 0 - 5
         if self.classes == 6:
             mask2np = rgb_to_2D_label(mask2np)
@@ -98,6 +104,16 @@ class ISPRS_loader3(data.DataLoader):
         # lidar = lidar.expand(3, -1, -1)
         return gaofen, lidar, mask.long()
 
+    def scaleNorm(self, image_h, image_w):
+        # resize the image
+        gaofen2np = cv2.resize(gaofen2np, (image_h, image_w), cv2.INTER_LINEAR)
+        lidar2np = cv2.resize(lidar2np, (image_h, image_w), cv2.INTER_LINEAR)
+        lidar2np = np.expand_dims(lidar2np, axis=2)  # (252, 252, 1)
+        mask2np = cv2.resize(mask2np, (image_h, image_w), cv2.INTER_LINEAR)
+        # print(gaofen2np.shape, lidar2np.shape, mask2np.shape)
+
+        return gaofen2np, lidar2np, mask2np
+        
     def norm(self, gaofen, lidar):
         gaofen = gaofen.float() / 255.0
         # imagenet

@@ -3,11 +3,11 @@ from torch import nn
 import torch.nn.functional as F
 from torchvision import models
 
-from CMFs.CMF_re6 import CMF_re63
-from utils import ConvBNReLU, DecoderBlock6
+# from CMFs.CMF_re6 import CMF_re63
+# from utils import ConvBNReLU, DecoderBlock6
 
-# from .CMFs.CMF_re6 import CMF_re6, CMF_re6_2
-# from .utils import ConvBNReLU, DecoderBlock6
+from .CMFs.CMF_re6 import CMF_re63
+from .utils import ConvBNReLU, DecoderBlock6
 
 
 class ConvBN(nn.Sequential):
@@ -21,16 +21,17 @@ class ConvBN(nn.Sequential):
             norm_layer(out_channels)
         )
 
-class DE_CCFNet_34(nn.Module):
-    def __init__(self, bands1=16, bands2=3, bands3=4, n_classes=1, is_pretrained=False):
-        super(DE_CCFNet_34, self).__init__()
+class DE_CCFNet34_3B(nn.Module):
+    def __init__(self, bands1=16, bands2=3, bands3=4, n_classes=1, classification="Multi", is_pretrained=False):
+        super(DE_CCFNet34_3B, self).__init__()
 
         filters = [64, 128, 256, 512]  # ResNet34
         # reduction = [1, 2, 4, 8, 16]
         if is_pretrained:
-            rgb_resnet = models.resnet34(weights = "ResNet34_Weights.DEFAULT")
-            lidar_resnet = models.resnet34(weights = "ResNet34_Weights.DEFAULT")
-            sar_resnet = models.resnet34(weights = "ResNet34_Weights.DEFAULT")
+            print("Using ImageNet pre-trained ResNet-34 model")
+            rgb_resnet = models.resnet34(weights="ResNet34_Weights.DEFAULT")
+            lidar_resnet = models.resnet34(weights="ResNet34_Weights.DEFAULT")
+            sar_resnet = models.resnet34(weights="ResNet34_Weights.DEFAULT")
         else:
             rgb_resnet = models.resnet34(pretrained=False)
             lidar_resnet = models.resnet34(pretrained=False)
@@ -119,6 +120,7 @@ class DE_CCFNet_34(nn.Module):
             # nn.Dropout(0.1),
             nn.Conv2d(32, n_classes, 3, padding=1),
         )
+        self.classification = classification
 
         # self.final = nn.Sequential(
         #     nn.ConvTranspose2d(filters[0], 32, 4, 2, 1),
@@ -145,11 +147,8 @@ class DE_CCFNet_34(nn.Module):
     def forward(self, x, y, z):
         # encoder
         x_first, y_first, e_first = self.cross_block0(self.rgb_first(x), self.lidar_first(y), self.sar_first(z))
-        # print("x_first", x_first.shape, "y_first", y_first.shape, "e_first", e_first.shape)
         xe1, ye1, e1 = self.cross_block1(self.rgb_encoder1(x_first), self.lidar_encoder1(y_first), self.sar_encoder1(e_first))
-        # print("xe1", xe1.shape, "ye1", ye1.shape, "e1", e1.shape)
         xe2, ye2, e2 = self.cross_block2(self.rgb_encoder2(xe1), self.lidar_encoder2(ye1), self.sar_encoder2(e1))
-        # print("xe2", xe2.shape, "ye2", ye2.shape, "e2", e2.shape)
         xe3, ye3, e3 = self.cross_block3(self.rgb_encoder3(xe2), self.lidar_encoder3(ye2), self.sar_encoder3(e2))
 
         ## center
@@ -175,20 +174,23 @@ class DE_CCFNet_34(nn.Module):
         # out = self.final(d1)
         out = self.final(d1)  ## new
 
-        return F.sigmoid(out)
+        if self.classification == "Multi":
+            return out
+        elif self.classification == "Binary":
+            return F.sigmoid(out)
 
 
 if __name__=="__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    bands1 = 16  # gaofen
-    bands2 = 3
+    bands1 = 5  # gaofen
+    bands2 = 5
     bands3 = 2  
-    x = torch.randn(4, bands1, 256, 256, device=device)
-    y = torch.randn(4, bands2, 256, 256, device=device)
-    z = torch.randn(4, bands3, 256, 256, device=device)
+    x = torch.randn(2, bands1, 1408, 1408, device=device)
+    y = torch.randn(2, bands2, 1408, 1408, device=device)
+    z = torch.randn(2, bands3, 1408, 1408, device=device)
 
-    model = DE_CCFNet_34(bands1=bands1, bands2=bands2, bands3=bands3, n_classes=10, is_pretrained=True).to(device)
+    model = DE_CCFNet34_3B(bands1=bands1, bands2=bands2, bands3=bands3, n_classes=10, is_pretrained=True).to(device)
     output = model(x, y, z)
     print("output", output.shape)
     # model = SKBlock(64,M=2,G=64)

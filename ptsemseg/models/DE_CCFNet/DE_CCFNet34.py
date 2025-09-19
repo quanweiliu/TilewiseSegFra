@@ -8,7 +8,6 @@ from .utils import ConvBNReLU, DecoderBlock6
 
 # from CMFs.CMF_re6 import CMF_re6
 # from utils import ConvBNReLU, DecoderBlock6
-# # from decoder import DecoderBlock, DecoderBlock6
 
 
 class ConvBN(nn.Sequential):

@@ -1,6 +1,9 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+# os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+# print('using GPU %s' % ','.join(map(str, [1])))
+
+import sys
+sys.path.append('/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra')
 
 import logging
 import random
@@ -24,6 +27,7 @@ from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
 from torchvision import transforms
 from dataLoader import ISA_loader2
+from dataLoader import ISA_loader3
 from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
@@ -34,11 +38,17 @@ from ptsemseg.optimizers import get_optimizer
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
 
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
 
-def train(cfg, rundir):
+def train(rank, cfg, args, rundir, world_size):
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cuda")
+    dist.init_process_group(backend="nccl", 
+                            rank=rank, 
+                            init_method="tcp://127.0.0.1:23456",  # 主机地址 + 端口，随便一个没被占用的端口
+                            world_size=world_size)
+    torch.cuda.set_device(rank)
     torch.set_num_threads(1)
 
     # seed=1337
@@ -60,7 +70,7 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
-
+    print("img_size", img_size)
 
     # Setup Dataloader
     if data_name == "OSTD":
@@ -70,54 +80,87 @@ def train(cfg, rundir):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
-        # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
-        # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
+        # t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
+        # v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+
+        train_transform = transforms.Compose([ISPRS_loader2.scaleNorm(img_size, img_size),
+                                              ISPRS_loader2.RandomScale((1.0, 1.4, 2.0)),
+                                              ISPRS_loader2.RandomHSV((0.9, 1.1),
+                                                                (0.9, 1.1),
+                                                                (25, 25)),
+                                              ISPRS_loader2.RandomCrop(th=img_size, tw=img_size),
+                                              ISPRS_loader2.RandomFlip(),
+                                              ISPRS_loader2.ToTensor(),
+                                              ISPRS_loader2.Normalize()])
+        
+        val_transform = transforms.Compose([ISPRS_loader2.scaleNorm(img_size, img_size),
+                                            ISPRS_loader2.ToTensor(),
+                                            ISPRS_loader2.Normalize()])
+
+        t_loader = ISPRS_loader2.ISPRS_loader2(transform=train_transform, data_dir=data_path, txt_name='train.txt')
+        v_loader = ISPRS_loader2.ISPRS_loader2(transform=val_transform, data_dir=data_path, txt_name='val.txt')
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
+    elif data_name == "ISA":
+        train_transform = transforms.Compose([ISA_loader3.scaleNorm(1600, 1600),
+                                              ISA_loader3.RandomScale((1.0, 1.2, 1.5)),
+                                            #   ISA_loader3.RandomHSV((0.9, 1.1),
+                                            #                     (0.9, 1.1),
+                                            #                     (25, 25)),
+                                              ISA_loader3.RandomCrop(th=img_size, tw=img_size),
+                                              ISA_loader3.RandomFlip(),
+                                              ISA_loader3.ToTensor(),
+                                              ISA_loader3.Normalize()])
         
-    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
-                                num_workers=n_workers, prefetch_factor=4, pin_memory=True)
-    valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
-                                num_workers=n_workers, prefetch_factor=4, pin_memory=True)
+        val_transform = transforms.Compose([ISA_loader3.scaleNorm(img_size, img_size),
+                                            ISA_loader3.ToTensor(),
+                                            ISA_loader3.Normalize()])
+        t_loader = ISA_loader3.ISA_loader3(transform=train_transform, phase_train=True, data_dir=data_path)
+        v_loader = ISA_loader3.ISA_loader3(transform=val_transform, phase_train=False, data_dir=data_path, txt_name='val.txt' )
+        running_metrics_train = runningScore(classes+1)
+        running_metrics_val = runningScore(classes+1)
 
-    # for gaofens, lidars, labels in trainloader:
-    #     print("train gaofens", gaofens.shape)
-    #     print("train lidars", lidars.shape)
-    #     print("train labels", labels.shape)
+
+    train_sampler = torch.utils.data.distributed.DistributedSampler(t_loader, num_replicas=world_size, rank=rank, shuffle=True)
+    val_sampler = torch.utils.data.distributed.DistributedSampler(v_loader, num_replicas=world_size, rank=rank, shuffle=False)
+
+    trainloader = data.DataLoader(t_loader, batch_size=batchsize,
+                                num_workers=n_workers, prefetch_factor=4, pin_memory=True, sampler=train_sampler)
+    valloader = data.DataLoader(v_loader, batch_size=batchsize,
+                                num_workers=n_workers, prefetch_factor=4, pin_memory=True, sampler=val_sampler)
+
+    # for sample in trainloader:
+    #     print("train gaofens", sample['image'].shape)
+    #     print("train lidars", sample['depth'].shape)
+    #     print("train labels", sample['label'].shape)
     #     break
 
-    # for gaofens, lidars, labels in valloader:
-    #     print("val gaofens", gaofens.shape)
-    #     print("val lidars", lidars.shape)
-    #     print("val labels", labels.shape)
+    # for sample in valloader:
+    #     print("val gaofens", sample['image'].shape)
+    #     print("val lidars", sample['depth'].shape)
+    #     print("val labels", sample['label'].shape)
     #     break
 
     # Set Model
-    model = get_model(cfg['model'], bands1, bands2, classes, classification).to(device)
+    model = get_model(cfg['model'], bands1, bands2, classes, classification).to(rank)
+    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=True)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
 
     # 单一 学习率 更新 (?)
     optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items() if k != 'name'}
-
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
-    # optimizer=torch.optim.Adam(model.parameters(), lr=cfg['training']['optimizer']['lr'],
-    #                            betas=[cfg['training']['optimizer']['momentum'], 0.999],
-    #                            weight_decay=cfg['training']['optimizer']['weight_decay'])
-    # logger.info("Using optimizer {}".format(optimizer))
 
     ## scheduler
     scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
     lr  = scheduler.get_last_lr()
-    print("epoch: ", epoch, lr)
+    if rank == 0:  # 只在主进程操作
+        print("epoch: ", epoch, lr)
 
     # loss_function
     loss_fn = get_loss_function(cfg)
-
     ################################# FLOPs and Params ###################################################
     # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
     # # input = torch.randn(2, 3, 128, 128).to(device)
@@ -133,7 +176,8 @@ def train(cfg, rundir):
 
 
     # 初始化 log-dir 用于后续画图
-    logger2 = initLogger(cfg['model']['arch'], rundir)
+    if rank == 0:  # 只在主进程操作
+        logger2 = initLogger(cfg['model']['arch'], rundir)
 
 ################################# retrain ###################################################
     if args.model_path is not None:
@@ -164,18 +208,22 @@ def train(cfg, rundir):
     while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
+        train_sampler.set_epoch(i)
         model.train()
-        print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
+        if rank == 0:  # 只在主进程操作
+            print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
-        for (gaofens, lidars, labels) in tqdm(trainloader):
-            gaofens = gaofens.to(device)
-            lidars = lidars.to(device)
-            labels = labels.to(device)
+        for batch_idx, sample in enumerate(tqdm(trainloader, disable=(rank!=0))):
+            gaofens = sample['image'].to(rank)
+            lidars = sample['depth'].to(rank)
+            dsm = sample['dsm'].to(rank)
+            labels = sample['label'].to(rank)
+            # gaofens = torch.cat((gaofens, dsm), dim=1)
             # print("gaofens", gaofens.shape)
             # print("lidars", lidars.shape)
-            # print("labels", labels.shape, labels.dtype)
+            # print("labels", labels.shape)
 
-            outputs = model(gaofens, lidars)
+            outputs = ddp_model(gaofens, lidars, dsm)
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
@@ -195,33 +243,37 @@ def train(cfg, rundir):
         time_meter.update(time.time() - start_ts)
 
         ############## print result for each train epoch ############################
-        print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
-            i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
         train_score, train_class_iou = running_metrics_train.get_scores()
+        if rank == 0:  # 只在主进程操作
+            print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
+                i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
 
-        # store results
-        results_train.append({'epoch': i, 
-                        'trainLoss': train_loss_meter.avg, 
-                        'F1': np.nanmean(train_score["F1  \t\t"]),
-                        # "Kappa": np.nanmean(train_score["Kappa: \t\t"]),
-                        "mIoU": np.nanmean(train_score["mIoU  \t\t"]),
-                    })
+            # store results
+            results_train.append({'epoch': i, 
+                            'trainLoss': train_loss_meter.avg, 
+                            'F1': np.nanmean(train_score["F1  \t\t"]),
+                            # "Kappa": np.nanmean(train_score["Kappa: \t\t"]),
+                            "mIoU": np.nanmean(train_score["mIoU  \t\t"]),
+                        })
         
         train_loss_meter.reset()
         running_metrics_train.reset()
 
         ############################## val ####################################
         # evaluate for each epoch
-        if i % 1 == 0:
+        if i % 1 == 0 and rank == 0:
             model.eval()
             with torch.no_grad():
-                for gaofens_val, lidars_val, labels_val in tqdm(valloader):
-                    gaofens_val = gaofens_val.to(device)
-                    lidars_val = lidars_val.to(device)
-                    labels_val = labels_val.to(device)
+                for batch_idx, sample in enumerate(tqdm(valloader)):
+
+                    gaofens_val = sample['image'].to(rank)
+                    lidars_val = sample['depth'].to(rank)
+                    dsm_val = sample['dsm'].to(rank)
+                    labels_val = sample['label'].to(rank)
+                    # gaofens_val = torch.cat((gaofens_val, dsm_val), dim=1)
 
                     # ################ output ################
-                    outputs = model(gaofens_val, lidars_val)
+                    outputs = ddp_model(gaofens_val, lidars_val, dsm_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
                     if classification == "Multi":
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]
@@ -279,6 +331,9 @@ def train(cfg, rundir):
                     flag=False
                     break
 
+    # 结束
+    dist.destroy_process_group()
+
     # plot results
     results_train = pd.DataFrame(results_train)
     results_val = pd.DataFrame(results_val)
@@ -314,8 +369,9 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34_3B.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu34.yml",
@@ -329,14 +385,15 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA"),
         help="Path to the saved model")
     
     parser.add_argument(
         "--model_path",
+        nargs = "?",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
         default = None,
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0914-1048-DE_CCFNet34", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
@@ -348,5 +405,7 @@ if __name__ ==  "__main__":
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
-    train(cfg, rundir)
+    # train(cfg, rundir)
+    world_size = torch.cuda.device_count()
+    mp.spawn(train, args=(cfg, args, rundir, world_size), nprocs=world_size, join=True)
     time.sleep(30)

@@ -69,6 +69,12 @@ class ISPRS_loader(data.DataLoader):
         gaofen2np = rasterio.open(gaofen_path).read().transpose(1, 2, 0)
         lidar2np = rasterio.open(lidar_path).read().transpose(1, 2, 0)
         mask2np = rasterio.open(mask_path).read().transpose(1, 2, 0)
+        # print(gaofen2np.shape, lidar2np.shape, mask2np.shape)
+
+        real_image_size = gaofen2np.shape[-2]
+        if real_image_size != self.img_size:
+            gaofen2np, lidar2np, mask2np = self.scaleNorm(gaofen2np, lidar2np, mask2np)
+        
         # 在这里把三维变成了一维！！！ 0 - 5
         if self.classes == 6:
             mask2np = rgb_to_2D_label(mask2np)
@@ -82,15 +88,29 @@ class ISPRS_loader(data.DataLoader):
         # lidar = lidar.expand(3, -1, -1)
         return gaofen, lidar, mask.long()
 
+    def scaleNorm(self, gaofen2np, lidar2np, mask2np):
+        # resize the image
+        gaofen2np = cv2.resize(gaofen2np, self.img_size, cv2.INTER_LINEAR)
+        lidar2np = np.stack([
+                        cv2.resize(lidar2np[:, :, c], \
+                        self.img_size, \
+                        interpolation=cv2.INTER_LINEAR)
+                        for c in range(lidar2np.shape[2])
+                        ], axis=2)
+        mask2np = cv2.resize(mask2np, self.img_size, cv2.INTER_LINEAR)
+        # print(gaofen2np.shape, lidar2np.shape, mask2np.shape)
+
+        return gaofen2np, lidar2np, mask2np
+        
     def norm(self, gaofen, lidar):
         gaofen = gaofen.float() / 255.0
         # imagenet
-        # gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-        #                                  std=[0.229, 0.224, 0.225])(gaofen)
+        gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                         std=[0.229, 0.224, 0.225])(gaofen)
         
-        # # vaihingen
-        gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
-                                        std=[0.1970, 0.1306, 0.1276])(gaofen)
+        # # # vaihingen
+        # gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
+        #                                 std=[0.1970, 0.1306, 0.1276])(gaofen)
         # # potsdam
         # gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
         #                                  std=[0.1196, 0.1164, 0.1197])(gaofen) 
@@ -98,7 +118,12 @@ class ISPRS_loader(data.DataLoader):
         # potsdam_irrg
         # gaofen = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
         #                                  std=[0.1172, 0.1167, 0.1203])(gaofen)
-        lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+        
+        # # Min-Max 归一化（缩放到固定区间）
+        # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+
+        # Z-score 标准化（标准差归一化）
+        lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
         return gaofen, lidar
 
     def is_aug(self, gaofen2np, lidar2np, mask2np):

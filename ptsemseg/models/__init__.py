@@ -20,6 +20,7 @@ from ptsemseg.models.CMGFNet.CMGFNet34 import CMGFNet34
 
 from ptsemseg.models.DE_CCFNet.DE_CCFNet18 import DE_CCFNet18
 from ptsemseg.models.DE_CCFNet.DE_CCFNet34 import DE_CCFNet34
+from ptsemseg.models.DE_CCFNet.DE_CCFNet_3Branch import DE_CCFNet34_3B
 from ptsemseg.models.DE_DCGCN.DE_DCGCN import DEDCGCNEE
 from ptsemseg.models.FAFNet.fafnet_alignD import FAFNet
 
@@ -89,6 +90,8 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
         model = model(bands1, bands2, n_classes=classes, classification=classification, is_pretrained=True, **param_dict)
     elif name == "DE_CCFNet34":
         model = model(bands1, bands2, n_classes=classes, classification=classification, is_pretrained=True, **param_dict)
+    elif name == "DE_CCFNet34_3B":
+        model = model(bands1=3, bands2=2, bands3=12, n_classes=classes, classification=classification, is_pretrained=True, **param_dict)
     elif name == "DE_DCGCN":
         model = model(in_x=bands1, in_y=bands2, n_classes=classes, classification=classification)
     elif name == "FAFNet":
@@ -147,6 +150,7 @@ def _get_model_instance(name):
             "CMGFNet34": CMGFNet34,
             "DE_CCFNet18": DE_CCFNet18,
             "DE_CCFNet34": DE_CCFNet34,
+            "DE_CCFNet34_3B": DE_CCFNet34_3B,
             "DE_DCGCN": DEDCGCNEE,
             "FAFNet": FAFNet,
             "MCANet": MCANet,

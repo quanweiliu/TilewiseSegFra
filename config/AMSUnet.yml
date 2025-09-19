@@ -1,6 +1,7 @@
 model:
   arch: AMSUnet
   # arch: baseline18_single
+  # arch: baseline34_single
   # arch: baseline18_double
   # arch: baseline34_single_decoder1
   # arch: baseline34_single_decoder2
@@ -46,6 +47,8 @@ data:
   bands1: 3
   bands2: 1
   classes: 6
+  train_epoch: 100
+  batch_size: 16
   ignore_index: 5
   classification: Multi
   modality: rgb
@@ -56,7 +59,7 @@ training:
   train_epoch: 100
   batch_size: 16
   test_batch_size: 1
-  n_workers: 6
+  n_workers: 4
   optimizer:
     name: 'adam'
     lr: 0.001
