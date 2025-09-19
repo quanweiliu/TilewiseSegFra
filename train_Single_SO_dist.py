@@ -21,6 +21,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -75,6 +77,8 @@ def train(rank, cfg, args, rundir, world_size):
     elif data_name == "Vaihingen" or data_name == "Potsdam":
         t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
         v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
+        # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
@@ -122,13 +126,13 @@ def train(rank, cfg, args, rundir, world_size):
     # loss_function
     loss_fn = get_loss_function(cfg)
     ################################# FLOPs and Params ###################################################
-    # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.rank)
+    # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(rank)
     # # input = torch.randn(2, 3, 128, 128).to(rank)
     # input=(torch.randn(2, 193, 128, 128).to(rank), torch.randn(2, 3, 128, 128).to(rank))
     # # print(input.shape)
 
     # flops, params = profile(model, inputs=input)
-    # # flops, params = profile(model, inputs=(torch.randn(2, hsi_bands).to(args.rank), torch.randn(2, sar_bands).to(args.device)))
+    # # flops, params = profile(model, inputs=(torch.randn(2, hsi_bands).to(rank), torch.randn(2, sar_bands).to(rank)))
 
     # flops, params = clever_format([flops, params])
     # print('# Model FLOPs: {}'.format(flops))
@@ -297,7 +301,7 @@ def train(rank, cfg, args, rundir, world_size):
     # plot results
     results_train = pd.DataFrame(results_train)
     results_val = pd.DataFrame(results_val)
-    plot_training_results(results_train, results_val, cfg['model'])
+    # plot_training_results(results_train, results_val, cfg['model'])
 
 
 def initLogger(model_name, run_dir):
@@ -326,16 +330,17 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_single.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MANet.yml",
         help="Configuration file to use")
 
     parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(
@@ -358,4 +363,4 @@ if __name__ ==  "__main__":
     # train(cfg, rundir)
     world_size = torch.cuda.device_count()
     mp.spawn(train, args=(cfg, args, rundir, world_size), nprocs=world_size, join=True)
-    time.sleep(30)
+    time.sleep(10)

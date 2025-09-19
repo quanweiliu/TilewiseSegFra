@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+# os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+# print('using GPU %s' % ','.join(map(str, [1])))
 
 import logging
 import random
@@ -22,7 +22,6 @@ from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from torchvision import transforms
 from dataLoader import ISA_loader2
 from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
@@ -65,7 +64,7 @@ def train(rank, cfg, args, rundir, world_size):
     classes = cfg['data']['classes']
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
-    n_workers = cfg['training']['n_workers']
+    n_workers = cfg['training']['n_workers'] // 2
     classification = cfg["data"]["classification"]
     print("img_size", img_size)
 
@@ -85,12 +84,13 @@ def train(rank, cfg, args, rundir, world_size):
         running_metrics_val = runningScore(classes)
 
     train_sampler = torch.utils.data.distributed.DistributedSampler(t_loader, num_replicas=world_size, rank=rank, shuffle=True)
-    val_sampler = torch.utils.data.distributed.DistributedSampler(v_loader, num_replicas=world_size, rank=rank, shuffle=False)
+    # val_sampler = torch.utils.data.distributed.DistributedSampler(v_loader, num_replicas=world_size, rank=rank, shuffle=False)
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize,
-                                num_workers=n_workers, prefetch_factor=4, pin_memory=True, sampler=train_sampler)
-    valloader = data.DataLoader(v_loader, batch_size=batchsize,
-                                num_workers=n_workers, prefetch_factor=4, pin_memory=True, sampler=val_sampler)
+                                num_workers=n_workers, prefetch_factor=4, 
+                                pin_memory=True, sampler=train_sampler, persistent_workers=True)
+    valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
+                                num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
     # for gaofens, lidars, labels in trainloader:
     #     print("train gaofens", gaofens.shape)
@@ -106,7 +106,7 @@ def train(rank, cfg, args, rundir, world_size):
 
     # Set Model
     model = get_model(cfg['model'], bands1, bands2, classes, classification).to(rank)
-    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=True)
+    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -124,13 +124,13 @@ def train(rank, cfg, args, rundir, world_size):
     # loss_function
     loss_fn = get_loss_function(cfg)
     ################################# FLOPs and Params ###################################################
-    # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.rank)
+    # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(rank)
     # # input = torch.randn(2, 3, 128, 128).to(rank)
     # input=(torch.randn(2, 193, 128, 128).to(rank), torch.randn(2, 3, 128, 128).to(rank))
     # # print(input.shape)
 
     # flops, params = profile(model, inputs=input)
-    # # flops, params = profile(model, inputs=(torch.randn(2, hsi_bands).to(args.rank), torch.randn(2, sar_bands).to(args.device)))
+    # # flops, params = profile(model, inputs=(torch.randn(2, hsi_bands).to(rank), torch.randn(2, sar_bands).to(rank)))
 
     # flops, params = clever_format([flops, params])
     # print('# Model FLOPs: {}'.format(flops))
@@ -298,7 +298,7 @@ def train(rank, cfg, args, rundir, world_size):
     # plot results
     results_train = pd.DataFrame(results_train)
     results_val = pd.DataFrame(results_val)
-    plot_training_results(results_train, results_val, cfg['model'])
+    # plot_training_results(results_train, results_val, cfg['model'])
 
 
 def initLogger(model_name, run_dir):
@@ -336,7 +336,8 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(
@@ -359,4 +360,4 @@ if __name__ ==  "__main__":
     # train(cfg, rundir)
     world_size = torch.cuda.device_count()
     mp.spawn(train, args=(cfg, args, rundir, world_size), nprocs=world_size, join=True)
-    time.sleep(30)
+    time.sleep(10)

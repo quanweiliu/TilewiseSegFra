@@ -284,7 +284,6 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-0951-baseline18_double"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
                         default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-0013-DE_CCFNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1053-DE_DCGCN"),
