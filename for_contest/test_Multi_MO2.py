@@ -18,11 +18,11 @@ from matplotlib.patches import Patch
 
 import torch
 from torch.utils import data
+from torchvision import transforms
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from torchvision import transforms
 from dataLoader import ISPRS_loader2
 from dataLoader import ISA_loader2
 from dataLoader.ISA_loader3 import ISA_loader3
@@ -337,7 +337,6 @@ if __name__=='__main__':
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    # args.ignore_index = 1
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 
