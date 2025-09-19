@@ -56,6 +56,7 @@ ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一�
 
 ## Nomalization:
 1. MinMax normalization
+
 $$
 x_i' = \frac{x_i - \min(x)}{\max(x) - \min(x)}
 $$
@@ -68,6 +69,7 @@ $$
 - 常用于 图像像素值（0–255 → 0–1）、激光雷达反射强度、NDVI 等指标。
 
 2. Unit-norm normalization
+
 $$
 \mathbf{x'} = \frac{\mathbf{x}}{\|\mathbf{x}\|_2} = \frac{\mathbf{x}}{\sqrt{\sum_i x_i^2}}
 $$
