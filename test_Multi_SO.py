@@ -151,16 +151,8 @@ def test(args):
         print("############ we use the ISPRS dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        test_dataset = ISPRS_loader3(args.imgs_path, 'test.txt', args.img_size, is_augmentation=False)
+        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, args.classes, args.data_name, is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
-    elif args.data_name == "ISA":
-        print("############ we use the ISA dataset ############")
-        txt_path = os.path.join(args.imgs_path, 'val.txt')
-        with open(os.path.join(txt_path), "r") as f:
-            imgname_list = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
-        classes = ['NonISA', 'ISA'] # 其中 Clutter # 是指 background
-        test_dataset = ISA_loader3(args.imgs_path, 'val.txt', args.img_size, is_augmentation=False)
-        running_metrics_test = runningScore(args.classes+1)
 
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
@@ -281,11 +273,11 @@ if __name__=='__main__':
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
-    parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
+    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_ISA/0908-0013-DE_CCFNet18"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0920-0821-DE_CCFNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1053-DE_DCGCN"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1625-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
@@ -309,12 +301,10 @@ if __name__=='__main__':
     args.classes = cfg['data']['classes']
     args.classification = cfg['data']['classification']
     args.img_size = cfg['data']['img_size']
-    args.img_size = 1600
     args.split = cfg['data']['test_split']
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    # args.ignore_index = 1
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 

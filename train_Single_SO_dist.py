@@ -75,8 +75,8 @@ def train(rank, cfg, args, rundir, world_size):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)

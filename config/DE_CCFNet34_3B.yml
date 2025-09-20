@@ -81,7 +81,7 @@ data:
   classes: 1
   train_epoch: 50
   batch_size: 2
-  ignore_index: 999
+  ignore_index: 1
   classification: Binary
   modality: rgb
   # modality: lidar

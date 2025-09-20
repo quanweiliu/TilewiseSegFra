@@ -1,23 +1,24 @@
 model:
-  arch: AMSUnet
   # arch: baseline18_single
   # arch: baseline18_double
   # arch: baseline34_single_decoder1
   # arch: baseline34_single_decoder2
   # arch: baseline34_double
   # arch: baseline34
-  arch: ACNet
-  # arch: CANet50
+  # arch: ACNet
+  # arch: CANet
   # arch: CMANet
   # arch: CMGFNet18
-  # arch: CMGFNet_U
+  arch: CMGFNet34
   # arch: DE_CCFNet18
   # arch: DE_CCFNet34
+  # arch: DE_CCFNet34_3B
   # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
   # arch: PACSCNet
-  # arch: PCGNet
+  # arch: PCGNet18
+  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -33,28 +34,62 @@ data:
   # classes: 1
   # ignore_index: 999
   # classification: Binary
-  # # modality: rgb
-  # # modality: lidar
-  # modality: sar
 
-  name: Vaihingen
-  path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  # name: Vaihingen
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: 256
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # train_epoch: 100
+  # batch_size: 32
+  # ignore_index: 1
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
+  
+  name: Potsdam
+  path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
   train_split: train
   val_split: val
   test_split: test
-  img_size: 256
+  img_size: 512
   bands1: 3
   bands2: 1
   classes: 6
+  batch_size: 16
   ignore_index: 1
   classification: Multi
   modality: rgb
   # modality: lidar
   # modality: sar
 
+  # name: ISA
+  # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg
+  # # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # # img_size: 1536
+  # img_size: 256
+  # bands1: 3
+  # bands2: 12
+  # classes: 1
+  # train_epoch: 100
+  # batch_size: 2
+  # ignore_index: 1
+  # classification: Binary
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
+
 training:
   train_epoch: 100
-  batch_size: 32
+  batch_size: 16
   test_batch_size: 1
   n_workers: 6
   optimizer:
@@ -67,7 +102,6 @@ training:
 #    lr: 0.001
   loss:
     # name: 'dice_bce_loss_re'
-    # size_average: True
 
     name: 'multiclass_multi_loss'
     classes: 6

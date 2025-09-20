@@ -76,8 +76,8 @@ def train(rank, cfg, args, rundir, world_size):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
@@ -88,7 +88,8 @@ def train(rank, cfg, args, rundir, world_size):
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize,
                                 num_workers=n_workers, prefetch_factor=4, 
-                                pin_memory=True, sampler=train_sampler, persistent_workers=True)
+                                pin_memory=True, sampler=train_sampler, 
+                                persistent_workers=True, drop_last=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
@@ -328,9 +329,10 @@ if __name__ ==  "__main__":
         nargs = "?",
         type = str,
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet34.yml",
         help="Configuration file to use")
 
     parser.add_argument(

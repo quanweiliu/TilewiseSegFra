@@ -8,9 +8,11 @@ model:
   # arch: ACNet
   # arch: CANet50
   # arch: CMANet
-  # arch: CMGFNet
+  # arch: CMGFNet18
+  # arch: CMGFNet34
   arch: DE_CCFNet18
   # arch: DE_CCFNet34
+  # arch: DE_CCFNet34_3B
   # arch: CMFNet
   # arch: DE_DCGCN
   # arch: HAFNetE
@@ -46,52 +48,58 @@ data:
   # bands1: 3
   # bands2: 1
   # classes: 6
+  # train_epoch: 100
   # batch_size: 32
-  # ignore_index: 1
-  # classification: Multi
-
-  # name: Potsdam
-  # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
-  # train_split: train
-  # val_split: val
-  # test_split: test
-  # img_size: 512
-  # bands1: 3
-  # bands2: 1
-  # classes: 6
-  # batch_size: 16
   # ignore_index: 1
   # classification: Multi
   # modality: rgb
   # # modality: lidar
   # # modality: sar
-
-  name: ISA
-  path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg
-  # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train
+  
+  name: Potsdam
+  path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
   train_split: train
   val_split: val
   test_split: test
-  img_size: 768
+  img_size: 512
   bands1: 3
-  bands2: 3
-  classes: 1
+  bands2: 1
+  classes: 6
   train_epoch: 100
-  batch_size: 8
-  ignore_index: 999
-  classification: Binary
+  batch_size: 16
+  ignore_index: 1
+  classification: Multi
   modality: rgb
   # modality: lidar
   # modality: sar
 
+  # name: ISA
+  # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg
+  # # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # # img_size: 1536
+  # img_size: 768
+  # bands1: 3
+  # bands2: 12
+  # classes: 1
+  # train_epoch: 100
+  # batch_size: 8
+  # ignore_index: 1
+  # classification: Binary
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
+
 training:
   train_epoch: 100
-  batch_size: 8
+  batch_size: 16
   test_batch_size: 1
   n_workers: 6
   optimizer:
     name: 'adam'
-    lr: 0.001
+    lr: 0.004
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:
@@ -99,10 +107,10 @@ training:
 #    lr: 0.001
 
   loss:
-    name: 'dice_bce_loss_re'
+    # name: 'dice_bce_loss_re'
 
-    # name: 'multiclass_ce_dice_loss'
-    # classes: 6
+    name: 'multiclass_ce_dice_loss'
+    classes: 6
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'

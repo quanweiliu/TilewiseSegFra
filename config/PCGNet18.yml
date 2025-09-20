@@ -45,7 +45,7 @@ data:
   bands1: 3
   bands2: 1
   classes: 6
-  ignore_index: 5
+  ignore_index: 1
   classification: Multi
 
 training:
@@ -55,7 +55,7 @@ training:
   n_workers: 6
   optimizer:
     name: 'adam'
-    lr: 0.001
+    lr: 0.004
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:

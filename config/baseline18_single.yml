@@ -1,6 +1,5 @@
 model:
   arch: baseline18_single
-  # arch: baseline18_single
   # arch: baseline34_single
   # arch: baseline18_double
   # arch: baseline34_single_decoder1
@@ -18,7 +17,8 @@ model:
   # arch: DE_DCGCN
   # arch: HAFNetE
   # arch: PACSCNet
-  # arch: PCGNet
+  # arch: PCGNet18
+  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -32,11 +32,12 @@ data:
   # bands1: 193
   # bands2: 3
   # classes: 1
+  # batch_size: 32
   # ignore_index: 999
   # classification: Binary
-  # # modality: rgb
+  # modality: rgb
   # # modality: lidar
-  # modality: sar
+  # # modality: sar
 
   # name: Vaihingen
   # path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
@@ -49,7 +50,7 @@ data:
   # classes: 6
   # train_epoch: 100
   # batch_size: 32
-  # ignore_index: 5
+  # ignore_index: 1
   # classification: Multi
   # modality: rgb
   # # modality: lidar
@@ -65,13 +66,13 @@ data:
   bands2: 1
   classes: 6
   train_epoch: 100
-  batch_size: 32
-  ignore_index: 5
+  batch_size: 16
+  ignore_index: 1
   classification: Multi
   modality: rgb
   # modality: lidar
   # modality: sar
-  
+
 training:
   train_epoch: 100
   batch_size: 16
@@ -79,15 +80,15 @@ training:
   n_workers: 4
   optimizer:
     name: 'adam'
-    lr: 0.001
+    lr: 0.004
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
+
   loss:
     # name: 'dice_bce_loss_re'
-    # size_average: True
 
     name: 'multiclass_ce_dice_loss'
     classes: 6
@@ -108,9 +109,6 @@ training:
     name: ReduceLROnPlateau
 
 threshold: 0.5
-
-
-
 
 
 

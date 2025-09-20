@@ -151,7 +151,7 @@ def test(args):
         print("############ we use the ISPRS dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, args.classes,  args.data_name, is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
@@ -266,7 +266,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Params")
     parser.add_argument('--model',
                         choices=['ACNet', 'CANet50', 'CMANet', 'CMGFNet18', 'CMGFNet34'], \
-                        default='CMANet', help="the model architecture that should be trained")    
+                        default='CANet50', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -277,9 +277,9 @@ if __name__=='__main__':
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2314-ACNet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-0935-CANet50"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0919-2322-CANet50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2128-CMANet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2138-CMANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2138-CMANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
@@ -295,12 +295,10 @@ if __name__=='__main__':
     args.classes = cfg['data']['classes']
     args.classification = cfg['data']['classification']
     args.img_size = cfg['data']['img_size']
-    args.img_size = 1600
     args.split = cfg['data']['test_split']
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    # args.ignore_index = 1
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
     test(args)
 

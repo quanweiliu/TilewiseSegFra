@@ -41,12 +41,14 @@ class ISPRS_loader(data.DataLoader):
                  split='train',
                  img_size=512,
                  classes=6,
+                 data_name="Vaihingen",
                  is_augmentation=False):
         self.root = root
         self.split = split
         self.classes = classes
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size))
+        self.data_name = data_name
         
         self.gaofen_data_path = os.path.join(self.root, self.split, 'images256')
         # self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path), key=self.sort_key)
@@ -103,27 +105,27 @@ class ISPRS_loader(data.DataLoader):
         return gaofen2np, lidar2np, mask2np
         
     def norm(self, gaofen, lidar):
+        "https://github.com/jsten07/CNNvsTransformer/blob/2273b7f72de7aad00d7abc5a5c35f8c81ec62d4d/Notebooks/count_classes.ipynb#L257"
         gaofen = gaofen.float() / 255.0
-        # imagenet
-        gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                         std=[0.229, 0.224, 0.225])(gaofen)
-        
-        # # # vaihingen
-        # gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
-        #                                 std=[0.1970, 0.1306, 0.1276])(gaofen)
-        # # potsdam
-        # gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
-        #                                  std=[0.1196, 0.1164, 0.1197])(gaofen) 
 
+        if self.data_name == "Vaihingen":
+            gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
+                                            std=[0.1970, 0.1306, 0.1276])(gaofen)
+        elif self.data_name == "Potsdam":
+            gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
+                                            std=[0.1196, 0.1164, 0.1197])(gaofen) 
+        else: # imagenet
+            gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                            std=[0.229, 0.224, 0.225])(gaofen)
         # potsdam_irrg
         # gaofen = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
         #                                  std=[0.1172, 0.1167, 0.1203])(gaofen)
         
         # # Min-Max 归一化（缩放到固定区间）
-        # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+        lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
 
         # Z-score 标准化（标准差归一化）
-        lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
+        # lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
         return gaofen, lidar
 
     def is_aug(self, gaofen2np, lidar2np, mask2np):
@@ -163,8 +165,9 @@ class ISPRS_loader(data.DataLoader):
 
 if __name__ == '__main__':
     root = "/home/icclab/Documents/lqw/DatasetMMF/Vaihingen"
+    root = "/home/icclab/Documents/lqw/DatasetMMF/Potsdam"
     # dataset = ISPRS_loader(root, split='train', img_size=256, is_augmentation=False)
-    dataset = ISPRS_loader(root, split='train', img_size=256, is_augmentation=True)
+    dataset = ISPRS_loader(root, split='train', img_size=256, classes=6, data_name="Potsdam", is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=4, shuffle=True)
 
     for gaofen, lidar, mask in trainloader:

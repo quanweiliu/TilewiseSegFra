@@ -28,7 +28,7 @@ class runningScore(object):
         self.confusion_matrix = np.zeros((self.n_classes, self.n_classes))
 
 
-    def get_scores(self, ignore_index=5):
+    def get_scores(self, ignore_index=None):
         """
         Returns segmentation evaluation metrics:
             - Overall Accuracy (OA)

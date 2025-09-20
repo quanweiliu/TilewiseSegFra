@@ -36,7 +36,7 @@ training:
   n_workers: 6
   optimizer:
     name: 'adam'
-    lr: 0.001
+    lr: 0.004
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:
