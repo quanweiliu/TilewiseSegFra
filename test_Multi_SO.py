@@ -276,12 +276,12 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2315-AsymFormer_b0"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0920-0821-DE_CCFNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1053-DE_DCGCN"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-1625-MGFNet_Wei50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0921-1646-AsymFormer_b0"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0921-1826-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0921-1151-DE_DCGCN"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0921-1446-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2028-MGFNet_Wu34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0904-2013-MGFNet_Wu34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-1954-PCGNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0812-2010-SFAFMA50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),

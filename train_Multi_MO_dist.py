@@ -155,7 +155,8 @@ def train(rank, cfg, args, rundir, world_size):
         print("successfully load model from {}, Epoch {}".format(args.model_path, start_epoch))
     else:
         start_epoch = 0
-        print("start from scratch, no model loaded")
+        if rank == 0:  # 只在主进程操作
+            print("start from scratch, no model loaded")
 ################################# train ###################################################
     results_train = []
     results_val = []
@@ -339,7 +340,8 @@ if __name__ ==  "__main__":
         "--results",
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(

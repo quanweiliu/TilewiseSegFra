@@ -25,8 +25,8 @@ data:
   img_size: 128
 
 training:
-  train_epoch: 10
-  # batch_size: 4
+  find_unused_parameters: False
+  train_epoch: 100
   batch_size: 32
   test_batch_size: 1
   n_workers: 6

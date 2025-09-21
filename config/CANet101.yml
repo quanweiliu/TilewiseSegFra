@@ -30,6 +30,7 @@ data:
   # classification: Multi
 
 training:
+  find_unused_parameters: False
   train_epoch: 100
   batch_size: 32
   test_batch_size: 1

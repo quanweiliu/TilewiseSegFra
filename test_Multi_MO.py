@@ -277,7 +277,7 @@ if __name__=='__main__':
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0903-2314-ACNet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0919-2322-CANet50"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0921-1744-CANet50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2128-CMANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0905-2138-CMANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1510-CMGFNet18"),

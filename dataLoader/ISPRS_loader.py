@@ -74,7 +74,8 @@ class ISPRS_loader(data.DataLoader):
         # print(gaofen2np.shape, lidar2np.shape, mask2np.shape)
 
         real_image_size = gaofen2np.shape[-2]
-        if real_image_size != self.img_size:
+        if real_image_size != self.img_size[0]:
+            print("Warning: image size not equal to setting size, resize it")
             gaofen2np, lidar2np, mask2np = self.scaleNorm(gaofen2np, lidar2np, mask2np)
         
         # 在这里把三维变成了一维！！！ 0 - 5
@@ -167,7 +168,7 @@ if __name__ == '__main__':
     root = "/home/icclab/Documents/lqw/DatasetMMF/Vaihingen"
     root = "/home/icclab/Documents/lqw/DatasetMMF/Potsdam"
     # dataset = ISPRS_loader(root, split='train', img_size=256, is_augmentation=False)
-    dataset = ISPRS_loader(root, split='train', img_size=256, classes=6, data_name="Potsdam", is_augmentation=False)
+    dataset = ISPRS_loader(root, split='train', img_size=512, classes=6, data_name="Potsdam", is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=4, shuffle=True)
 
     for gaofen, lidar, mask in trainloader:

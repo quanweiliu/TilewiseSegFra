@@ -46,13 +46,33 @@ data:
   bands1: 3
   bands2: 1
   classes: 6
+  train_epoch: 100
+  batch_size: 32
   ignore_index: 1
   classification: Multi
   modality: rgb
   # modality: lidar
   # modality: sar
 
+  # name: Potsdam
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: 512
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # train_epoch: 100
+  # batch_size: 8
+  # ignore_index: 1
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
+
 training:
+  find_unused_parameters: False
   train_epoch: 100
   batch_size: 32
   test_batch_size: 1
@@ -67,7 +87,6 @@ training:
 #    lr: 0.001
   loss:
     # name: 'dice_bce_loss_re'
-    # size_average: True
 
     name: 'multiclass_multi_loss'
     classes: 6

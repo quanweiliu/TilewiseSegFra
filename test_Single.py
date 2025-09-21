@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
-print('using GPU %s' % ','.join(map(str, [0])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
+print('using GPU %s' % ','.join(map(str, [1])))
 
 import cv2
 import csv
@@ -284,7 +284,7 @@ if __name__=='__main__':
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0919-2023-baseline18_single"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0920-1959-baseline18_single"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0819-1430-baseline34_single_decoder1"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0919-1248-AMSUnet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-2000-MANet"),

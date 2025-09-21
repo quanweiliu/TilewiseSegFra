@@ -22,6 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from dataLoader import ISA_loader2
 from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
@@ -156,7 +157,8 @@ def train(rank, cfg, args, rundir, world_size):
         print("successfully load model from {}, Epoch {}".format(args.model_path, start_epoch))
     else:
         start_epoch = 0
-        print("start from scratch, no model loaded")
+        if rank == 0:  # 只在主进程操作
+            print("start from scratch, no model loaded")
 ################################# train ###################################################
     results_train = []
     results_val = []

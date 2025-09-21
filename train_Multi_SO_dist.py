@@ -66,6 +66,7 @@ def train(rank, cfg, args, rundir, world_size):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers'] // 2
     classification = cfg["data"]["classification"]
+    find_parameters = cfg["training"]["find_unused_parameters"]
     print("img_size", img_size)
 
     # Setup Dataloader
@@ -88,7 +89,8 @@ def train(rank, cfg, args, rundir, world_size):
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize,
                                 num_workers=n_workers, prefetch_factor=4, 
-                                pin_memory=True, sampler=train_sampler, persistent_workers=True)
+                                pin_memory=True, sampler=train_sampler, 
+                                  persistent_workers=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
@@ -106,7 +108,8 @@ def train(rank, cfg, args, rundir, world_size):
 
     # Set Model
     model = get_model(cfg['model'], bands1, bands2, classes, classification).to(rank)
-    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+    # ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=find_parameters)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -154,7 +157,8 @@ def train(rank, cfg, args, rundir, world_size):
         print("successfully load model from {}, Epoch {}".format(args.model_path, start_epoch))
     else:
         start_epoch = 0
-        print("start from scratch, no model loaded")
+        if rank == 0:  # 只在主进程操作
+            print("start from scratch, no model loaded")
 ################################# train ###################################################
     results_train = []
     results_val = []
@@ -181,9 +185,9 @@ def train(rank, cfg, args, rundir, world_size):
             labels = labels.to(rank)
             # print("gaofens", gaofens.shape)
             # print("lidars", lidars.shape)
-            # print("labels", labels.shape, labels.dtype)
+            # print("labels", labels.shape)
 
-            outputs = model(gaofens, lidars)
+            outputs = ddp_model(gaofens, lidars)
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
@@ -324,8 +328,8 @@ if __name__ ==  "__main__":
         type = str,
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
@@ -341,7 +345,8 @@ if __name__ ==  "__main__":
         "--results",
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(
