@@ -11,7 +11,7 @@ def initialize_weights(*models):
     for model in models:
         for module in model.modules():
             if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-                nn.init.kaiming_normal(module.weight)
+                nn.init.kaiming_normal_(module.weight)
                 if module.bias is not None:
                     module.bias.data.zero_()
             elif isinstance(module, nn.BatchNorm2d):
@@ -114,7 +114,9 @@ class MCANet(nn.Module):
 
         high_level_mcam = self.high_level_mcam(sar_en5, opt_en5)    # [2048,32,32]
         # print('high_level_mcam',high_level_mcam.shape)
-        high_level_features = torch.cat([self.mcam_high_level_down(high_level_mcam), self.sar_high_level_down(sar_en5), self.opt_high_level_down(opt_en5)], 1)  # 256*3,32,32
+        high_level_features = torch.cat([self.mcam_high_level_down(high_level_mcam), 
+                                         self.sar_high_level_down(sar_en5), 
+                                         self.opt_high_level_down(opt_en5)], 1)  # 256*3,32,32
         # high_level_features = torch.cat([self.sar_high_level_down(sar_en5), self.opt_high_level_down(opt_en5)], 1)  # [512,32,32]
         # print(high_level_features.shape)
         high_level_features = self.aspp(high_level_features)    # [256,32,32]
@@ -135,7 +137,7 @@ class MCANet(nn.Module):
 if __name__ == "__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    bands1 = 193  # gaofen
+    bands1 = 3  # gaofen
     bands2 = 3  # lidar
 
     # x = torch.randn(4, bands1, 480, 640, device=device)

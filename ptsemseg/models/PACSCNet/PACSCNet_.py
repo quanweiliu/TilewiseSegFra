@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
-# from .res2net_v1b_base import Res2Net_model
-from res2net_v1b_base import Res2Net_model
+from .res2net_v1b_base import Res2Net_model
+# from res2net_v1b_base import Res2Net_model
 
 
 class uc(nn.Module):
@@ -32,7 +32,7 @@ class Unified(nn.Module):
     def __init__(self, in_channels):
         super(Unified, self).__init__()
         self.uc = nn.Sequential(
-            nn.AdaptiveAvgPool2d(output_size=(64, 64)),
+            nn.AdaptiveAvgPool2d(output_size=(128, 128)),
             nn.Conv2d(in_channels, 64, 1, 1, 0)
         )
 
@@ -118,12 +118,14 @@ class PRIM(nn.Module):
 
 
 class PACSCNet(nn.Module):
-    def __init__(self, bands1=3, bands2=1, num_classes=6, classification="Multi", ind=50, pretrained=True):
+    def __init__(self, bands1, bands2, num_classes=2, classification="Multi", ind=50, pretrained=False):
         super(PACSCNet, self).__init__()
         # Backbone model
-        self.layer_rgb = Res2Net_model(ind)
-        self.layer_dsm = Res2Net_model(ind)
-        self.trans = nn.Conv2d(1, 3, 1, 1)
+        self.layer_rgb = Res2Net_model(ind, pretrained=pretrained)
+        self.layer_dsm = Res2Net_model(ind, pretrained=pretrained)
+
+        self.trans_rgb = nn.Conv2d(bands1, 3, 1, 1)
+        self.trans = nn.Conv2d(bands2, 3, 1, 1)
 
         # Fusion Module
         self.fu_1 = GDBM(64, 32)
@@ -146,6 +148,7 @@ class PACSCNet(nn.Module):
         self.half_R_256 = HalfConv(256)
         self.half_R_512 = HalfConv(512)
         self.half_R_1024 = HalfConv(1024)
+        
         self.half_D_64 = HalfConv(64)
         self.half_D_128 = HalfConv(128)
         self.half_D_256 = HalfConv(256)
@@ -162,7 +165,7 @@ class PACSCNet(nn.Module):
         self.uni_D_512 = Unified(512)
 
         self.up2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.up4 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up4 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
         # Decoder
         self.decoder1 = PRIM()
@@ -179,13 +182,11 @@ class PACSCNet(nn.Module):
         )
         self.predict = nn.Conv2d(16, num_classes, 1, 1, 0)
 
-    def forward(self, rgb, dsm):
-        # x = torch.chunk(rgb, 4, dim=1)
-        # rgb = torch.cat(x[0:3], dim=1)
-        # dsm = x[3]
+        self.classification = classification
 
+    def forward(self, rgb, dsm):
         # Encoder
-        rgb_1, rgb_2, rgb_3, rgb_4, rgb_5 = self.layer_rgb(rgb)
+        rgb_1, rgb_2, rgb_3, rgb_4, rgb_5 = self.layer_rgb(self.trans_rgb(rgb))
         dsm_1, dsm_2, dsm_3, dsm_4, dsm_5 = self.layer_dsm(self.trans(dsm))
 
         # print('rgb_1:', rgb_1.shape)
@@ -261,25 +262,23 @@ class PACSCNet(nn.Module):
 
         final_output = self.predict(self.up4(self.d1_CBR(d1)) + self.up4(self.d2_CBR(d2)))
 
-        return final_output
+        if self.classification == "Multi":
+            return final_output
+        elif self.classification == "Binary":
+            return F.sigmoid(final_output)
 
 
 if __name__ == "__main__":
-    image = torch.randn(3, 3, 256, 256)
-    ndsm = torch.randn(3, 1, 256, 256)
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    image = torch.randn(3, 3, 512, 512)
-    ndsm = torch.randn(3, 1, 512, 512)
-    model = PACSCNet()
-    # print(model)
-    out = model(image, ndsm)
-    print(out.shape)
-#     image = torch.randn( 3, 256, 64, 64)
-#     traspose = T(256)
-#     out = traspose(image)
-#     print(out.shape)
-#     flops, params = get_model_complexity_info(model,
-#       (4, 256, 256), as_strings=True, print_per_layer_stat=True, verbose=True)
-#     print(params)  # [3, 6, 256, 256]
-#     print(flops)
+    bands1 = 4
+    bands2 = 3
+    x = torch.randn(4, bands1, 256, 256, device=device)
+    y = torch.randn(4, bands2, 256, 256, device=device)
+
+    model = PACSCNet(bands1, bands2, num_classes=1, classification="Multi", ind=50, pretrained=True)
+    model = model.to(device)
+    output = model(x, y)
+    print(output.shape)
+    
 

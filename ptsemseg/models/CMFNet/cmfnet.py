@@ -1,33 +1,12 @@
 import copy
 import math
-from collections import OrderedDict
 import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from torch.nn import Dropout, Softmax, Conv2d, LayerNorm
 from torch.nn.modules.utils import _pair
-# import utils.Config as config
-import ml_collections
-# from torchsummary import summary
-# from torchsummaryX import summary
-from torchvision import models
-
-def get_CTranS_config():
-    config = ml_collections.ConfigDict()
-    config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate = 0.1
-    config.transformer.dropout_rate = 0
-    config.patch_sizes = [16, 8, 4, 2]
-    config.base_channel = 64  # base channel of U-Net
-    config.n_classes = 1
-    return config
-
+import config as config
 
 class Channel_Embeddings(nn.Module):
     """Construct the embeddings from patch, position embeddings.
@@ -973,13 +952,13 @@ class CMFNet(nn.Module):
 
         return nn.Sequential(pool_attention, conv_attention, activate)
 
-    def __init__(self, bands1, bands2, out_channels=6, classification="Multi", image_size=256):
+    def __init__(self, in_channels=3, out_channels=6):
         super(CMFNet, self).__init__()
         self.pool = nn.MaxPool2d(2, return_indices=True)
         self.unpool = nn.MaxUnpool2d(2)
 
         ##### RGB ENCODER ####
-        self.conv1_1 = nn.Conv2d(bands1, 64, 3, padding=1)
+        self.conv1_1 = nn.Conv2d(in_channels, 64, 3, padding=1)
         self.conv1_1_bn = nn.BatchNorm2d(64)
         self.conv1_2 = nn.Conv2d(64, 64, 3, padding=1)
         self.conv1_2_bn = nn.BatchNorm2d(64)
@@ -1011,7 +990,7 @@ class CMFNet(nn.Module):
         self.conv5_3_bn = nn.BatchNorm2d(512)
 
         ##### DSM ENCODER ####
-        self.conv1_1_d = nn.Conv2d(bands2, 64, kernel_size=3, padding=1)
+        self.conv1_1_d = nn.Conv2d(1, 64, kernel_size=3, padding=1)
         self.conv1_1_d_bn = nn.BatchNorm2d(64)
         self.conv1_2_d = nn.Conv2d(64, 64, 3, padding=1)
         self.conv1_2_d_bn = nn.BatchNorm2d(64)
@@ -1056,13 +1035,13 @@ class CMFNet(nn.Module):
 
         ##### SKIP MODULE: UCTransNet ####
         vis = True
-        config_vit = get_CTranS_config()
-        self.mtc = ChannelTransformer_cross(config_vit, vis, image_size,
-                                            channel_num=[64, 128, 256, 512],
-                                            patchSize=config_vit.patch_sizes)
-        self.mtc1 = ChannelTransformer(config_vit, vis, image_size,
-                                       channel_num=[64, 128, 256, 512],
-                                       patchSize=config_vit.patch_sizes)
+        config_vit = config.get_CTranS_config()
+        self.mtc = ChannelTransformer_cross(config_vit, vis, 256,
+                                      channel_num=[64, 128, 256, 512],
+                                      patchSize=config_vit.patch_sizes)
+        self.mtc1 = ChannelTransformer(config_vit, vis, 256,
+                                      channel_num=[64, 128, 256, 512],
+                                      patchSize=config_vit.patch_sizes)
         ####  RGB DECODER  ####
         self.conv5_3_D = nn.Conv2d(512, 512, 3, padding=1)
         self.conv5_3_D_bn = nn.BatchNorm2d(512)
@@ -1093,65 +1072,8 @@ class CMFNet(nn.Module):
         self.conv1_2_D = nn.Conv2d(64, 64, 3, padding=1)
         self.conv1_2_D_bn = nn.BatchNorm2d(64)
         self.conv1_1_D = nn.Conv2d(64, out_channels, 3, padding=1)
-        # self.other1 = nn.Sigmoid()
-
-        self.classification = classification
 
         self.apply(self.weight_init)
-        self.load_pretrained_weights()
-
-    def load_pretrained_weights(self):
-        # Download VGG-16 weights from PyTorch
-        vgg16_weights = models.vgg16_bn(weights="VGG16_BN_Weights.IMAGENET1K_V1").state_dict()
-
-        # vgg_url = 'https://download.pytorch.org/models/vgg16_bn-6c64b313.pth'
-        # if not os.path.isfile('../vgg16_bn-6c64b313.pth'):
-        #     weights = URLopener().retrieve(vgg_url, '../vgg16_bn-6c64b313.pth')
-        # weight_path = r'D:\Pycharm\PycharmProject\multi_road_extraction\pretrained\vgg16_bn-6c64b313.pth'
-        #
-        # # vgg16_weights = torch.load('../vgg16_bn-6c64b313.pth')
-        # vgg16_weights = torch.load(weight_path)
-
-        count_vgg = 0
-        count_this = 0
-
-        vggkeys = list(vgg16_weights.keys())
-        thiskeys = list(self.state_dict().keys())
-
-        corresp_map = []
-
-        while (True):
-            vggkey = vggkeys[count_vgg]
-            thiskey = thiskeys[count_this]
-
-            if "classifier" in vggkey:
-                break
-
-            while vggkey.split(".")[-1] not in thiskey:
-                count_this += 1
-                thiskey = thiskeys[count_this]
-
-            corresp_map.append([vggkey, thiskey])
-            count_vgg += 1
-            count_this += 1
-
-        # 将VGG权重复制到当前模型（编码器）
-        mapped_weights = self.state_dict()
-        for k_vgg, k_segnet in corresp_map:
-            if "features" in k_vgg:
-                mapped_weights[k_segnet] = vgg16_weights[k_vgg]
-
-        # 将编码器的权重复制给解码器
-        for it in self.state_dict().keys():
-            if it.replace('_d', '') in mapped_weights:
-                mapped_weights[it] = mapped_weights[it.replace('_d', '')]
-
-        try:
-            self.load_state_dict(mapped_weights, strict=False)
-            print("Loaded VGG-16 weights in SegNet !")
-        except:
-            # Ignore missing keys
-            pass
 
     def forward(self, x, y):
         ########  DEPTH ENCODER  ########
@@ -1258,28 +1180,24 @@ class CMFNet(nn.Module):
         x = self.unpool(x, mask1)
         x = x + x1 + xtf1
         x = self.conv1_2_D_bn(F.relu(self.conv1_2_D(x)))
-        # x = F.log_softmax(self.conv1_1_D(x))
-        x = self.conv1_1_D(x)
-        # return x
-
-        if self.classification == "Multi":
-            return x
-        elif self.classification == "Binary":
-            return F.sigmoid(x)
+        x = F.log_softmax(self.conv1_1_D(x))
+        return x
+    
 
 if __name__ == "__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     bands1 = 3
     bands2 = 1
-    image_size = 256
     classes = 2
-    rgb = torch.randn(4, bands1, image_size, image_size, device=device)
-    dsm = torch.randn(4, bands2, image_size, image_size, device=device)
+    # rgb = torch.randn(4, bands1, 512, 512, device=device)
+    # dsm = torch.randn(4, bands2, 512, 512, device=device)
+    rgb = torch.randn(4, bands1, 256, 256, device=device)
+    dsm = torch.randn(4, bands2, 256, 256, device=device)
     # rgb = torch.randn(4, bands1, 128, 128, device=device)
     # dsm = torch.randn(4, bands2, 128, 128, device=device)
 
-    model = CMFNet(bands1=bands1, bands2=bands2, out_channels=classes, classification="Multi", image_size=image_size).to(device)
+    model = CMFNet(bands1=bands1, bands2=bands2, out_channels=classes).to(device)
     # load_init_weight(model)
 
     output = model(rgb, dsm)

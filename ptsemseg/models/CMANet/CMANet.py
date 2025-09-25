@@ -370,7 +370,7 @@ class RefineAgent(nn.Module):
 
 
 class CMANet(nn.Module):
-    def __init__(self,  bands1, bands2, n_classes, classification="Multi", pretrained=True):
+    def __init__(self, bands1, bands2, n_classes, classification="Multi", pretrained=True):
         super(CMANet, self).__init__()
         self.backbone = 'resnet50'
         self.freezedict = {}

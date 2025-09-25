@@ -22,6 +22,7 @@ from ptsemseg.loss.abcLoss import abc_loss
 logger = logging.getLogger('ptsemseg')
 
 key2loss = {
+            'cross_entropy2d': cross_entropy2d,
             'focal_dice_loss': focal_dice_loss,
             'focal_loss': focal_loss,
             'bce_loss': bce_loss,

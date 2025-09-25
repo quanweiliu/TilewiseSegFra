@@ -22,8 +22,6 @@ from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from torchvision import transforms
-from dataLoader import ISA_loader2
 from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
@@ -33,7 +31,6 @@ from ptsemseg.optimizers import get_optimizer
 # from ptsemseg.schedulers2.warmuplr import WarmupCosineLR
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
-
 
 def train(cfg, rundir):
 
@@ -60,6 +57,8 @@ def train(cfg, rundir):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
+    print("img_size", img_size)
+
 
 
     # Setup Dataloader
@@ -70,14 +69,13 @@ def train(cfg, rundir):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
-        
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
@@ -96,14 +94,13 @@ def train(cfg, rundir):
     #     break
 
     # Set Model
-    model = get_model(cfg['model'], bands1, bands2, classes, classification).to(device)
+    model = get_model(cfg['model'], bands1, bands2, classes, classification, img_size).to(device)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
 
     # 单一 学习率 更新 (?)
     optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items() if k != 'name'}
-
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
     # optimizer=torch.optim.Adam(model.parameters(), lr=cfg['training']['optimizer']['lr'],
     #                            betas=[cfg['training']['optimizer']['momentum'], 0.999],
@@ -220,7 +217,6 @@ def train(cfg, rundir):
                     lidars_val = lidars_val.to(device)
                     labels_val = labels_val.to(device)
 
-                    # ################ output ################
                     outputs = model(gaofens_val, lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
                     if classification == "Multi":
@@ -314,14 +310,14 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PACSCNet50.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet18.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SOLC.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
         help="Configuration file to use")
@@ -330,6 +326,7 @@ if __name__ ==  "__main__":
         "--results",
         type = str,
         default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(

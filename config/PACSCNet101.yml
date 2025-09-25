@@ -6,17 +6,22 @@ model:
   # arch: baseline34_double
   # arch: baseline34
   # arch: ACNet
-  # arch: CANet
+  # arch: CANet50
   # arch: CMANet
-  # arch: CMGFNet
+  # arch: CMGFNet18
+  # arch: CMGFNet34
   # arch: DE_CCFNet18
   # arch: DE_CCFNet34
+  # arch: DE_CCFNet34_3B
   # arch: CMFNet
   # arch: DE_DCGCN
+  # arch: MGFNet_Wei50
+  # arch: MGFNet_Wu34
   # arch: HAFNetE
-  arch: PACSCNet50
-  # arch: PACSCNet101
-  # arch: PCGNet
+  # arch: PACSCNet50
+  arch: PACSCNet101
+  # arch: PCGNet18
+  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -42,19 +47,24 @@ data:
   bands1: 3
   bands2: 1
   classes: 6
+  train_epoch: 100
+  batch_size: 18
   ignore_index: 1
   classification: Multi
 
 training:
-  find_unused_parameters: False
+  find_unused_parameters: True
   train_epoch: 100
-  batch_size: 32
+  batch_size: 18
   test_batch_size: 1
   n_workers: 6
   optimizer:
     name: 'adam'
-    lr: 0.004
-#    weight_decay: 0.0005
+    lr: 0.0001
+    weight_decay: 0.0005
+  scheduler:
+    step_size: 20
+    gamma: 0.1
 #    momentum: 0.95
 #  gaofen_optimizer:
 #    name: 'adam'

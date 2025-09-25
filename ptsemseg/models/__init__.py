@@ -22,7 +22,7 @@ from ptsemseg.models.DE_CCFNet.DE_CCFNet18 import DE_CCFNet18
 from ptsemseg.models.DE_CCFNet.DE_CCFNet34 import DE_CCFNet34
 from ptsemseg.models.DE_CCFNet.DE_CCFNet_3Branch import DE_CCFNet34_3B
 from ptsemseg.models.DE_DCGCN.DE_DCGCN import DEDCGCNEE
-from ptsemseg.models.FAFNet.fafnet_alignD import FAFNet
+from ptsemseg.models.FAFNet.fafnet_alignD import FAFNet50, FAFNet101
 
 from ptsemseg.models.MCANet.mcanet import MCANet
 from ptsemseg.models.MGFNet_Wei.MGFNet_Wei50 import MGFNet_Wei50
@@ -32,7 +32,7 @@ from ptsemseg.models.MGFNet_Wu.MGFNet_Wu50 import MGFNet_Wu50
 
 from ptsemseg.models.PCGNet.PCGNet18 import PCGNet18
 from ptsemseg.models.PCGNet.PCGNet34 import PCGNet34
-from ptsemseg.models.PACSCNet.PACSCNet import PACSCNet
+from ptsemseg.models.PACSCNet.PACSCNet_ import PACSCNet
 
 from ptsemseg.models.SFAFMA.SFAFMA50 import SFAFMA50
 from ptsemseg.models.SFAFMA.SFAFMA101 import SFAFMA101
@@ -41,7 +41,7 @@ from ptsemseg.models.SOLCV7.solcv7 import SOLCV7
 
 
 
-def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
+def get_model(model_dict, bands1, bands2, classes, classification="Multi", image_size=256):
 
     name = model_dict['arch']
     model = _get_model_instance(name)
@@ -73,7 +73,7 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
     elif name == "ACNet":
         model = model(bands1, bands2, num_class=classes, classification=classification, **param_dict)
     elif name == "CMFNet":
-        model = model(bands1, bands2, **param_dict)
+        model = model(bands1, bands2, out_channels=classes, classification=classification, image_size=image_size)
     elif name == "CANet50":
         model = model(bands1, bands2, num_class=classes, classification=classification, backbone='ResNet-50', pcca5=True, **param_dict)
     elif name == "CANet101":
@@ -94,8 +94,10 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
         model = model(bands1=3, bands2=2, bands3=12, n_classes=classes, classification=classification, is_pretrained=True, **param_dict)
     elif name == "DE_DCGCN":
         model = model(in_x=bands1, in_y=bands2, n_classes=classes, classification=classification)
-    elif name == "FAFNet":
-        model = model(bands1, bands2, n_classes=classes, classification=classification)
+    elif name == "FAFNet50":
+        model = model(bands1, bands2, num_classes=classes, classification=classification, pretrained=True)
+    elif name == "FAFNet101":
+        model = model(bands1, bands2, num_classes=classes, classification=classification, pretrained=True)
     elif name == "MCANet":
         model = model(bands1, bands2, num_classes=classes, classification=classification)
     elif name == "MGFNet_Wei50":
@@ -117,9 +119,9 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi"):
     elif name == "PCGNet34":
         model = model(bands1, bands2, n_classes=classes, classification=classification)
     elif name == "PACSCNet50":
-        model = model(bands1, bands2, num_classes=classes, classification=classification, ind=50, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, ind=50, pretrained=True)
     elif name == "PACSCNet101":
-        model = model(bands1, bands2, num_classes=classes, classification=classification, ind=101, **param_dict)
+        model = model(bands1, bands2, num_classes=classes, classification=classification, ind=101, pretrained=True)
     else:
         raise("you havn't set the model parameters")
     return model
@@ -152,7 +154,8 @@ def _get_model_instance(name):
             "DE_CCFNet34": DE_CCFNet34,
             "DE_CCFNet34_3B": DE_CCFNet34_3B,
             "DE_DCGCN": DEDCGCNEE,
-            "FAFNet": FAFNet,
+            "FAFNet50": FAFNet50,
+            "FAFNet101": FAFNet101,
             "MCANet": MCANet,
             "MGFNet_Wei50": MGFNet_Wei50,
             "MGFNet_Wei101": MGFNet_Wei101,

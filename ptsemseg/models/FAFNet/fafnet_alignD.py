@@ -1,11 +1,11 @@
 import os
+import time
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from functools import partial
 import collections
-import time
 from PIL import Image, ImageFilter
 # from torchsummaryX import summary
 from torchvision import transforms
@@ -21,6 +21,7 @@ from .net_util import SAGate
 
 model_urls = {
     #mmcv resnet101_v1c  mmcv/model_zoo/open_mmlab.json:
+    'resnet50_v1c': 'https://download.openmmlab.com/pretrain/third_party/resnet50_v1c-2cccc1ad.pth',
     'resnet101_v1c': 'https://download.openmmlab.com/pretrain/third_party/resnet101_v1c-e67eebb6.pth',
 }
 
@@ -299,10 +300,10 @@ class DualResNet(nn.Module):
         return blocks, merges
 
 
-def load_dualpath_model(model, is_restore=False):
+def load_dualpath_model(model, backbone="resnet101_v1c", is_restore=False):
     # load raw state_dict
 
-    model_url = model_urls['resnet101_v1c']
+    model_url = model_urls[backbone]
     cache_dir = 'pretrains'
     
     raw_state_dict = model_zoo.load_url(model_url, model_dir=cache_dir)
@@ -358,12 +359,21 @@ def load_dualpath_model(model, is_restore=False):
     return model
 
 
+def dual_resnet50(bands1, bands2, pretrained_model=None, **kwargs):
+    model = DualResNet(bands1, bands2, DualBottleneck, [3, 4, 6, 3], **kwargs)
+
+    # print(pretrained_model)
+    if pretrained_model is not None:
+        model = load_dualpath_model(model, "resnet50_v1c")
+    return model
+
+
 def dual_resnet101(bands1, bands2, pretrained_model=None, **kwargs):
     model = DualResNet(bands1, bands2, DualBottleneck, [3, 4, 23, 3], **kwargs)
 
     # print(pretrained_model)
     if pretrained_model is not None:
-        model = load_dualpath_model(model)
+        model = load_dualpath_model(model, "resnet101_v1c")
     return model
 
 
@@ -678,7 +688,22 @@ class TestNet(nn.Module):
         return params
 
 
-def FAFNet(bands1, bands2, num_classes, classification, pretrained=True):
+def FAFNet50(bands1, bands2, num_classes, classification, pretrained=True):
+    # bkb=None
+    # if pretrained == True:
+    #     bkb = '/home/wzj/PycharmProjects/multi_road_extraction/pretrained/resnet101_v1c.pth'
+    backbone = dual_resnet50(bands1, 
+                              bands2, 
+                              pretrained_model=pretrained, 
+                              norm_layer=nn.BatchNorm2d,
+                              bn_eps=1e-5,
+                              bn_momentum=0.1,
+                              deep_stem=True, 
+                              stem_width=64)
+    model = TestNet(backbone, num_classes, classification)
+    return model
+
+def FAFNet101(bands1, bands2, num_classes, classification, pretrained=True):
     # bkb=None
     # if pretrained == True:
     #     bkb = '/home/wzj/PycharmProjects/multi_road_extraction/pretrained/resnet101_v1c.pth'
@@ -693,15 +718,14 @@ def FAFNet(bands1, bands2, num_classes, classification, pretrained=True):
     model = TestNet(backbone, num_classes, classification)
     return model
 
-
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     bands1 = 4
     bands2 = 2
-    x = torch.randn(4, bands1, 512, 512, device=device)
-    y = torch.randn(4, bands2, 512, 512, device=device)
+    x = torch.randn(4, bands1, 256, 256, device=device)
+    y = torch.randn(4, bands2, 256, 256, device=device)
 
-    model = FAFNet(bands1, bands2, num_classes=1, pretrained=True)
+    model = FAFNet101(bands1, bands2, num_classes=1, classification="Multi", pretrained=True)
     model = model.to(device)
     output = model(x, y)
     print(output.shape)

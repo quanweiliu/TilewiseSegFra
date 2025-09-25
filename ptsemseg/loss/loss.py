@@ -36,7 +36,7 @@ def class2one_hot(seg: Tensor, C: int) -> Tensor:
 
     return res
 
-def cross_entropy2d(input, target, weight=None, size_average=True):
+def cross_entropy2d(input, target):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
 
@@ -50,16 +50,9 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
         input = F.interpolate(input, size=(ht, wt), mode="bilinear", align_corners=True)
     elif h != ht and w != wt:
         raise Exception("Only support upsampling")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # weight = (torch.from_numpy(np.array(weight))).type(torch.Tensor)
-    # weight = weight.to(device)
 
-    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-    target = target.view(-1)
-    loss = F.cross_entropy(
-        input, target, size_average=size_average, ignore_index=250
-    )
-    return loss
+    loss = F.cross_entropy(input, target)
+    return loss, loss, loss
 
 class dice_bce_loss1(nn.Module):
     def __init__(self, batch=True):

@@ -88,7 +88,7 @@ data:
   # # modality: sar
 
 training:
-  find_unused_parameters: False
+  find_unused_parameters: True
   train_epoch: 100
   batch_size: 16
   test_batch_size: 1
@@ -96,6 +96,9 @@ training:
   optimizer:
     name: 'adam'
     lr: 0.004
+  scheduler:
+    factor: 0.6
+    patience: 7
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:

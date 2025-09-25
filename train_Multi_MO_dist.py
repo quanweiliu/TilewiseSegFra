@@ -66,6 +66,7 @@ def train(rank, cfg, args, rundir, world_size):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers'] // 2
     classification = cfg["data"]["classification"]
+    find_parameters = cfg["training"]["find_unused_parameters"]
     print("img_size", img_size)
 
     # Setup Dataloader
@@ -107,7 +108,8 @@ def train(rank, cfg, args, rundir, world_size):
 
     # Set Model
     model = get_model(cfg['model'], bands1, bands2, classes, classification).to(rank)
-    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+    # ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=find_parameters)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -329,8 +331,8 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet34.yml",
@@ -339,8 +341,8 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--results",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     

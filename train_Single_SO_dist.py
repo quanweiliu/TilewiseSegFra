@@ -17,12 +17,11 @@ from thop import profile, clever_format
 import torch
 from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from dataLoader import ISA_loader2
 from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
@@ -66,6 +65,7 @@ def train(rank, cfg, args, rundir, world_size):
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers'] // 2
     classification = cfg["data"]["classification"]
+    find_parameters = cfg["training"]["find_unused_parameters"]
     print("img_size", img_size)
 
     # Setup Dataloader
@@ -88,7 +88,8 @@ def train(rank, cfg, args, rundir, world_size):
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize,
                                 num_workers=n_workers, prefetch_factor=4, 
-                                pin_memory=True, sampler=train_sampler, persistent_workers=True)
+                                pin_memory=True, sampler=train_sampler, 
+                                persistent_workers=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
@@ -109,7 +110,7 @@ def train(rank, cfg, args, rundir, world_size):
         model = get_model(cfg['model'], bands1, bands2, classes, classification).to(rank)
     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
         model = get_model(cfg['model'], bands2, bands1, classes, classification).to(rank)
-    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+    ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=find_parameters)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -237,9 +238,9 @@ def train(rank, cfg, args, rundir, world_size):
                     labels_val = labels_val.to(rank)
 
                     if cfg['data']['modality'] == "rgb":
-                        outputs = ddp_model(gaofens_val)
+                        outputs = model(gaofens_val)
                     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-                        outputs = ddp_model(lidars_val)
+                        outputs = model(lidars_val)
                     val_loss, val_loss1, val_loss2 = loss_fn(outputs, labels_val)
                     if classification == "Multi":
                         pred = outputs.argmax(dim=1).cpu().numpy()  # [B, H, W]

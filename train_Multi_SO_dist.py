@@ -17,12 +17,11 @@ from thop import profile, clever_format
 import torch
 from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from dataLoader import ISA_loader2
 from dataLoader import ISPRS_loader2
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
@@ -90,7 +89,7 @@ def train(rank, cfg, args, rundir, world_size):
     trainloader = data.DataLoader(t_loader, batch_size=batchsize,
                                 num_workers=n_workers, prefetch_factor=4, 
                                 pin_memory=True, sampler=train_sampler, 
-                                  persistent_workers=True)
+                                drop_last=True, persistent_workers=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
 
@@ -107,8 +106,7 @@ def train(rank, cfg, args, rundir, world_size):
     #     break
 
     # Set Model
-    model = get_model(cfg['model'], bands1, bands2, classes, classification).to(rank)
-    # ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+    model = get_model(cfg['model'], bands1, bands2, classes, classification, img_size).to(rank)
     ddp_model = DDP(model, device_ids=[rank], find_unused_parameters=find_parameters)
 
     ## Setup optimizer, lr_scheduler and loss function
@@ -119,7 +117,18 @@ def train(rank, cfg, args, rundir, world_size):
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
 
     ## scheduler
-    scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
+    if cfg['model']['arch'] == "PACSCNet50":
+        print("use StepLR")
+        scheduler = StepLR(optimizer, \
+                           step_size=cfg['training']['scheduler']['step_size'], \
+                           gamma=cfg['training']['scheduler']['gamma'])
+        print(cfg['training']['scheduler']['step_size'])
+        print(cfg['training']['scheduler']['gamma'])
+    
+    elif cfg['model']['arch'] == "MCANet":
+        scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.1, patience=7, min_lr=0.0000001)
+    else:
+        scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
     lr  = scheduler.get_last_lr()
     if rank == 0:  # 只在主进程操作
         print("epoch: ", epoch, lr)
@@ -328,10 +337,14 @@ if __name__ ==  "__main__":
         type = str,
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMFNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet50.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet101.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MCANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu50.yml",
@@ -344,8 +357,8 @@ if __name__ ==  "__main__":
     parser.add_argument(
         "--results",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
@@ -354,7 +367,7 @@ if __name__ ==  "__main__":
         nargs = "?",
         type = str,
         default = None,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/multiISA/run/0703-0034-ACNet", "best.pt"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0923-0908-MGFNet_Wei50", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:

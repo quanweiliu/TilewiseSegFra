@@ -79,8 +79,11 @@ training:
   optimizer:
     name: 'adam'
     lr: 0.004
-#    weight_decay: 0.0005
-#    momentum: 0.95
+  scheduler:
+    factor: 0.6
+    patience: 7
+    # weight_decay: 0.0005
+    # momentum: 0.9
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001

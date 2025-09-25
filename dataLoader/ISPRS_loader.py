@@ -123,10 +123,10 @@ class ISPRS_loader(data.DataLoader):
         #                                  std=[0.1172, 0.1167, 0.1203])(gaofen)
         
         # # Min-Max 归一化（缩放到固定区间）
-        lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+        # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
 
         # Z-score 标准化（标准差归一化）
-        # lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
+        lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
         return gaofen, lidar
 
     def is_aug(self, gaofen2np, lidar2np, mask2np):

@@ -11,6 +11,7 @@
 | [MCANet](https://github.com/yisun98/SOLC/tree/main)      | [MCANet: A joint semantic segmentation framework of optical and SAR images for land use classification](https://www.sciencedirect.com/science/article/pii/S0303243421003457)       | JAG       | 2021       |
 | [SOLC](https://github.com/yisun98/SOLC/tree/main)      | [Remote Sensing Sar-Optical Land-use Classfication](https://github.com/yisun98/SOLC/tree/main)       | GitHub       | 2022       |
 | FAFNet      | [FAFNet: Fully aligned fusion network for RGBD semantic segmentation based on hierarchical semantic ﬂows](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | IET IP       | 2022       |
+| [CMFNet](https://github.com/sstary/SSRS/tree/main/CMFNet)      | [A Crossmodal Multiscale Fusion Network for Semantic Segmentation of Remote Sensing Data](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | JSTAR       | 2022       |
 | CMANet      | [CMANet: Cross-Modality Attention Network for Indoor-Scene Semantic Segmentation](https://www.mdpi.com/1424-8220/22/21/8520)       | Sensors      | 2022       |
 | CANet      | [CANet: Co-attention network for RGB-D semantic segmentation](https://www.sciencedirect.com/science/article/pii/S0031320321006440)       | PR       | 2022       |
 | CMGFNet      | [CMGFNet: A deep cross-modal gated fusion network for building extraction from very high-resolution remote sensing images](https://www.sciencedirect.com/science/article/pii/S0924271621003294)       | ISPRS       | 2022       |
@@ -116,8 +117,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
 Noting: 
 - 配置文件在“extraction_epoch.yml”
 - 更换数据集后，需要在dataloader文件中修改数据的mean和std
-- dataLoader 构造训练和测试数据集。
-- dataLoader2 专为高光谱图像构造双分支输入的数据集。
+- 训练调试过程中发现，PACSCNet learning rate 设置大一点，就不能训练了，好敏感这个模型。
 
 ## pretrains
 
