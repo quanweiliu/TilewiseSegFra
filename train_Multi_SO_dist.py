@@ -344,21 +344,21 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet101.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MCANet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MCANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PACSCNet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SOLC.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
         help="Configuration file to use")
 
     parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     

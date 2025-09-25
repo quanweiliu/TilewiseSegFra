@@ -15,7 +15,7 @@ model:
   # arch: DE_CCFNet34_3B
   # arch: CMFNet
   # arch: DE_DCGCN
-  arch: FAFNet50
+  # arch: FAFNet50
   # arch: FAFNet101
   # arch: MGFNet_Wei50
   # arch: MGFNet_Wu34
