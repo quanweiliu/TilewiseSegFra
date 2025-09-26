@@ -16,6 +16,8 @@ model:
   # arch: CMFNet
   # arch: DE_DCGCN
   arch: MCANet
+  # arch: FAFNet50
+  # arch: FAFNet101
   # arch: MGFNet_Wei50
   # arch: MGFNet_Wu34
   # arch: HAFNetE
@@ -53,12 +55,13 @@ data:
   bands2: 1
   classes: 6
   train_epoch: 100
-  batch_size: 16
-  ignore_index: 1
+  batch_size: 24
+  ignore_index: 5
+  normalization: minMax # zScore, standard, minMax
   classification: Multi
-  modality: rgb
-  # modality: lidar
-  # modality: sar
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
 
   # name: Potsdam
   # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
@@ -70,57 +73,41 @@ data:
   # bands2: 1
   # classes: 6
   # train_epoch: 100
-  # batch_size: 16
-  # ignore_index: 1
+  # batch_size: 8
+  # ignore_index: 5
+  # normalization: minMax # zScore, standard, minMax
   # classification: Multi
   # modality: rgb
   # # modality: lidar
   # # modality: sar
 
-  # name: ISA
-  # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg
-  # # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train
-  # train_split: train
-  # val_split: val
-  # test_split: test
-  # # img_size: 1536
-  # img_size: 768
-  # bands1: 3
-  # bands2: 12
-  # classes: 1
-  # train_epoch: 100
-  # batch_size: 8
-  # ignore_index: 1
-  # classification: Binary
-  # modality: rgb
-  # # modality: lidar
-  # # modality: sar
-
 training:
+  GPUS: [0, 1]
   find_unused_parameters: True
   train_epoch: 100
-  batch_size: 16
+  batch_size: 24
   test_batch_size: 1
   n_workers: 6
   optimizer:
     name: 'adam'
     lr: 0.001
-#    weight_decay: 0.0005
-    betas: [0.5, 0.999]
+    # weight_decay: 0.0005
   scheduler:
-    factor: 0.1
+    factor: 0.6
     patience: 7
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-
   loss:
     # name: 'dice_bce_loss_re'
 
-    name: 'cross_entropy2d'
+    name: 'multiclass_ce_dice_loss'
+    classes: 6
+    
+    a: 1
+    b: 1
 
-    # name: 'multiclass_ce_dice_loss'
-    # classes: 6
+    # name: 'cross_entropy2d'
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
@@ -128,9 +115,6 @@ training:
     # name: 'multi_loss'
     # name: 'multi_loss2'
     # name: 'multi_loss3'
-
-    # a: 1
-    # b: 1
 #    c: 1
 #    weight: [0.93, 1.07]
 
@@ -138,6 +122,3 @@ training:
     name: ReduceLROnPlateau
 
 threshold: 0.5
-
-
-

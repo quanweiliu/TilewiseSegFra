@@ -49,10 +49,12 @@ data:
   classes: 6
   train_epoch: 100
   batch_size: 18
-  ignore_index: 1
+  ignore_index: 5
+  normalization: minMax # zScore, standard, minMax
   classification: Multi
 
 training:
+  GPUS: [0, 1]
   find_unused_parameters: True
   train_epoch: 100
   batch_size: 18

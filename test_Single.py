@@ -249,7 +249,7 @@ def test(args):
         # print and save metrics result
         score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
         test_log.write('************test_result**********\n')
-        test_log.write('{}: '.format(args.TTA) + '\n')
+        test_log.write('TTA: {} Epoch: {}: '.format(args.TTA, epoch) + '\n')
 
         for k, v in score.items():
             test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')

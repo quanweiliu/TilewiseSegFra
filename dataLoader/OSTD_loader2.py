@@ -6,7 +6,7 @@ from torch.utils import data
 from torchvision import transforms
 
 
-class OSTD_loader(data.DataLoader):
+class OSTD_loader2(data.DataLoader):
     def __init__(self,
                   root,
                   split='train',
@@ -35,30 +35,36 @@ class OSTD_loader(data.DataLoader):
         gaofen2np = np.array(scio.loadmat(gaofen_path)['img'], np.float32)
         lidar2np = np.array(scio.loadmat(lidar_path)['sar'], np.float32)
         mask2np = np.array(scio.loadmat(mask_path)['map'], np.float32)
-        # gaofen2np, lidar2np = self.norm(gaofen2np, lidar2np)
+        gaofen2np, lidar2np = self.norm(gaofen2np, lidar2np)
 
         if self.augmentation:
             gaofen, lidar, mask = self.is_aug(gaofen2np, lidar2np, mask2np)
         else:
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
         
-        gaofen, lidar = self.norm(gaofen, lidar)
-        return gaofen, lidar, mask.long()
+        return gaofen, lidar, mask
 
-    def norm(self, gaofen, lidar):
-        gao_band, _, _ = gaofen.shape
-        lidar_band, _, _ = lidar.shape
+    def norm(self, gaofen2np, lidar2np):
+        _, _, gao_band = gaofen2np.shape
+        _, _, lidar_band = lidar2np.shape
 
         # 归一化
         for i in range(gao_band):
-            max = torch.max(gaofen[i, :, :])
-            min = torch.min(gaofen[i, :, :])
+            max = np.max(gaofen2np[:, :, i])
+            min = np.min(gaofen2np[:, :, i])
             if max == 0 and min == 0:
                 # print(" ############################## skip ############################## ")
                 continue
-            gaofen[i, :, :] = (gaofen[i, :, :] - min) / (max-min)
-        lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
-        return gaofen, lidar
+            gaofen2np[:,:,i] = (gaofen2np[:,:,i] - min) / (max-min)
+        for i in range(lidar_band):
+            max = np.max(lidar2np[:, :, i])
+            min = np.min(lidar2np[:, :, i])
+            if max == 0 and min == 0:
+                # print(" ****************************** skip ****************************** ")
+                continue
+            lidar2np[:,:,i] = (lidar2np[:,:,i] - min) / (max-min)
+
+        return gaofen2np, lidar2np
 
     def is_aug(self, gaofen2np, lidar2np, mask2np):
         _, _, gaofen_band = gaofen2np.shape
@@ -96,7 +102,7 @@ class OSTD_loader(data.DataLoader):
 
 if __name__ == '__main__':
     root = "/home/icclab/Documents/lqw/DatasetMMF/OSTD"
-    dataset = OSTD_loader(root, split='train', img_size=128, is_augmentation=False)
+    dataset = OSTD_loader2(root, split='train', img_size=128, is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=2, shuffle=True)
     print(len(dataset))
 

@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import cv2
 import csv
@@ -20,6 +20,7 @@ import torch
 from torch.utils import data
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
+from dataLoader.OSTD_loader2 import OSTD_loader2
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
 from torchvision import transforms
@@ -144,14 +145,14 @@ def test(args):
         print("############ we use the OSTD dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'image128')))
         classes = ['Oil', 'Water'] # 其中 Clutter # 是指 background
-        test_dataset = OSTD_loader(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        test_dataset = OSTD_loader2(args.imgs_path, args.split, args.img_size, is_augmentation=False)
         running_metrics_test = runningScore(args.classes+1)
 
     elif args.data_name == "Vaihingen" or args.data_name == "Potsdam":
         print("############ we use the ISPRS dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, args.classes, args.data_name, is_augmentation=False)
+        test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, args.classes, args.data_name, args.normalization,is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
 
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
@@ -243,7 +244,7 @@ def test(args):
         # print and save metrics result
         score, class_iou = running_metrics_test.get_scores(ignore_index=args.ignore_index)
         test_log.write('************test_result**********\n')
-        test_log.write('{}: '.format(args.TTA) + '\n')
+        test_log.write('TTA: {} Epoch: {}: '.format(args.TTA, epoch) + '\n')
 
         for k, v in score.items():
             test_log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
@@ -267,7 +268,7 @@ if __name__=='__main__':
                                 'DE_DCGCN', 'Zhiyang', "SFAFMA", "MCANet", "MGFNet50", 'MGFNet_Wei50', \
                                 "MGFNet_Wu34", "MGFNet_Wu50", "PCGNet18", "PCGNet34", 'RDFNet50', \
                                 "SFAFMA50", 'SOLC', 'PACSCNet50', 'FAFNet50', 'FAFNet101'],
-                        default="FAFNet101", help="the model architecture that should be trained")
+                        default="DE_CCFNet18", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -277,22 +278,22 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str,
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0923-0036-AsymFormer_b0"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0925-1047-CMFNet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0922-1335-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-1534-AsymFormer_b0"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0925-2337-CMFNet"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_min/0926-2242-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0921-2055-DE_DCGCN"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0925-1214-FAFNet50"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0925-1308-FAFNet101"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0925-1432-MCANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-1701-FAFNet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0925-1308-FAFNet101"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-1432-MCANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0923-1712-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0818-1039-SOLC"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0922-2247-MGFNet_Wu34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0924-1636-PACSCNet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0924-1915-PCGNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0924-1613-SFAFMA50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0925-2022-PACSCNet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0925-2010-PCGNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-1559-SFAFMA50"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -305,6 +306,7 @@ if __name__=='__main__':
     args.bands1 = cfg['data']['bands1']
     args.bands2 = cfg['data']['bands2']
     args.classes = cfg['data']['classes']
+    args.normalization = cfg['data']['normalization']
     args.classification = cfg['data']['classification']
     args.img_size = cfg['data']['img_size']
     args.split = cfg['data']['test_split']

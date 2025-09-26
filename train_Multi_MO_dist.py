@@ -1,6 +1,4 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-# print('using GPU %s' % ','.join(map(str, [1])))
 
 import logging
 import random
@@ -262,13 +260,14 @@ def train(rank, cfg, args, rundir, world_size):
                             "mIOU": np.nanmean(score["mIoU  \t\t"]),
                         })
 
-            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f}'.format(
+            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f} Tra_Time {:.2f}'.format(
                 i,
                 val_loss_meter.avg,
                 np.nanmean(train_score["F1  \t\t"]).round(4)*100,
                 np.nanmean(train_score["mIoU  \t\t"]).round(4)*100,
                 np.nanmean(score["F1  \t\t"]).round(4)*100,
                 np.nanmean(score["mIoU  \t\t"]).round(4)*100,
+                time_meter.avg
             ))
             val_loss_meter.reset()
             running_metrics_val.reset()
@@ -331,18 +330,18 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet34.yml",
         help="Configuration file to use")
 
     parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
@@ -356,7 +355,10 @@ if __name__ ==  "__main__":
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
-    
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, cfg["training"]['GPUS']))
+    print('using GPU %s' % ','.join(map(str, cfg["training"]['GPUS'])))
+
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(args.results, str(run_id))
     os.makedirs(rundir, exist_ok=True)

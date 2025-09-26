@@ -15,17 +15,17 @@ def rgb_to_2D_label(label):
     Suply our label masks as input in RGB format. 
     Replace pixels with specific RGB values ...
     """
-    Impervious = [255, 255, 255]
-    Building = [0, 0, 255]
-    Vegetation = [0, 255, 255]
-    Tree = [0, 255, 0]
-    Car = [255, 255, 0]
-    Clutter = [255, 0, 0]
+    ImSurf = [255, 255, 255] # Impervious 
+    Clutter = [0, 0, 255] # Building  
+    Car = [0, 255, 255] # Vegetation 
+    Tree = [0, 255, 0] # Tree
+    LowVeg = [255, 255, 0] # Car
+    Building = [255, 0, 0] # Clutter 
 
     label_seg = np.zeros(label.shape,dtype=np.uint8)
-    label_seg [np.all(label==Impervious,axis=-1)] = 0
+    label_seg [np.all(label==ImSurf,axis=-1)] = 0
     label_seg [np.all(label==Building,axis=-1)] = 1
-    label_seg [np.all(label==Vegetation,axis=-1)] = 2
+    label_seg [np.all(label==LowVeg,axis=-1)] = 2
     label_seg [np.all(label==Tree,axis=-1)] = 3
     label_seg [np.all(label==Car,axis=-1)] = 4
     label_seg [np.all(label==Clutter,axis=-1)] = 5
@@ -42,6 +42,7 @@ class ISPRS_loader(data.DataLoader):
                  img_size=512,
                  classes=6,
                  data_name="Vaihingen",
+                 normalization="minMax",
                  is_augmentation=False):
         self.root = root
         self.split = split
@@ -49,6 +50,7 @@ class ISPRS_loader(data.DataLoader):
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size))
         self.data_name = data_name
+        self.normalization = normalization
         
         self.gaofen_data_path = os.path.join(self.root, self.split, 'images256')
         # self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path), key=self.sort_key)
@@ -106,27 +108,73 @@ class ISPRS_loader(data.DataLoader):
         return gaofen2np, lidar2np, mask2np
         
     def norm(self, gaofen, lidar):
-        "https://github.com/jsten07/CNNvsTransformer/blob/2273b7f72de7aad00d7abc5a5c35f8c81ec62d4d/Notebooks/count_classes.ipynb#L257"
-        gaofen = gaofen.float() / 255.0
+        # "https://github.com/jsten07/CNNvsTransformer/blob/2273b7f72de7aad00d7abc5a5c35f8c81ec62d4d/Notebooks/count_classes.ipynb#L257"
 
-        if self.data_name == "Vaihingen":
-            gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
-                                            std=[0.1970, 0.1306, 0.1276])(gaofen)
-        elif self.data_name == "Potsdam":
-            gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
-                                            std=[0.1196, 0.1164, 0.1197])(gaofen) 
-        else: # imagenet
-            gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                            std=[0.229, 0.224, 0.225])(gaofen)
-        # potsdam_irrg
-        # gaofen = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
-        #                                  std=[0.1172, 0.1167, 0.1203])(gaofen)
+
+        if self.normalization == "minMax":
+            gaofen = gaofen.float()
+            gao_band, _, _ = gaofen.shape
+            # 归一化
+            for i in range(gao_band):
+                max = torch.max(gaofen[i, :, :])
+                min = torch.min(gaofen[i, :, :])
+                if max == 0 and min == 0:
+                    # print(" ############################## skip ############################## ")
+                    continue
+                gaofen[i, :, :] = (gaofen[i, :, :] - min) / (max-min)
+            lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+
+        elif self.normalization == "standard":
+            gaofen = gaofen.float() / 255.0
+
+            if self.data_name == "Vaihingen":
+                gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
+                                                std=[0.1970, 0.1306, 0.1276])(gaofen)
+                lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+            
+            elif self.data_name == "Potsdam":
+                gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
+                                                std=[0.1196, 0.1164, 0.1197])(gaofen) 
+            else: # imagenet
+                gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                                std=[0.229, 0.224, 0.225])(gaofen)
+
+            lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
+
+
+        # gaofen = gaofen.float() / 255.0
+
+        # if self.data_name == "Vaihingen":
+        #     gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
+        #                                     std=[0.1970, 0.1306, 0.1276])(gaofen)
+        # elif self.data_name == "Potsdam":
+        #     gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
+        #                                     std=[0.1196, 0.1164, 0.1197])(gaofen) 
+        # else: # imagenet
+        #     gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+        #                                     std=[0.229, 0.224, 0.225])(gaofen)
+        # # potsdam_irrg
+        # # gaofen = transforms.Normalize(mean=[0.3823, 0.3625, 0.3364], 
+        # #                                  std=[0.1172, 0.1167, 0.1203])(gaofen)
+
+        # gaofen = gaofen.float()
+        # gao_band, _, _ = gaofen.shape
+        # # 归一化
+        # for i in range(gao_band):
+        #     max = torch.max(gaofen[i, :, :])
+        #     min = torch.min(gaofen[i, :, :])
+        #     if max == 0 and min == 0:
+        #         # print(" ############################## skip ############################## ")
+        #         continue
+        #     gaofen[i, :, :] = (gaofen[i, :, :] - min) / (max-min)
+
+
+        # # # Min-Max 归一化（缩放到固定区间）
+        # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+
+        # # Z-score 标准化（标准差归一化）
+        # # lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
         
-        # # Min-Max 归一化（缩放到固定区间）
-        lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
-
-        # Z-score 标准化（标准差归一化）
-        # lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
         return gaofen, lidar
 
     def is_aug(self, gaofen2np, lidar2np, mask2np):

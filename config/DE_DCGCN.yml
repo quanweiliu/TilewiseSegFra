@@ -44,8 +44,12 @@ data:
   classes: 6
   train_epoch: 100
   batch_size: 16
-  ignore_index: 1
+  ignore_index: 5
+  normalization: minMax # zScore, standard, minMax
   classification: Multi
+  modality: rgb
+  # modality: lidar
+  # modality: sar
 
   # name: Potsdam
   # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
@@ -58,13 +62,15 @@ data:
   # classes: 6
   # train_epoch: 100
   # batch_size: 8
-  # ignore_index: 1
+  # ignore_index: 5
+  # normalization: minMax # zScore, standard, minMax
   # classification: Multi
   # modality: rgb
   # # modality: lidar
   # # modality: sar
 
 training:
+  GPUS: [0, 1]
   find_unused_parameters: False
   train_epoch: 100
   batch_size: 16

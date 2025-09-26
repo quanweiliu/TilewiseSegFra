@@ -26,10 +26,12 @@ data:
   bands1: 193
   bands2: 3
   classes: 1
+  normalization: minMax # zScore, standard, minMax
   classification: Binary
   # classification: Multi
 
 training:
+  GPUS: [0, 1]
   find_unused_parameters: False
   train_epoch: 100
   batch_size: 32

@@ -5,21 +5,17 @@
 import os
 import math
 import cv2
-import pandas
 import numpy as np
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 # from torchsummaryX import summary
 from torchvision import models
 import torch.nn.functional as F
-from PIL import Image
 #from pyheatmap.heatmap import HeatMap
 import torch.utils.model_zoo as model_zoo
 from thop import profile
 # import seaborn as sns
-import matplotlib.pyplot as plt
 # from audtorch.metrics.functional import pearsonr
 
 class DecoderBlock(nn.Module):
@@ -457,7 +453,7 @@ if __name__ == '__main__':
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    bands1 = 193  # gaofen
+    bands1 = 3  # gaofen
     bands2 = 3  # lidar
 
     # x = torch.randn(4, bands1, 480, 640, device=device)

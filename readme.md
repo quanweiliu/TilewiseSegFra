@@ -48,9 +48,7 @@ ISPRS_loader, ISPRS_loader2 和 ISPRS_loader3 三个文件都是用于加载数�
 
 ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一致的，但是 ISPRS_loader2 采用了更强的数据增强，复杂的数据增强过程导致模型训练非常慢，并且需要更长的训练周期。去掉多尺度等复杂的变化过程，会极大的加快训练过程。因此，我结合 ISPRS_loader 和 ISPRS_loader2，构建一个基于 train.txt / val.txt / test.txt 加载的data loader。
 
-
-
-- train_Multi_MO and train_Multi_MO2 / test_Multi_MO and test_Multi_MO2 分别就是用 ISPRS_loader, ISPRS_loader2 和 ISPRS_loader3 文件加载数据。
+- OSTD_loader 和 OSTD_loader2 效果一摸一样。我用来测试norm 位置，发现，数据增强如果不改变数据的分布的话，放哪都一样。
 
 因为得到的精度一致，ISPRS_loader2加载会显著拖慢训练时间，所以以后都用 ISPRS_loader, ISPRS_loader3 文件加载数据。
 

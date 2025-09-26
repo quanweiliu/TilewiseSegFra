@@ -54,8 +54,9 @@ data:
   bands2: 1
   classes: 6
   train_epoch: 100
-  batch_size: 32
-  ignore_index: 1
+  batch_size: 48
+  ignore_index: 5
+  normalization: minMax # zScore, standard, minMax
   classification: Multi
   # modality: rgb
   # # modality: lidar
@@ -72,36 +73,40 @@ data:
   # classes: 6
   # train_epoch: 100
   # batch_size: 8
-  # ignore_index: 1
+  # ignore_index: 5
+  # normalization: minMax # zScore, standard, minMax
   # classification: Multi
   # modality: rgb
   # # modality: lidar
   # # modality: sar
 
 training:
+  GPUS: [0, 1]
   find_unused_parameters: True
   train_epoch: 100
   batch_size: 32
   test_batch_size: 1
   n_workers: 6
   optimizer:
-    name: 'sgd'
-    lr: 0.02
-    weight_decay: 0.0005
+    name: 'adam'
+    lr: 0.001
+    # weight_decay: 0.0005
   scheduler:
     factor: 0.6
     patience: 7
-#    momentum: 0.95
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
   loss:
     # name: 'dice_bce_loss_re'
 
-    name: 'cross_entropy2d'
+    name: 'multiclass_ce_dice_loss'
+    classes: 6
+    
+    a: 1
+    b: 1
 
-    # name: 'multiclass_ce_dice_loss'
-    # classes: 6
+    # name: 'cross_entropy2d'
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
@@ -109,9 +114,6 @@ training:
     # name: 'multi_loss'
     # name: 'multi_loss2'
     # name: 'multi_loss3'
-
-    # a: 1
-    # b: 1
 #    c: 1
 #    weight: [0.93, 1.07]
 

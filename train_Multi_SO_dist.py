@@ -1,6 +1,4 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-# print('using GPU %s' % ','.join(map(str, [1])))
 
 import logging
 import random
@@ -64,6 +62,7 @@ def train(rank, cfg, args, rundir, world_size):
     batchsize = cfg['training']['batch_size']
     epoch = cfg['training']['train_epoch']
     n_workers = cfg['training']['n_workers'] // 2
+    normalization = cfg['data']['normalization']
     classification = cfg["data"]["classification"]
     find_parameters = cfg["training"]["find_unused_parameters"]
     print("img_size", img_size)
@@ -76,8 +75,8 @@ def train(rank, cfg, args, rundir, world_size):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
+        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, normalization, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, normalization, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
@@ -125,8 +124,6 @@ def train(rank, cfg, args, rundir, world_size):
         print(cfg['training']['scheduler']['step_size'])
         print(cfg['training']['scheduler']['gamma'])
     
-    elif cfg['model']['arch'] == "MCANet":
-        scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.1, patience=7, min_lr=0.0000001)
     else:
         scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
     lr  = scheduler.get_last_lr()
@@ -266,13 +263,14 @@ def train(rank, cfg, args, rundir, world_size):
                             "mIOU": np.nanmean(score["mIoU  \t\t"]),
                         })
 
-            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f}'.format(
+            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f} Tra_Time {:.2f}'.format(
                 i,
                 val_loss_meter.avg,
                 np.nanmean(train_score["F1  \t\t"]).round(4)*100,
                 np.nanmean(train_score["mIoU  \t\t"]).round(4)*100,
                 np.nanmean(score["F1  \t\t"]).round(4)*100,
                 np.nanmean(score["mIoU  \t\t"]).round(4)*100,
+                time_meter.avg
             ))
             val_loss_meter.reset()
             running_metrics_val.reset()
@@ -338,7 +336,7 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMFNet.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmen/tation/TilewiseSegFra/config/CMFNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
@@ -351,15 +349,17 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PACSCNet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SOLC.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
         help="Configuration file to use")
 
     parser.add_argument(
         "--results",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_OSTD"),
         help="Path to the saved model")
     
     parser.add_argument(
@@ -367,12 +367,15 @@ if __name__ ==  "__main__":
         nargs = "?",
         type = str,
         default = None,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0923-0908-MGFNet_Wei50", "best.pt"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-1418-MCANet", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
-    
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, cfg["training"]['GPUS']))
+    print('using GPU %s' % ','.join(map(str, cfg["training"]['GPUS'])))
+
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(args.results, str(run_id))
     os.makedirs(rundir, exist_ok=True)

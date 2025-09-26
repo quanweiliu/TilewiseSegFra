@@ -239,13 +239,14 @@ def train(cfg, rundir):
                             "mIOU": np.nanmean(score["mIoU  \t\t"]),
                         })
 
-            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f}'.format(
+            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f} Tra_Time {:.2f}'.format(
                 i,
                 val_loss_meter.avg,
                 np.nanmean(train_score["F1  \t\t"]).round(4)*100,
                 np.nanmean(train_score["mIoU  \t\t"]).round(4)*100,
                 np.nanmean(score["F1  \t\t"]).round(4)*100,
                 np.nanmean(score["mIoU  \t\t"]).round(4)*100,
+                time_meter.avg
             ))
             val_loss_meter.reset()
             running_metrics_val.reset()
