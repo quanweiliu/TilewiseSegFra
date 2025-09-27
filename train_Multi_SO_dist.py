@@ -59,8 +59,8 @@ def train(rank, cfg, args, rundir, world_size):
     bands1 = cfg['data']['bands1']
     bands2 = cfg['data']['bands2']
     classes = cfg['data']['classes']
-    batchsize = cfg['training']['batch_size']
-    epoch = cfg['training']['train_epoch']
+    batchsize = cfg['data']['batch_size']
+    epoch = cfg['data']['train_epoch']
     n_workers = cfg['training']['n_workers'] // 2
     normalization = cfg['data']['normalization']
     classification = cfg["data"]["classification"]
@@ -336,10 +336,10 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmen/tation/TilewiseSegFra/config/CMFNet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMFNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet101.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MCANet.yml",

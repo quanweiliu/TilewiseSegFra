@@ -48,7 +48,6 @@ data:
   bands1: 3
   bands2: 1
   classes: 6
-  train_epoch: 100
   batch_size: 16
   ignore_index: 5
   normalization: minMax # zScore, standard, minMax
@@ -96,7 +95,6 @@ training:
   GPUS: [0, 1]
   find_unused_parameters: False
   train_epoch: 100
-  batch_size: 16
   test_batch_size: 1
   n_workers: 4
   optimizer:
