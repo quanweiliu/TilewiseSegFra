@@ -56,9 +56,10 @@ def train(cfg, rundir):
     bands1 = cfg['data']['bands1']
     bands2 = cfg['data']['bands2']
     classes = cfg['data']['classes']
-    batchsize = cfg['training']['batch_size']
-    epoch = cfg['training']['train_epoch']
+    batchsize = cfg['data']['batch_size']
+    epoch = cfg['data']['train_epoch']
     n_workers = cfg['training']['n_workers']
+    normalization = cfg['data']['normalization']
     classification = cfg["data"]["classification"]
 
 
@@ -70,14 +71,16 @@ def train(cfg, rundir):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, classes=classes, data_name=data_name, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, classes=classes, data_name=data_name, is_augmentation=False)
+        t_loader = ISPRS_loader(data_path, train_split, img_size, classes=classes, 
+                                data_name=data_name, normalization=normalization, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes=classes, 
+                                data_name=data_name, normalization=normalization, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
         
-    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
+    trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True, drop_last=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
@@ -160,7 +163,7 @@ def train(cfg, rundir):
     i = start_epoch
     flag = True 
 
-    while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
+    while i < cfg['data']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
         model.train()
@@ -197,7 +200,7 @@ def train(cfg, rundir):
 
         ############## print result for each train epoch ############################
         print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
-            i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
+            i, cfg['data']['train_epoch'], loss.item(), time_meter.avg))
         train_score, train_class_iou = running_metrics_train.get_scores()
 
         # store results
@@ -279,7 +282,7 @@ def train(cfg, rundir):
                     'results_val': results_val,
                 }, f"{rundir}/best.pt")
 
-                if (i) == cfg['training']['train_epoch']:
+                if (i) == cfg['data']['train_epoch']:
                     flag=False
                     break
 
@@ -325,7 +328,9 @@ if __name__ ==  "__main__":
         "--results",
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(

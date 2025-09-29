@@ -56,7 +56,7 @@ data:
   train_epoch: 100
   batch_size: 16
   ignore_index: 5
-  normalization: minMax # zScore, standard, minMax
+  normalization: standard # zScore, standard, minMax
   classification: Multi
   modality: rgb
   # modality: lidar
@@ -102,8 +102,6 @@ data:
 training:
   GPUS: [0, 1]
   find_unused_parameters: True
-  train_epoch: 100
-  batch_size: 16
   test_batch_size: 1
   n_workers: 6
   optimizer:

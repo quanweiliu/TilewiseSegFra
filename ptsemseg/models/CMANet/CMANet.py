@@ -683,8 +683,8 @@ if __name__ == '__main__':
     bands1 = 3
     bands2 = 1
 
-    x = torch.randn(4, bands1, 128, 128, device=device)
-    y = torch.randn(4, bands2, 128, 128, device=device)
+    x = torch.randn(1, bands1, 128, 128, device=device)
+    y = torch.randn(1, bands2, 128, 128, device=device)
     model = CMANet(bands1, bands2, n_classes=1, classification="Multi").to(device)
     output = model(x, y)
 

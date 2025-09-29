@@ -10,7 +10,6 @@ import tifffile
 import argparse
 import numpy as np
 import pandas as pd
-from PIL import Image
 from tqdm import tqdm
 import scipy.io as scio
 from collections import namedtuple
@@ -22,10 +21,6 @@ from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from torchvision import transforms
-from dataLoader import ISPRS_loader2
-from dataLoader import ISA_loader2
-from dataLoader.ISA_loader3 import ISA_loader3
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -273,7 +268,7 @@ if __name__=='__main__':
                                  'CMANet', \
                                  'CMGFNet18', \
                                  'CMGFNet34'],
-                        default='CMGFNet18', help="the model architecture that should be trained")    
+                        default='CANet50', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -283,10 +278,10 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-2100-ACNet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0921-1744-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0924-2200-CMANet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai/0926-2139-CMGFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0927-1904-ACNet"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1759-CANet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-0844-CMANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0927-1503-CMGFNet18"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -306,6 +301,6 @@ if __name__=='__main__':
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
+    print("args", args.img_size, args.classes, args.ignore_index, args.threshold, args.normalization)
     test(args)
 

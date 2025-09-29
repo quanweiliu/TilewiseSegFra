@@ -60,9 +60,10 @@ def train(rank, cfg, args, rundir, world_size):
     bands1 = cfg['data']['bands1']
     bands2 = cfg['data']['bands2']
     classes = cfg['data']['classes']
-    batchsize = cfg['training']['batch_size']
-    epoch = cfg['training']['train_epoch']
+    batchsize = cfg['data']['batch_size']
+    epoch = cfg['data']['train_epoch']
     n_workers = cfg['training']['n_workers'] // 2
+    normalization = cfg['data']['normalization']
     classification = cfg["data"]["classification"]
     find_parameters = cfg["training"]["find_unused_parameters"]
     print("img_size", img_size)
@@ -75,15 +76,19 @@ def train(rank, cfg, args, rundir, world_size):
         running_metrics_val = runningScore(classes+1)
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
+        t_loader = ISPRS_loader(data_path, train_split, img_size, 
+                                classes, data_name, normalization,is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, 
+                                classes, data_name, normalization, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
-    train_sampler = torch.utils.data.distributed.DistributedSampler(t_loader, num_replicas=world_size, rank=rank, shuffle=True)
-    # val_sampler = torch.utils.data.distributed.DistributedSampler(v_loader, num_replicas=world_size, rank=rank, shuffle=False)
+    train_sampler = torch.utils.data.distributed.DistributedSampler(t_loader, num_replicas=world_size, 
+                                                                    rank=rank, shuffle=True)
+    # val_sampler = torch.utils.data.distributed.DistributedSampler(v_loader, num_replicas=world_size, 
+                                                                    # rank=rank, shuffle=False)
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize,
                                 num_workers=n_workers, prefetch_factor=4, 
@@ -169,7 +174,7 @@ def train(rank, cfg, args, rundir, world_size):
     i = start_epoch
     flag = True 
 
-    while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
+    while i < cfg['data']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
         train_sampler.set_epoch(i)
@@ -210,7 +215,7 @@ def train(rank, cfg, args, rundir, world_size):
         train_score, train_class_iou = running_metrics_train.get_scores()
         if rank == 0:  # 只在主进程操作
             print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
-                i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
+                i, cfg['data']['train_epoch'], loss.item(), time_meter.avg))
 
             # store results
             results_train.append({'epoch': i, 
@@ -291,7 +296,7 @@ def train(rank, cfg, args, rundir, world_size):
                     'results_val': results_val,
                 }, f"{rundir}/best.pt")
 
-                if (i) == cfg['training']['train_epoch']:
+                if (i) == cfg['data']['train_epoch']:
                     flag=False
                     break
 
@@ -332,16 +337,16 @@ if __name__ ==  "__main__":
         type = str,
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet34.yml",
         help="Configuration file to use")
 
     parser.add_argument(
         "--results",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     

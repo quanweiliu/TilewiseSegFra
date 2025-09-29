@@ -52,8 +52,8 @@ def train(cfg, rundir):
     bands1 = cfg['data']['bands1']
     bands2 = cfg['data']['bands2']
     classes = cfg['data']['classes']
-    batchsize = cfg['training']['batch_size']
-    epoch = cfg['training']['train_epoch']
+    batchsize = cfg['data']['batch_size']
+    epoch = cfg['data']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
 
@@ -151,7 +151,7 @@ def train(cfg, rundir):
     i = start_epoch
     flag = True 
 
-    while i < cfg['training']['train_epoch'] and flag:      #  Number of total training iterations
+    while i < cfg['data']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
@@ -191,7 +191,7 @@ def train(cfg, rundir):
 
         ############## print result for each train epoch ############################
         print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
-            i, cfg['training']['train_epoch'], loss.item(), time_meter.avg))
+            i, cfg['data']['train_epoch'], loss.item(), time_meter.avg))
         train_score, train_class_iou = running_metrics_train.get_scores()
 
         # store results
@@ -272,7 +272,7 @@ def train(cfg, rundir):
                     'results_val': results_val,
                 }, f"{rundir}/best.pt")
 
-                if (i) == cfg['training']['train_epoch']:
+                if (i) == cfg['data']['train_epoch']:
                     flag=False
                     break
 
