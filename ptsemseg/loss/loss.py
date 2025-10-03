@@ -36,7 +36,7 @@ def class2one_hot(seg: Tensor, C: int) -> Tensor:
 
     return res
 
-def cross_entropy2d(input, target):
+def cross_entropy2d(input, target, ignore_index=-1):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
 
@@ -51,7 +51,7 @@ def cross_entropy2d(input, target):
     elif h != ht and w != wt:
         raise Exception("Only support upsampling")
 
-    loss = F.cross_entropy(input, target)
+    loss = F.cross_entropy(input, target, ignore_index=ignore_index)
     return loss, loss, loss
 
 class dice_bce_loss1(nn.Module):

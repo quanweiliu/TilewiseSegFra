@@ -1,6 +1,5 @@
 import copy
 import math
-from collections import OrderedDict
 import torch
 import torch.nn as nn
 import numpy as np
@@ -689,12 +688,12 @@ class ChannelTransformer(nn.Module):
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
         self.patchSize_4 = patchSize[3]
-        self.embeddings_1 = Channel_Embeddings(config, self.patchSize_1, img_size=img_size, in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config, self.patchSize_2, img_size=img_size // 2,
+        self.embeddings_1 = Channel_Embeddings(config, self.patchSize_1, img_size=img_size[0], in_channels=channel_num[0])
+        self.embeddings_2 = Channel_Embeddings(config, self.patchSize_2, img_size=img_size[0] // 2,
                                                in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config, self.patchSize_3, img_size=img_size // 4,
+        self.embeddings_3 = Channel_Embeddings(config, self.patchSize_3, img_size=img_size[0] // 4,
                                                in_channels=channel_num[2])
-        self.embeddings_4 = Channel_Embeddings(config, self.patchSize_4, img_size=img_size // 8,
+        self.embeddings_4 = Channel_Embeddings(config, self.patchSize_4, img_size=img_size[0] // 8,
                                                in_channels=channel_num[3])
         self.encoder = Encoder(config, vis, channel_num)
 
@@ -891,20 +890,20 @@ class ChannelTransformer_cross(nn.Module):
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
         self.patchSize_4 = patchSize[3]
-        self.embeddings_1 = Channel_Embeddings(config, self.patchSize_1, img_size=img_size, in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config, self.patchSize_2, img_size=img_size // 2,
+        self.embeddings_1 = Channel_Embeddings(config, self.patchSize_1, img_size=img_size[0], in_channels=channel_num[0])
+        self.embeddings_2 = Channel_Embeddings(config, self.patchSize_2, img_size=img_size[0] // 2,
                                                in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config, self.patchSize_3, img_size=img_size // 4,
+        self.embeddings_3 = Channel_Embeddings(config, self.patchSize_3, img_size=img_size[0] // 4,
                                                in_channels=channel_num[2])
-        self.embeddings_4 = Channel_Embeddings(config, self.patchSize_4, img_size=img_size // 8,
+        self.embeddings_4 = Channel_Embeddings(config, self.patchSize_4, img_size=img_size[0] // 8,
                                                in_channels=channel_num[3])
 
-        self.embeddingsd_1 = Channel_Embeddings(config, self.patchSize_1, img_size=img_size, in_channels=channel_num[0])
-        self.embeddingsd_2 = Channel_Embeddings(config, self.patchSize_2, img_size=img_size // 2,
+        self.embeddingsd_1 = Channel_Embeddings(config, self.patchSize_1, img_size=img_size[0], in_channels=channel_num[0])
+        self.embeddingsd_2 = Channel_Embeddings(config, self.patchSize_2, img_size=img_size[0] // 2,
                                                 in_channels=channel_num[1])
-        self.embeddingsd_3 = Channel_Embeddings(config, self.patchSize_3, img_size=img_size // 4,
+        self.embeddingsd_3 = Channel_Embeddings(config, self.patchSize_3, img_size=img_size[0] // 4,
                                                 in_channels=channel_num[2])
-        self.embeddingsd_4 = Channel_Embeddings(config, self.patchSize_4, img_size=img_size // 8,
+        self.embeddingsd_4 = Channel_Embeddings(config, self.patchSize_4, img_size=img_size[0] // 8,
                                                 in_channels=channel_num[3])
         self.encoder = Encoder_cross(config, vis, channel_num)
 
@@ -973,7 +972,7 @@ class CMFNet(nn.Module):
 
         return nn.Sequential(pool_attention, conv_attention, activate)
 
-    def __init__(self, bands1, bands2, out_channels=6, classification="Multi", image_size=256):
+    def __init__(self, bands1, bands2, out_channels=6, classification="Multi", image_size=[256, 256]):
         super(CMFNet, self).__init__()
         self.pool = nn.MaxPool2d(2, return_indices=True)
         self.unpool = nn.MaxUnpool2d(2)
@@ -1272,14 +1271,15 @@ if __name__ == "__main__":
 
     bands1 = 3
     bands2 = 1
-    image_size = 256
+    image_size_h = 256
+    image_size_w = 256
     classes = 2
-    rgb = torch.randn(4, bands1, image_size, image_size, device=device)
-    dsm = torch.randn(4, bands2, image_size, image_size, device=device)
+    rgb = torch.randn(4, bands1, image_size_h, image_size_w, device=device)
+    dsm = torch.randn(4, bands2, image_size_h, image_size_w, device=device)
     # rgb = torch.randn(4, bands1, 128, 128, device=device)
     # dsm = torch.randn(4, bands2, 128, 128, device=device)
 
-    model = CMFNet(bands1=bands1, bands2=bands2, out_channels=classes, classification="Multi", image_size=image_size).to(device)
+    model = CMFNet(bands1=bands1, bands2=bands2, out_channels=classes, classification="Multi", image_size=[image_size_h, image_size_w]).to(device)
     # load_init_weight(model)
 
     output = model(rgb, dsm)

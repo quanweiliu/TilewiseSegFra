@@ -306,7 +306,12 @@ def load_dualpath_model(model, backbone="resnet101_v1c", is_restore=False):
     model_url = model_urls[backbone]
     cache_dir = 'pretrains'
     
-    raw_state_dict = model_zoo.load_url(model_url, model_dir=cache_dir)
+    # raw_state_dict = model_zoo.load_url(model_url, model_dir=cache_dir)
+    if "50" in model_url:
+        raw_state_dict = torch.load("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/resnet50_v1c-2cccc1ad.pth")
+    elif "101" in model_url:
+        raw_state_dict = torch.load("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/resnet101_v1c-e67eebb6.pth")
+
     # if isinstance(model_file, str):
     #     raw_state_dict = torch.load(model_file)
 

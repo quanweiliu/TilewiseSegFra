@@ -4,13 +4,12 @@ from torch import nn
 from torch.nn import functional as F
 from thop import profile, clever_format
 
-# from mix_transformer import OverlapPatchEmbed, mit_b0
-# from convnext import convnext_tiny, LayerNorm
-# from MLPDecoder import DecoderHead
-
 from .mix_transformer import OverlapPatchEmbed, mit_b0
 from .convnext import convnext_tiny, LayerNorm
 from .MLPDecoder import DecoderHead
+# from mix_transformer import OverlapPatchEmbed, mit_b0
+# from convnext import convnext_tiny, LayerNorm
+# from MLPDecoder import DecoderHead
 
 
 def load_pretrain2(net, pretrain_name):
@@ -31,10 +30,11 @@ model1 = convnext_tiny(pretrained=True, drop_path_rate=0.3)
 ft1 = model1.stages
 stem = model1.downsample_layers
 stem1 = [stem[0], stem[1], stem[2], stem[3]]
-layers1 = [ft1[0],
-            ft1[1],
-            ft1[2],
-            ft1[3]]
+layers1 = [
+    ft1[0],
+    ft1[1],
+    ft1[2],
+    ft1[3]]
 
 model2 = mit_b0()
 model2 = load_pretrain2(model2, pretrain_name='mit_b0.pth')
@@ -195,14 +195,14 @@ class down_sample_block(nn.Module):
             self.depth_stem = stem2[block_num]
             self.rgb_stem = stem1[block_num]
         else:
-            self.depth_stem = OverlapPatchEmbed(in_chans=bands2, embed_dim=inc_depth)
-            # self.rgb_stem = stem1[0]
-            self.rgb_stem = nn.Sequential(
-                            nn.Conv2d(bands1, 96, kernel_size=4, stride=4),
-                            LayerNorm(96, eps=1e-6, data_format="channels_first")
-                        )
-        self.rgb_layer = layers1[block_num]
-        self.depth_layer = layers2[block_num]
+            self.depth_stem = OverlapPatchEmbed(in_chans=1, embed_dim=inc_depth)
+            self.rgb_stem = stem1[0]
+            # self.rgb_stem = nn.Sequential(
+            #                 nn.Conv2d(193, 96, kernel_size=4, stride=4),
+            #                 LayerNorm(96, eps=1e-6, data_format="channels_first")
+            #             )
+        self.rgb_layer = layers1[block_num]            # conv
+        self.depth_layer = layers2[block_num]          # transformer
 
         self.depth_norm = norm2[block_num]
 
@@ -239,7 +239,8 @@ class B0_T(nn.Module):
         self.down_sample_1 = down_sample_block(inc_depth=self.channel[0], 
                                                inc_rgb=channel_list2[0], 
                                                block_num=0, 
-                                               bands1=bands1, bands2=bands2,)
+                                               bands1=bands1, 
+                                               bands2=bands2,)
 
         self.down_sample_2 = down_sample_block(inc_depth=self.channel[1],
                                                inc_rgb=channel_list2[1], 
@@ -279,10 +280,11 @@ class B0_T(nn.Module):
         # print("rgb_out", rgb_out.shape, "depth_out", depth_out.shape)
 
 
-        rgb_out = self.Decoder([depth_out1,
-                                depth_out2,
-                                depth_out3,
-                                depth_out])
+        rgb_out = self.Decoder([
+            depth_out1,
+            depth_out2,
+            depth_out3,
+            depth_out])
         rgb_out = F.interpolate(rgb_out, size=input_shape, mode='bilinear', align_corners=False)
         
         if self.classification == "Multi":
@@ -300,11 +302,11 @@ if __name__ == '__main__':
 
     bands1 = 3
     bands2 = 1
-    image = torch.randn(8, bands1, 512, 512)
-    depth = torch.randn(8, bands2, 512, 512)
+    image = torch.randn(4, bands1, 512, 512)
+    depth = torch.randn(4, bands2, 512, 512)
     # image = torch.randn(8, 193, 128, 128)
     # depth = torch.randn(8, 3, 128, 128)
-    model = B0_T(bands1, bands2, n_classes=2, classification="Multi")
+    model = B0_T(bands1, bands2, n_classes=20, classification="Multi")
     out = model(image, depth)
     print(out.shape)
     # print("Done")

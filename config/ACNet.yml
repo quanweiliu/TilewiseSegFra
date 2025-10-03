@@ -1,23 +1,28 @@
 model:
-  arch: AMSUnet
   # arch: baseline18_single
   # arch: baseline18_double
   # arch: baseline34_single_decoder1
   # arch: baseline34_single_decoder2
   # arch: baseline34_double
   # arch: baseline34
+  # arch: AsymFormer_b0
   arch: ACNet
   # arch: CANet50
   # arch: CMANet
   # arch: CMGFNet18
-  # arch: CMGFNet_U
+  # arch: CMGFNet34
   # arch: DE_CCFNet18
   # arch: DE_CCFNet34
+  # arch: DE_CCFNet34_3B
   # arch: CMFNet
   # arch: DE_DCGCN
+  # arch: MGFNet_Wei50
+  # arch: MGFNet_Wu34
   # arch: HAFNetE
-  # arch: PACSCNet
-  # arch: PCGNet
+  # arch: PACSCNet50
+  # arch: PACSCNet101
+  # arch: PCGNet18
+  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -42,7 +47,7 @@ data:
   # train_split: train
   # val_split: val
   # test_split: test
-  # img_size: 256
+  # img_size: [256, 256]
   # bands1: 3
   # bands2: 1
   # classes: 6
@@ -55,22 +60,41 @@ data:
   # # modality: lidar
   # # modality: sar
 
-  name: Potsdam
-  path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
+  # name: Potsdam
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: [512, 512]
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # train_epoch: 100
+  # batch_size: 8
+  # ignore_index: 5
+  # normalization: standard # zScore, standard, minMax
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # # modality: sar
+
+  name: NYUv2
+  path: /home/icclab/Documents/lqw/DatasetMMF/NYUv2
   train_split: train
-  val_split: val
+  val_split: test
   test_split: test
-  img_size: 512
+  img_size: [480, 640]
   bands1: 3
   bands2: 1
-  classes: 6
+  classes: 40
   train_epoch: 100
   batch_size: 8
-  ignore_index: 5
+  ignore_index: -1
+  normalization: standard # zScore, standard, minMax
   classification: Multi
   modality: rgb
   # modality: lidar
-  # # modality: sar
+  # modality: sar
 
 training:
   GPUS: [0, 1]
@@ -80,6 +104,9 @@ training:
   optimizer:
     name: 'adam'
     lr: 0.004
+  scheduler:
+    factor: 0.6
+    patience: 7
 #    weight_decay: 0.0005
 #    momentum: 0.95
 #  gaofen_optimizer:
@@ -88,8 +115,13 @@ training:
   loss:
     # name: 'dice_bce_loss_re'
 
-    name: 'multiclass_multi_loss'
-    classes: 6
+    # name: 'multiclass_multi_loss'
+    # classes: 6
+    # a: 1
+    # b: 1
+
+    name: 'cross_entropy2d'
+    ignore_index: -1
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
@@ -97,9 +129,6 @@ training:
     # name: 'multi_loss'
     # name: 'multi_loss2'
     # name: 'multi_loss3'
-
-    a: 1
-    b: 1
 #    c: 1
 #    weight: [0.93, 1.07]
 

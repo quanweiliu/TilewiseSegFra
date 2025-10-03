@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import logging
 import random
@@ -21,10 +21,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
-from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from torchvision import transforms
-from dataLoader import ISPRS_loader2
-from dataLoader import ISA_loader2
+from dataLoader.RGBD_loader import RGBD_loader
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -77,6 +74,12 @@ def train(cfg, rundir):
                                 data_name=data_name, normalization=normalization, is_augmentation=False)
         # t_loader = ISPRS_loader3(data_path, 'train.txt', img_size, is_augmentation=True)
         # v_loader = ISPRS_loader3(data_path, 'val.txt', img_size, is_augmentation=False)
+        running_metrics_train = runningScore(classes)
+        running_metrics_val = runningScore(classes)
+
+    elif data_name == "NYUv2":
+        t_loader = RGBD_loader(data_path, train_split, img_size, classes, data_name, normalization, is_augmentation=True)
+        v_loader = RGBD_loader(data_path, val_split, img_size, classes, data_name, normalization, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
         
@@ -318,8 +321,8 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ACNet.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CANet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMGFNet18.yml",
         help="Configuration file to use")
@@ -329,7 +332,8 @@ if __name__ ==  "__main__":
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     

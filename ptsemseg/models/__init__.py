@@ -41,7 +41,7 @@ from ptsemseg.models.SOLCV7.solcv7 import SOLCV7
 
 
 
-def get_model(model_dict, bands1, bands2, classes, classification="Multi", image_size=256):
+def get_model(model_dict, bands1, bands2, classes, classification="Multi", image_size=[256, 256]):
 
     name = model_dict['arch']
     model = _get_model_instance(name)

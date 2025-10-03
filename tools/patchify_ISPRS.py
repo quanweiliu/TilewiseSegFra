@@ -52,6 +52,7 @@ def make_patches(im_dir, out_dir, patch_size=512, stride=200, out_format='tif'):
                         #     dst.write(tile)
                         cv2.imwrite(os.path.join(out_dir, im_name), tile)
                 # print("tile", tile.shape)
+                break
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -69,6 +70,14 @@ if __name__ == '__main__':
 # ls -l | grep "^-" | wc -l
 # ls -lR | grep "^-" | wc -l
 
+# python patchify_ISPRS.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_DSMCopy --out_dir /home/icclab/Documents/lqw/Multimodal_Segmentation/RSSegExpts/assets/DSM256 --patch_size 1600 --stride 1400
+# python patchify_ISPRS.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_imagesCopy --out_dir /home/icclab/Documents/lqw/Multimodal_Segmentation/RSSegExpts/assets/images256 --patch_size 1600 --stride 1400
+# python patchify_ISPRS.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_masksCopy --out_dir /home/icclab/Documents/lqw/Multimodal_Segmentation/RSSegExpts/assets/masks256 --patch_size 1600 --stride 1400
+
+
+
+
+
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/test/DSM256 --patch_size 256 --stride 200
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/test/images256 --patch_size 256 --stride 200
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/test_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/test/masks256 --patch_size 256 --stride 200
@@ -80,7 +89,6 @@ if __name__ == '__main__':
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/Val_DSMCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/val/DSM256 --patch_size 256 --stride 200
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/val_imagesCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/val/images256 --patch_size 256 --stride 200
 # python patchify.py --in_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen_Orgin/val_masksCopy --out_dir /home/icclab/Documents/lqw/DatasetMMF/Vaihingen/val/masks256 --patch_size 256 --stride 200
-
 
 
 

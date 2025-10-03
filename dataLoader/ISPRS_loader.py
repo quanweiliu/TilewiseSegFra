@@ -130,16 +130,19 @@ class ISPRS_loader(data.DataLoader):
             if self.data_name == "Vaihingen":
                 gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
                                                 std=[0.1970, 0.1306, 0.1276])(gaofen)
-                lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+                # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+                lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
             
             elif self.data_name == "Potsdam":
                 gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
                                                 std=[0.1196, 0.1164, 0.1197])(gaofen) 
+                # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+                lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
             else: # imagenet
                 gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                                 std=[0.229, 0.224, 0.225])(gaofen)
-
-            lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
+                # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
+                lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
 
 
         # gaofen = gaofen.float() / 255.0

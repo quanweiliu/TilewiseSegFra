@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import logging
 import random
@@ -17,13 +17,13 @@ from thop import profile, clever_format
 import torch
 from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.OSTD_loader2 import OSTD_loader2
 from dataLoader.ISPRS_loader import ISPRS_loader
 from dataLoader.ISPRS_loader3 import ISPRS_loader3
-from dataLoader import ISPRS_loader2
+from dataLoader.RGBD_loader import RGBD_loader
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -31,7 +31,7 @@ from ptsemseg.optimizers import get_optimizer
 # from ptsemseg.schedulers2 import get_scheduler, WarmupLR
 # from ptsemseg.schedulers2.warmuplr import WarmupCosineLR
 from schedulers.metrics import runningScore, averageMeter
-from tools.utils import plot_training_results
+from tools.utils import plot_training_results, create_lr_scheduler
 
 def train(cfg, rundir):
 
@@ -83,6 +83,12 @@ def train(cfg, rundir):
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
 
+    elif data_name == "NYUv2":
+        t_loader = RGBD_loader(data_path, train_split, img_size, classes, data_name, normalization, is_augmentation=True)
+        v_loader = RGBD_loader(data_path, val_split, img_size, classes, data_name, normalization, is_augmentation=False)
+        running_metrics_train = runningScore(classes)
+        running_metrics_val = runningScore(classes)
+        
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True, drop_last=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
     valloader = data.DataLoader(v_loader, batch_size=batchsize, shuffle=False,
@@ -115,7 +121,18 @@ def train(cfg, rundir):
     # logger.info("Using optimizer {}".format(optimizer))
 
     ## scheduler
-    scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
+    if cfg['model']['arch'] == "PACSCNet50":
+        print("use StepLR")
+        scheduler = StepLR(optimizer, \
+                           step_size=cfg['training']['scheduler']['step_size'], \
+                           gamma=cfg['training']['scheduler']['gamma'])
+        print(cfg['training']['scheduler']['step_size'])
+        print(cfg['training']['scheduler']['gamma'])
+    elif cfg['model']['arch'] == "AsymFormer_b0":
+        print("use LambdaLR and warmup")
+        scheduler = create_lr_scheduler(optimizer, len(trainloader), args.epochs, warmup=True)
+    else:
+        scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
     lr  = scheduler.get_last_lr()
     print("epoch: ", epoch, lr)
 
@@ -317,7 +334,7 @@ if __name__ ==  "__main__":
         type = str,
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMFNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
@@ -330,7 +347,7 @@ if __name__ ==  "__main__":
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PACSCNet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet18.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SOLC.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SOLC.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA502.yml",
         help="Configuration file to use")
@@ -342,7 +359,8 @@ if __name__ ==  "__main__":
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_OSTD"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
@@ -363,4 +381,4 @@ if __name__ ==  "__main__":
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
     train(cfg, rundir)
-    time.sleep(30)
+    time.sleep(10)

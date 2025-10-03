@@ -165,7 +165,7 @@ class PACSCNet(nn.Module):
         self.uni_D_512 = Unified(512)
 
         self.up2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.up4 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.up4 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
 
         # Decoder
         self.decoder1 = PRIM()
@@ -273,8 +273,8 @@ if __name__ == "__main__":
 
     bands1 = 4
     bands2 = 3
-    x = torch.randn(4, bands1, 256, 256, device=device)
-    y = torch.randn(4, bands2, 256, 256, device=device)
+    x = torch.randn(4, bands1, 512, 512, device=device)
+    y = torch.randn(4, bands2, 512, 512, device=device)
 
     model = PACSCNet(bands1, bands2, num_classes=1, classification="Multi", ind=50, pretrained=True)
     model = model.to(device)

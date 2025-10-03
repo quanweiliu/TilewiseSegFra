@@ -268,7 +268,7 @@ if __name__=='__main__':
                                  'CMANet', \
                                  'CMGFNet18', \
                                  'CMGFNet34'],
-                        default='CANet50', help="the model architecture that should be trained")    
+                        default='CMGFNet18', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -278,10 +278,10 @@ if __name__=='__main__':
     parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0927-1904-ACNet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1759-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-0844-CMANet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0927-1503-CMGFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0929-2319-ACNet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1759-CANet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0925-0126-CMANet"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-0103-CMGFNet18"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
