@@ -6,6 +6,7 @@ import numpy as np
 import scipy.io as scio
 from torch.utils import data
 from torchvision import transforms
+from torchvision.transforms import v2
 import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
@@ -62,6 +63,10 @@ class RGBD_loader(data.DataLoader):
             gaofen, lidar, mask = self.is_aug(gaofen2np, lidar2np, mask2np)
         else:
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
+
+            # 合成数据
+            # lidar = v2.RandomPerspective(distortion_scale=0.1, p=1)(lidar)
+
         gaofen, lidar = self.norm(gaofen, lidar)
         # lidar = lidar.expand(3, -1, -1)
         mask -= 1
@@ -103,9 +108,9 @@ class RGBD_loader(data.DataLoader):
             gaofen = gaofen.float() / 255.0
             depth = depth / 1000
 
-            gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+            gaofen = v2.Normalize(mean=[0.485, 0.456, 0.406], 
                                             std=[0.229, 0.224, 0.225])(gaofen)
-            depth = transforms.Normalize(mean=[2.8424503515351494],
+            depth = v2.Normalize(mean=[2.8424503515351494],
                                             std=[0.9932836506164299])(depth)
             
         # else:
@@ -118,9 +123,9 @@ class RGBD_loader(data.DataLoader):
         _, _, lidar_band = lidar2np.shape
         mask2np = np.expand_dims(mask2np, axis=2)
 
-        aug = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
-                                transforms.RandomVerticalFlip(p=0.5),
-                                transforms.RandomRotation(15)])
+        aug = v2.Compose([v2.RandomHorizontalFlip(p=0.5),
+                                v2.RandomVerticalFlip(p=0.5),
+                                v2.RandomRotation(15)])
 
         img = torch.cat((torch.from_numpy(gaofen2np), 
                          torch.from_numpy(lidar2np), 

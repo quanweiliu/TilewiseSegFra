@@ -461,6 +461,27 @@ def Label_loss(inputs, target, a, b):
 #     loss = (loss1 + loss2 + loss3) / 3
 #     return loss, loss1, loss2
 
+def multi_cross_entropy2d(input, target, ignore_index=-1):
+    out_feats = input[0]                     # [B, C, H, W]
+    aux_feats = input[1:]                    # list of [B, C, h', w']
+    aux_loss = []
+
+    _, _, h, w = out_feats.shape
+
+    for aux in aux_feats:
+        # Upsample aux prediction to main output size
+        aux = F.interpolate(aux, size=(h, w), mode='bilinear', align_corners=False)
+        ce = F.cross_entropy(aux, target, ignore_index=ignore_index)
+        aux_loss.append(ce)
+
+    # Main loss
+    loss1 = F.cross_entropy(out_feats, target, ignore_index=ignore_index)
+    loss2 = sum(aux_loss)
+    loss = loss1 + loss2
+
+    return loss, loss1, loss2
+
+
 def multiclass_multi_loss(input, target, a, b, classes, aux_weight=1):
     out_feats = input[0]                     # [B, C, H, W]
     aux_feats = input[1:]                    # list of [B, C, h', w']

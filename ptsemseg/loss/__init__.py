@@ -5,10 +5,11 @@ import torch.nn.functional as F
 
 from ptsemseg.loss.GapLoss import GapLoss, BinaryGapLoss, gaploss
 from ptsemseg.loss.cldice import dice_cldice_loss, bce_cldice_loss
-from ptsemseg.loss.loss import cross_entropy2d, new_dice_bce_loss, \
-                                focal_bce_loss, dice_bce_loss_re, \
-                                dice_bce_loss_re2, multi_loss, \
-                                multi_loss2, multi_loss3
+from ptsemseg.loss.loss import cross_entropy2d, multi_cross_entropy2d
+
+from ptsemseg.loss.loss import new_dice_bce_loss, focal_bce_loss, \
+                                dice_bce_loss_re, dice_bce_loss_re2, \
+                                multi_loss, multi_loss2, multi_loss3
 from ptsemseg.loss.loss import multiclass_ce_dice_loss
 from ptsemseg.loss.loss import multiclass_multi_loss
 from ptsemseg.loss.loss import focal_dice_loss
@@ -23,6 +24,7 @@ logger = logging.getLogger('ptsemseg')
 
 key2loss = {
             'cross_entropy2d': cross_entropy2d,
+            'multi_cross_entropy2d': multi_cross_entropy2d,
             'focal_dice_loss': focal_dice_loss,
             'focal_loss': focal_loss,
             'bce_loss': bce_loss,

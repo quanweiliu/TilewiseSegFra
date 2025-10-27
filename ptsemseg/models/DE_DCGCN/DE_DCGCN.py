@@ -82,8 +82,9 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.relu = nn.ReLU(inplace=True)
-        # self.para = torch.nn.Parameter(torch.ones((1, channel, 16, 16), dtype=torch.float32))
-        self.para = torch.nn.Parameter(torch.ones((1, channel, 32, 32), dtype=torch.float32))
+        # self.para = torch.nn.Parameter(torch.ones((1, channel, 16, 16), dtype=torch.float32))  # 128
+        # self.para = torch.nn.Parameter(torch.ones((1, channel, 32, 32), dtype=torch.float32))    # 256
+        self.para = torch.nn.Parameter(torch.ones((1, channel, 64, 64), dtype=torch.float32))  # 512
         self.adj = torch.nn.Parameter(torch.ones((channel, channel), dtype=torch.float32))
 
     def forward(self, x):
@@ -236,8 +237,8 @@ if __name__=="__main__":
     # print("output", output.shape)
 
     # 不同的尺寸，需要改 91-93 行的参数
-    x = torch.randn(4, bands1, 256, 256, device=device)
-    y = torch.randn(4, bands2, 256, 256, device=device)
+    x = torch.randn(4, bands1, 512, 512, device=device)
+    y = torch.randn(4, bands2, 512, 512, device=device)
     model = DEDCGCNEE(in_x=bands1, in_y=bands2, n_classes=20, classification="Multi").to(device)
     output = model(x, y)
     print("output", output.shape)

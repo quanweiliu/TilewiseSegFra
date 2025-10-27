@@ -6,6 +6,7 @@ import numpy as np
 import scipy.io as scio
 from torch.utils import data
 from torchvision import transforms
+from torchvision.transforms import v2
 import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
@@ -39,7 +40,7 @@ class ISPRS_loader(data.DataLoader):
     def __init__(self,
                  root,
                  split='train',
-                 img_size=512,
+                 img_size=[512, 512],
                  classes=6,
                  data_name="Vaihingen",
                  normalization="minMax",
@@ -47,8 +48,7 @@ class ISPRS_loader(data.DataLoader):
         self.root = root
         self.split = split
         self.classes = classes
-        self.img_size = (
-            img_size if isinstance(img_size, tuple) else (img_size, img_size))
+        self.img_size = img_size
         self.data_name = data_name
         self.normalization = normalization
         
@@ -75,8 +75,8 @@ class ISPRS_loader(data.DataLoader):
         mask2np = rasterio.open(mask_path).read().transpose(1, 2, 0)
         # print(gaofen2np.shape, lidar2np.shape, mask2np.shape)
 
-        real_image_size = gaofen2np.shape[-2]
-        if real_image_size != self.img_size[0]:
+        H, W, C = gaofen2np.shape
+        if H != self.img_size[0] or W != self.img_size[1]:
             print("Warning: image size not equal to setting size, resize it")
             gaofen2np, lidar2np, mask2np = self.scaleNorm(gaofen2np, lidar2np, mask2np)
         
@@ -89,6 +89,10 @@ class ISPRS_loader(data.DataLoader):
             gaofen, lidar, mask = self.is_aug(gaofen2np, lidar2np, mask2np)
         else:
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
+
+            # 合成数据
+            # lidar = v2.RandomPerspective(distortion_scale=0.8, p=1)(lidar)
+
         gaofen, lidar = self.norm(gaofen, lidar)
         # lidar = lidar.expand(3, -1, -1)
         return gaofen, lidar, mask.long()
@@ -128,18 +132,18 @@ class ISPRS_loader(data.DataLoader):
             gaofen = gaofen.float() / 255.0
 
             if self.data_name == "Vaihingen":
-                gaofen = transforms.Normalize(mean=[0.4731, 0.3206, 0.3182], 
+                gaofen = v2.Normalize(mean=[0.4731, 0.3206, 0.3182], 
                                                 std=[0.1970, 0.1306, 0.1276])(gaofen)
                 # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
                 lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
             
             elif self.data_name == "Potsdam":
-                gaofen = transforms.Normalize(mean=[0.349, 0.371, 0.347], 
+                gaofen = v2.Normalize(mean=[0.349, 0.371, 0.347], 
                                                 std=[0.1196, 0.1164, 0.1197])(gaofen) 
                 # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
                 lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
             else: # imagenet
-                gaofen = transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                gaofen = v2.Normalize(mean=[0.485, 0.456, 0.406], 
                                                 std=[0.229, 0.224, 0.225])(gaofen)
                 # lidar = (lidar - lidar.min()) / (lidar.max() - lidar.min())  # → [0, 1]
                 lidar = (lidar - lidar.mean(dim=(1, 2), keepdim=True)) / (lidar.std(dim=(1, 2), keepdim=True) + 1e-6)
@@ -185,9 +189,9 @@ class ISPRS_loader(data.DataLoader):
         _, _, lidar_band = lidar2np.shape
         mask2np = np.expand_dims(mask2np, axis=2)
 
-        aug = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
-                                transforms.RandomVerticalFlip(p=0.5),
-                                transforms.RandomRotation(15)])
+        aug = v2.Compose([v2.RandomHorizontalFlip(p=0.5),
+                                v2.RandomVerticalFlip(p=0.5),
+                                v2.RandomRotation(15)])
 
         img = torch.cat((torch.from_numpy(gaofen2np), 
                          torch.from_numpy(lidar2np), 

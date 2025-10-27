@@ -1,28 +1,28 @@
 # Multimodal semantic segmentation
 
 ## Summary
-| Code      | Paper |  Journal |  Year | 
-| ----------- | ----------- |----------- |----------- |
+| Code     |Backbone  | Paper |  Journal |  Year | 
+| ----------- | ----------- | ----------- |----------- |----------- |
 ||**Single modality models**||
-| [ABCNet](https://github.com/lironui/ABCNet)      | [ABCNet: Attentive Bilateral Contextual Network for Efficient Semantic Segmentation of Fine-Resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | ISPRS       | 2021       | 
-| [AMSUnet](https://github.com/llluochen/AMSUnet)      | [AMSUnet: A neural network using atrous multi-scale convolution for medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0010482523005851)       | Computers in Biology and Medicine       | 2023    | 
+| [ABCNet](https://github.com/lironui/ABCNet)     | ResNet | [ABCNet: Attentive Bilateral Contextual Network for Efficient Semantic Segmentation of Fine-Resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621002379)       | ISPRS       | 2021       | 
+| [AMSUnet](https://github.com/llluochen/AMSUnet)     |U-Net-like   | [AMSUnet: A Neural Network using Atrous Multi-scale Convolution for Medical Image Segmentation](https://www.sciencedirect.com/science/article/pii/S0010482523005851)       | Computers in Biology and Medicine       | 2023    | 
 ||**Multimodal models**||
-| [ACNet](https://github.com/anheidelonghu/ACNet)      | [ACNET: Attention Based Network to Exploit Complementary Features for RGBD Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/8803025)       | ICIP       | 2019       |
-| [MCANet](https://github.com/yisun98/SOLC/tree/main)      | [MCANet: A joint semantic segmentation framework of optical and SAR images for land use classification](https://www.sciencedirect.com/science/article/pii/S0303243421003457)       | JAG       | 2021       |
-| [SOLC](https://github.com/yisun98/SOLC/tree/main)      | [Remote Sensing Sar-Optical Land-use Classfication](https://github.com/yisun98/SOLC/tree/main)       | GitHub       | 2022       |
-| FAFNet      | [FAFNet: Fully aligned fusion network for RGBD semantic segmentation based on hierarchical semantic ﬂows](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | IET IP       | 2022       |
-| [CMFNet](https://github.com/sstary/SSRS/tree/main/CMFNet)      | [A Crossmodal Multiscale Fusion Network for Semantic Segmentation of Remote Sensing Data](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | JSTAR       | 2022       |
-| CMANet      | [CMANet: Cross-Modality Attention Network for Indoor-Scene Semantic Segmentation](https://www.mdpi.com/1424-8220/22/21/8520)       | Sensors      | 2022       |
-| CANet      | [CANet: Co-attention network for RGB-D semantic segmentation](https://www.sciencedirect.com/science/article/pii/S0031320321006440)       | PR       | 2022       |
-| CMGFNet      | [CMGFNet: A deep cross-modal gated fusion network for building extraction from very high-resolution remote sensing images](https://www.sciencedirect.com/science/article/pii/S0924271621003294)       | ISPRS       | 2022       |
-| [PCGNet](https://github.com/hmdliu/PCGNet)      | [Pyramid-Context Guided Feature Fusion for RGB-D Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/9859353)       | ICMEW       | 2022       |
-| [DE-DCGCN-EE](https://github.com/YangLibuaa/DE-DCGCN-EE)      | [Dual Encoder-Based Dynamic-Channel Graph Convolutional Network With Edge Enhancement for Retinal Vessel Segmentation](https://ieeexplore.ieee.org/abstract/document/9714302)       | ISPRS       | 2022       |
-| [SFAF-MA](https://github.com/hexunjie/SFAF-MA)      | [SFAF-MA: Spatial Feature Aggregation and Fusion With Modality Adaptation for RGB-Thermal Semantic Segmentation](https://ieeexplore.ieee.org/document/10103760)       | TIM       | 2023       |
-| [PACSCNet](https://github.com/F8AoMn/PACSCNet)      | [Progressive Adjacent-Layer coordination symmetric cascade network for semantic segmentation of Multimodal remote sensing images](https://www.sciencedirect.com/science/article/pii/S0957417423025010)       | ESA       | 2023       |
-| DECCFNet      | [A Deep Cross-Modal Fusion Network for Road Extraction With High-Resolution Imagery and LiDAR Data](https://ieeexplore.ieee.org/document/10439005)       | TGRS       | 2024       |
-| [AsymFormer](https://github.com/Fourier7754/AsymFormer)      | [AsymFormer: Asymmetrical Cross-Modal Representation Learning for Mobile Platform Real-Time RGB-D Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024W/USM/papers/Du_AsymFormer_Asymmetrical_Cross-Modal_Representation_Learning_for_Mobile_Platform_Real-Time_RGB-D_CVPRW_2024_paper.pdf)       | CVPR       | 2024       |
-| [MGFNet](https://github.com/yeyuanxin110/YESeg-OPT-SAR)      | [MGFNet: An MLP-dominated gated fusion network for semantic segmentation of high-resolution multi-modal remote sensing images](https://www.sciencedirect.com/science/article/pii/S1569843224005971)       | JAG       | 2024       |
-| [MGFNet](https://github.com/DrWuHonglin/MGFNet)      | [MGFNet: a multiscale gated fusion network for multimodal semantic segmentation](https://link.springer.com/article/10.1007/s00371-025-03912-x)       | The Visual Computer       | 2025       |
+| [ACNet](https://github.com/anheidelonghu/ACNet)    | ResNet    | [ACNET: Attention Based Network to Exploit Complementary Features for RGBD Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/8803025)       | ICIP       | 2019       |
+| [MCANet](https://github.com/yisun98/SOLC/tree/main)     |U-Net-like   | [MCANet: A joint Semantic Segmentation Framework of Optical and SAR Images for Land Use Classification](https://www.sciencedirect.com/science/article/pii/S0303243421003457)       | JAG       | 2021       |
+| [SOLC](https://github.com/yisun98/SOLC/tree/main)    |U-Net-like    | [Remote Sensing Sar-Optical Land-use Classfication](https://github.com/yisun98/SOLC/tree/main)       | GitHub       | 2022       |
+| FAFNet      |ResNet  | [FAFNet: Fully Aligned Fusion Network for RGBD Semantic Segmentation Based on Hierarchical Semantic Flows](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | IET IP       | 2022       |
+| [CMFNet](https://github.com/sstary/SSRS/tree/main/CMFNet)    |SegNet    | [A Crossmodal Multiscale Fusion Network for Semantic Segmentation of Remote Sensing Data](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/ipr2.12614)       | JSTAR       | 2022       |
+| CMANet     |ResNet   | [CMANet: Cross-Modality Attention Network for Indoor-Scene Semantic Segmentation](https://www.mdpi.com/1424-8220/22/21/8520)       | Sensors      | 2022       |
+| CANet     |ResNet   | [CANet: Co-attention network for RGB-D semantic segmentation](https://www.sciencedirect.com/science/article/pii/S0031320321006440)       | PR       | 2022       |
+| CMGFNet     |ResNet   | [CMGFNet: A Deep Cross-modal Gated Fusion Network for Building Extraction from Very High-resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621003294)       | ISPRS       | 2022       |
+| [PCGNet](https://github.com/hmdliu/PCGNet)    |ResNet    | [Pyramid-Context Guided Feature Fusion for RGB-D Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/9859353)       | ICMEW       | 2022       |
+| [DE-DCGCN-EE](https://github.com/YangLibuaa/DE-DCGCN-EE)    | U-Net-like   | [Dual Encoder-Based Dynamic-Channel Graph Convolutional Network With Edge Enhancement for Retinal Vessel Segmentation](https://ieeexplore.ieee.org/abstract/document/9714302)       | ISPRS       | 2022       |
+| [SFAF-MA](https://github.com/hexunjie/SFAF-MA)    | ResNet  | [SFAF-MA: Spatial Feature Aggregation and Fusion With Modality Adaptation for RGB-Thermal Semantic Segmentation](https://ieeexplore.ieee.org/document/10103760)       | TIM       | 2023       |
+| [PACSCNet](https://github.com/F8AoMn/PACSCNet)     |Res2Net   | [Progressive Adjacent-Layer Coordination Symmetric Cascade Network for Semantic Segmentation of Multimodal Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0957417423025010)       | ESA       | 2023       |
+| DECCFNet     | ResNet   | [A Deep Cross-Modal Fusion Network for Road Extraction With High-Resolution Imagery and LiDAR Data](https://ieeexplore.ieee.org/document/10439005)       | TGRS       | 2024       |
+| [AsymFormer](https://github.com/Fourier7754/AsymFormer)    |MiT + ConvNeXt   | [AsymFormer: Asymmetrical Cross-Modal Representation Learning for Mobile Platform Real-Time RGB-D Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024W/USM/papers/Du_AsymFormer_Asymmetrical_Cross-Modal_Representation_Learning_for_Mobile_Platform_Real-Time_RGB-D_CVPRW_2024_paper.pdf)       | CVPR       | 2024       |
+| [MGFNet](https://github.com/yeyuanxin110/YESeg-OPT-SAR)   | ResNet + HRNet | [MGFNet: An MLP-dominated Gated Fusion Network for Semantic Segmentation of High-resolution Multi-modal Remote Sensing images](https://www.sciencedirect.com/science/article/pii/S1569843224005971)       | JAG       | 2024       |
+| [MGFNet](https://github.com/DrWuHonglin/MGFNet)    | ResNet   | [MGFNet: a Multiscale Gated Fusion Network for Multimodal Semantic Segmentation](https://link.springer.com/article/10.1007/s00371-025-03912-x)       | The Visual Computer       | 2025       |
 
 ## Description
 This repository proposed a new taxonomy to descibe existed tile based image semantic segmenation models.

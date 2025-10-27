@@ -18,6 +18,7 @@ model:
   # arch: DE_DCGCN
   # arch: MGFNet_Wei50
   arch: MGFNet_Wu34
+  # arch: MGFNet_Wu50
   # arch: HAFNetE
   # arch: PACSCNet50
   # arch: PACSCNet101
@@ -43,23 +44,23 @@ data:
   # # modality: lidar
   # # modality: sar
 
-  # name: Vaihingen
-  # path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
-  # train_split: train
-  # val_split: val
-  # test_split: test
-  # img_size: [256, 256]
-  # bands1: 3
-  # bands2: 1
-  # classes: 6
-  # train_epoch: 100
-  # batch_size: 32
-  # ignore_index: 5
-  # normalization: standard # zScore, standard, minMax
-  # classification: Multi
-  # modality: rgb
-  # # modality: lidar
-  # # modality: sar
+  name: Vaihingen
+  path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  train_split: train
+  val_split: val
+  test_split: test
+  img_size: [256, 256]
+  bands1: 3
+  bands2: 1
+  classes: 6
+  train_epoch: 100
+  batch_size: 32
+  ignore_index: 5
+  normalization: standard # zScore, standard, minMax
+  classification: Multi
+  modality: rgb
+  # modality: lidar
+  # modality: sar
 
   # name: Potsdam
   # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
@@ -98,23 +99,23 @@ data:
   # # modality: lidar
   # # modality: sar
 
-  name: NYUv2
-  path: /home/icclab/Documents/lqw/DatasetMMF/NYUv2
-  train_split: train
-  val_split: test
-  test_split: test
-  img_size: [480, 640]
-  bands1: 3
-  bands2: 1
-  classes: 40
-  train_epoch: 100
-  batch_size: 4
-  ignore_index: -1
-  normalization: standard # zScore, standard, minMax
-  classification: Multi
-  modality: rgb
-  # modality: lidar
-  # modality: sar
+  # name: NYUv2
+  # path: /home/icclab/Documents/lqw/DatasetMMF/NYUv2
+  # train_split: train
+  # val_split: test
+  # test_split: test
+  # img_size: [480, 640]
+  # bands1: 3
+  # bands2: 1
+  # classes: 40
+  # train_epoch: 100
+  # batch_size: 4
+  # ignore_index: -1
+  # normalization: standard # zScore, standard, minMax
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
 
 training:
   GPUS: [0, 1]
@@ -132,17 +133,16 @@ training:
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-
   loss:
     # name: 'dice_bce_loss_re'
 
-    # name: 'multiclass_ce_dice_loss'
-    # classes: 6
-    # a: 1
-    # b: 1
+    name: 'multiclass_ce_dice_loss'
+    classes: 6
+    a: 1
+    b: 1
 
-    name: 'cross_entropy2d'
-    ignore_index: -1
+    # name: 'cross_entropy2d'
+    # ignore_index: -1
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
     # name: 'gaploss'

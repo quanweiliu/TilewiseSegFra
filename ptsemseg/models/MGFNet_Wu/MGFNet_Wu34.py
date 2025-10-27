@@ -440,7 +440,6 @@ class MGFNet_Wu34(nn.Module):
 
         input_rgb1 = self.rgb_layer1(input_rgb)
         input_dsm1 = self.dsm_layer1(input_dsm)
-        # print("input_rgb1:", input_rgb1.shape, "input_dsm1:", input_dsm1.shape)
         if SE:
             fusion1 = self.se_layer1(input_rgb1, input_dsm1)
         else:
@@ -449,7 +448,6 @@ class MGFNet_Wu34(nn.Module):
 
         input_rgb2 = self.rgb_layer2(fusion1)
         input_dsm2 = self.dsm_layer2(input_dsm1)
-        # print("input_rgb2:", input_rgb2.shape, "input_dsm2:", input_dsm2.shape)
         input_rgb2, input_dsm2 = self.csam_layer2(input_rgb2, input_dsm2)
         if SE:
             fusion2 = self.se_layer2(input_rgb2, input_dsm2)
@@ -460,9 +458,7 @@ class MGFNet_Wu34(nn.Module):
         # deep RGB
         input_rgb3 = self.rgb_layer3(fusion2)
         input_dsm3 = self.dsm_layer3(input_dsm2)
-        # print("input_rgb3:", input_rgb3.shape, "input_dsm3:", input_dsm3.shape)
         input_rgb3, input_dsm3 = self.csam_layer3(input_rgb3, input_dsm3)
-        # print("input_rgb3:", input_rgb3.shape, "input_dsm3:", input_dsm3.shape)
         if SE:
             fusion3 = self.se_layer3(input_rgb3, input_dsm3)
         else:

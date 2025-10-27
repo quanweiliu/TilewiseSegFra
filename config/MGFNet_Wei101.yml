@@ -5,6 +5,7 @@ model:
   # arch: baseline34_single_decoder2
   # arch: baseline34_double
   # arch: baseline34
+  # arch: AsymFormer_b0
   # arch: ACNet
   # arch: CANet50
   # arch: CMANet
@@ -15,8 +16,8 @@ model:
   # arch: DE_CCFNet34_3B
   # arch: CMFNet
   # arch: DE_DCGCN
-  arch: MCANet
   # arch: MGFNet_Wei50
+  arch: MGFNet_Wei101
   # arch: MGFNet_Wu34
   # arch: HAFNetE
   # arch: PACSCNet50
@@ -48,51 +49,51 @@ data:
   train_split: train
   val_split: val
   test_split: test
-  img_size: 256
+  img_size: [256, 256]
   bands1: 3
   bands2: 1
   classes: 6
   train_epoch: 100
-  batch_size: 24
+  batch_size: 32
   ignore_index: 5
   normalization: standard # zScore, standard, minMax
   classification: Multi
-  modality: rgb
-  # modality: lidar
-  # modality: sar
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
 
   # name: Potsdam
   # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
   # train_split: train
   # val_split: val
   # test_split: test
-  # img_size: 512
+  # img_size: [512, 512]
   # bands1: 3
   # bands2: 1
   # classes: 6
   # train_epoch: 100
   # batch_size: 8
   # ignore_index: 5
+  # normalization: standard # zScore, standard, minMax
   # classification: Multi
   # modality: rgb
   # # modality: lidar
   # # modality: sar
 
-  # name: ISA
-  # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg
-  # # path: /home/icclab/Documents/lqw/DatasetMMF/ISASeg_train
+  # name: NYUv2
+  # path: /home/icclab/Documents/lqw/DatasetMMF/NYUv2
   # train_split: train
-  # val_split: val
+  # val_split: test
   # test_split: test
-  # # img_size: 1536
-  # img_size: 768
+  # img_size: [480, 640]
   # bands1: 3
-  # bands2: 12
-  # classes: 1
+  # bands2: 1
+  # classes: 40
   # train_epoch: 100
   # batch_size: 8
-  # ignore_index: 5
-  # classification: Binary
+  # ignore_index: -1
+  # normalization: standard # zScore, standard, minMax
+  # classification: Multi
   # modality: rgb
   # # modality: lidar
   # # modality: sar
@@ -104,12 +105,12 @@ training:
   n_workers: 6
   optimizer:
     name: 'adam'
-    lr: 0.001
-#    weight_decay: 0.0005
-    betas: [0.5, 0.999]
+    lr: 0.0003
   scheduler:
-    factor: 0.1
+    factor: 0.6
     patience: 7
+#    weight_decay: 0.0005
+#    momentum: 0.95
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
@@ -117,20 +118,19 @@ training:
   loss:
     # name: 'dice_bce_loss_re'
 
-    name: 'cross_entropy2d'
-
     # name: 'multiclass_ce_dice_loss'
     # classes: 6
+    # a: 1
+    # b: 1
 
+    name: 'cross_entropy2d'
+    ignore_index: -1
     # name: 'dice_loss'
     # name: 'focal_bce_loss'
     # name: 'gaploss'
     # name: 'multi_loss'
     # name: 'multi_loss2'
     # name: 'multi_loss3'
-
-    # a: 1
-    # b: 1
 #    c: 1
 #    weight: [0.93, 1.07]
 

@@ -1271,15 +1271,14 @@ if __name__ == "__main__":
 
     bands1 = 3
     bands2 = 1
-    image_size_h = 256
-    image_size_w = 256
+    image_size = [256, 256]
     classes = 2
-    rgb = torch.randn(4, bands1, image_size_h, image_size_w, device=device)
-    dsm = torch.randn(4, bands2, image_size_h, image_size_w, device=device)
+    rgb = torch.randn(1, bands1, *(image_size), device=device)
+    dsm = torch.randn(1, bands2, *(image_size), device=device)
     # rgb = torch.randn(4, bands1, 128, 128, device=device)
     # dsm = torch.randn(4, bands2, 128, 128, device=device)
 
-    model = CMFNet(bands1=bands1, bands2=bands2, out_channels=classes, classification="Multi", image_size=[image_size_h, image_size_w]).to(device)
+    model = CMFNet(bands1=bands1, bands2=bands2, out_channels=classes, classification="Multi", image_size=image_size).to(device)
     # load_init_weight(model)
 
     output = model(rgb, dsm)

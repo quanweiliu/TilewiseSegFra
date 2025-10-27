@@ -33,6 +33,7 @@ from ptsemseg.optimizers import get_optimizer
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results, create_lr_scheduler
 
+
 def train(cfg, rundir):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -60,8 +61,6 @@ def train(cfg, rundir):
     normalization = cfg['data']['normalization']
     classification = cfg["data"]["classification"]
     print("img_size", img_size)
-
-
 
     # Setup Dataloader
     if data_name == "OSTD":
@@ -114,6 +113,7 @@ def train(cfg, rundir):
 
     # 单一 学习率 更新 (?)
     optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items() if k != 'name'}
+    # print("optimizer_params:", optimizer_params)
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
     # optimizer=torch.optim.Adam(model.parameters(), lr=cfg['training']['optimizer']['lr'],
     #                            betas=[cfg['training']['optimizer']['momentum'], 0.999],
@@ -130,7 +130,7 @@ def train(cfg, rundir):
         print(cfg['training']['scheduler']['gamma'])
     elif cfg['model']['arch'] == "AsymFormer_b0":
         print("use LambdaLR and warmup")
-        scheduler = create_lr_scheduler(optimizer, len(trainloader), args.epochs, warmup=True)
+        scheduler = create_lr_scheduler(optimizer, len(trainloader), epoch, warmup=True)
     else:
         scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.6, patience=7, min_lr=0.0000001)
     lr  = scheduler.get_last_lr()
@@ -138,25 +138,20 @@ def train(cfg, rundir):
 
     # loss_function
     loss_fn = get_loss_function(cfg)
-
     ################################# FLOPs and Params ###################################################
-    # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
-    # # input = torch.randn(2, 3, 128, 128).to(device)
-    # input=(torch.randn(2, 193, 128, 128).to(device), torch.randn(2, 3, 128, 128).to(device))
-    # # print(input.shape)
 
-    # flops, params = profile(model, inputs=input)
-    # # flops, params = profile(model, inputs=(torch.randn(2, hsi_bands).to(args.device), torch.randn(2, sar_bands).to(args.device)))
+    input=(torch.randn(1, 3, 256, 256).to(device), torch.randn(1, 1, 256, 256).to(device))
+    # print(input.shape)
 
-    # flops, params = clever_format([flops, params])
-    # print('# Model FLOPs: {}'.format(flops))
-    # print('# Model Params: {}'.format(params))
+    # model.eval()
+    flops, params = profile(model, inputs=input)
 
+    flops, params, trainable_params = clever_format([flops, params, trainable_params])
+    print('# Model FLOPs: {}'.format(flops))
+    print('# Model Params: {}'.format(params))
+    print('# Trainable Params: {}'.format(trainable_params))
 
-    # 初始化 log-dir 用于后续画图
-    logger2 = initLogger(cfg['model']['arch'], rundir)
-
-################################# retrain ###################################################
+# ################################# retrain ###################################################
     if args.model_path is not None:
         resume = torch.load(args.model_path, weights_only=False)
         start_epoch = resume["epoch"]
@@ -170,7 +165,10 @@ def train(cfg, rundir):
     else:
         start_epoch = 0
         print("start from scratch, no model loaded")
-################################# train ###################################################
+# ################################# train ###################################################
+    # 初始化 log-dir 用于后续画图
+    logger2 = initLogger(cfg['model']['arch'], rundir)
+
     results_train = []
     results_val = []
 
@@ -216,9 +214,9 @@ def train(cfg, rundir):
         time_meter.update(time.time() - start_ts)
 
         ############## print result for each train epoch ############################
+        train_score, train_class_iou = running_metrics_train.get_scores()
         print("Epoch [{:d}/{:d}]  Loss: {:.4f} Time/Image: {:.4f}".format(
             i, cfg['data']['train_epoch'], loss.item(), time_meter.avg))
-        train_score, train_class_iou = running_metrics_train.get_scores()
 
         # store results
         results_train.append({'epoch': i, 
@@ -280,10 +278,6 @@ def train(cfg, rundir):
             # save best model by mIoU
             val_IoU = np.nanmean(score["mIoU  \t\t"])
             scheduler.step(val_IoU)
-            # if i <= warm_up:
-            #     scheduler.step()
-            # else:
-            #     scheduler2.step(val_IoU)
             if val_IoU > best_iou:
                 best_iou = val_IoU
                 torch.save({
@@ -334,19 +328,21 @@ if __name__ ==  "__main__":
         type = str,
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_double.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_double.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AsymFormer_b0.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/CMFNet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet18.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_CCFNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/DE_DCGCN.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet50.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet101.yml",
+        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/FAFNet101.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MCANet.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei50.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wei101.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MGFNet_Wu50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PACSCNet50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet18.yml",
+        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/PCGNet34.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SOLC.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA50.yml",
         # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/SFAFMA502.yml",
@@ -357,11 +353,11 @@ if __name__ ==  "__main__":
         type = str,
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai"),
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
+        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_OSTD"),
         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2"),
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2"),
+        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st"),
         help="Path to the saved model")
     
     parser.add_argument(
@@ -373,7 +369,6 @@ if __name__ ==  "__main__":
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
-    
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
     rundir = os.path.join(args.results, str(run_id))
     os.makedirs(rundir, exist_ok=True)

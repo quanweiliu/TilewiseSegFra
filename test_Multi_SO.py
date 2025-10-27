@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import cv2
 import csv
@@ -129,31 +129,31 @@ def train_id_to_color(classes):
     return id_to_color, legend_elements
 
 
-def printMetrics(submit_path, mask_path, running_metrics, log):
-    img_list = os.listdir(submit_path)
-    # print("img_list: ", img_list)
+# def printMetrics(submit_path, mask_path, running_metrics, log):
+#     img_list = os.listdir(submit_path)
+#     # print("img_list: ", img_list)
 
-    for img in img_list:
-        pred = tifffile.imread(os.path.join(submit_path, img))
-        # mask = tifffile.imread(os.path.join(mask_path, img))
-        # pred = scio.loadmat(os.path.join(mask_path, img[:-4]))['pred']
-        mask = scio.loadmat(os.path.join(mask_path, img[:-4]))['map']
-        # print("mask", np.unique(mask), "pred", np.unique(pred))
-        running_metrics.update(mask, pred)
+#     for img in img_list:
+#         pred = tifffile.imread(os.path.join(submit_path, img))
+#         # mask = tifffile.imread(os.path.join(mask_path, img))
+#         # pred = scio.loadmat(os.path.join(mask_path, img[:-4]))['pred']
+#         mask = scio.loadmat(os.path.join(mask_path, img[:-4]))['map']
+#         # print("mask", np.unique(mask), "pred", np.unique(pred))
+#         running_metrics.update(mask, pred)
 
-    score, class_iou = running_metrics.get_scores()
-    log.write('************ test_result **********\n')
-    log.write('{}: '.format(args.TTA) + '\n')
+#     score, class_iou = running_metrics.get_scores()
+#     log.write('************ test_result **********\n')
+#     log.write('{}: '.format(args.TTA) + '\n')
 
-    for k, v in score.items():
-        # print(k, v)
-        log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
+#     for k, v in score.items():
+#         # print(k, v)
+#         log.write('{}: {}'.format(k, round(v * 100, 2)) + '\n')
     
-    log.flush()
-    log.write('Finish!\n')
-    log.close()
+#     log.flush()
+#     log.write('Finish!\n')
+#     log.close()
 
-    running_metrics.reset()
+#     running_metrics.reset()
 
 def sort_key(filename, args):
     # 将文件名前缀（数字部分）提取出来并转换为整数
@@ -192,9 +192,9 @@ def test(args):
         print("############ we use the ISPRS dataset ############")
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
-        test_dataset = ISPRS_loader(args.imgs_path, args.split, 
-                                    args.img_size, args.classes, 
-                                    args.data_name, args.normalization, 
+        test_dataset = ISPRS_loader(args.imgs_path, args.split, \
+                                    args.img_size, args.classes, \
+                                    args.data_name, args.normalization, \
                                     is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
 
@@ -325,7 +325,7 @@ if __name__=='__main__':
                                 "MCANet", "MGFNet50", 'MGFNet_Wei50', "MGFNet_Wu34", "MGFNet_Wu50", 
                                 "PCGNet18", "PCGNet34", 'RDFNet50', "SFAFMA50", 'SOLC', 'PACSCNet50', 
                                 'FAFNet50', 'FAFNet101'],
-                        default="AsymFormer_b0", help="the model architecture that should be trained")
+                        default="FAFNet101", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -337,20 +337,23 @@ if __name__=='__main__':
     parser.add_argument("--file_path", nargs = "?", type = str,
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-2227-AsymFormer_b0"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-2227-AsymFormer_b0"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1605-CMFNet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0930-0817-DE_CCFNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0810-2232-DE_CCFNet34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0927-1135-DE_DCGCN"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-2347-FAFNet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0925-1308-FAFNet101"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-0945-MCANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0926-2242-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1240-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1013-1101-DE_DCGCN"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1249-FAFNet50"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1430-FAFNet101"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1008-1403-MCANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-1231-MGFNet_Wei50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1017-2244-MGFNet_Wei101"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-1452-MGFNet_Wu34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-2344-PACSCNet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1015-2302-MGFNet_Wu50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-0347-PACSCNet50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-0909-PCGNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0929-0816-SOLC"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-1416-SFAFMA50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1018-0945-PCGNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1013-1107-SOLC"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1007-2234-SFAFMA50"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -370,6 +373,6 @@ if __name__=='__main__':
     args.batch_size = cfg['training']['test_batch_size']
     args.ignore_index = cfg['data']['ignore_index']
     args.threshold = cfg['threshold']
-    print("args", args.img_size, args.classes, args.ignore_index, args.threshold)
+    print("args", args.img_size, args.classes, args.ignore_index, args.threshold, args.normalization)
     test(args)
 

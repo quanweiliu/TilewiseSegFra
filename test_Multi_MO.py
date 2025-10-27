@@ -10,6 +10,7 @@ import tifffile
 import argparse
 import numpy as np
 import pandas as pd
+from PIL import Image
 from tqdm import tqdm
 import scipy.io as scio
 from collections import namedtuple
@@ -19,8 +20,9 @@ import torch
 from torch.utils import data
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
+from dataLoader.OSTD_loader2 import OSTD_loader2
 from dataLoader.ISPRS_loader import ISPRS_loader
-from dataLoader.ISPRS_loader3 import ISPRS_loader3
+from dataLoader.RGBD_loader import RGBD_loader
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -66,6 +68,50 @@ def train_id_to_color(classes):
             Label(classes[8], 8, (250, 250, 0)), 
             Label(classes[9], 9, (0, 255, 0)) 
         ]
+    elif len(classes) == 41:
+        drivables = [
+            Label(classes[0], 0, (0, 0, 0)), # 0=background
+            Label(classes[1], 1, (148, 65, 137)),
+            Label(classes[2], 2, (255, 116, 69)),
+            Label(classes[3], 3, (86, 156, 137)),
+            Label(classes[4], 4, (202, 179, 158)),
+            Label(classes[5], 5, (155, 99, 235)),
+            Label(classes[6], 6, (161, 107, 108)),
+            Label(classes[7], 7, (133, 160, 103)),
+            Label(classes[8], 8, (76, 152, 126)),
+            Label(classes[9], 9, (84, 62, 35)),
+            Label(classes[10], 10, (44, 80, 130)),
+            Label(classes[11], 11, (31, 184, 157)),
+            Label(classes[12], 12, (101, 144, 77)),
+            Label(classes[13], 13, (23, 197, 62)),
+            Label(classes[14], 14, (141, 168, 145)),
+            Label(classes[15], 15, (142, 151, 136)),
+            Label(classes[16], 16, (115, 201, 77)),
+            Label(classes[17], 17, (100, 216, 255)),
+            Label(classes[18], 18, (57, 156, 36)),
+            Label(classes[19], 19, (88, 108, 129)),
+            Label(classes[20], 20, (105, 129, 112)),
+            Label(classes[21], 21, (42, 137, 126)),
+            Label(classes[22], 22, (155, 108, 249)),
+            Label(classes[23], 23, (166, 148, 143)),
+            Label(classes[24], 24, (81, 91, 87)),
+            Label(classes[25], 25, (100, 124, 51)),
+            Label(classes[26], 26, (73, 131, 121)),
+            Label(classes[27], 27, (157, 210, 220)),
+            Label(classes[28], 28, (134, 181, 60)),
+            Label(classes[29], 29, (221, 223, 147)),
+            Label(classes[30], 30, (123, 108, 131)),
+            Label(classes[31], 31, (161, 66, 179)),
+            Label(classes[32], 32, (163, 221, 160)),
+            Label(classes[33], 33, (31, 146, 98)),
+            Label(classes[34], 34, (99, 121, 30)),
+            Label(classes[35], 35, (49, 89, 240)),
+            Label(classes[36], 36, (116, 108, 9)),
+            Label(classes[37], 37, (161, 176, 169)),
+            Label(classes[38], 38, (80, 29, 135)),
+            Label(classes[39], 39, (177, 105, 197)),
+            Label(classes[40], 40, (139, 110, 246))
+            ]
     else:
         raise ValueError("Unsupported number of classes: {}".format(len(classes)))
     # print("drivables", drivables)
@@ -147,15 +193,30 @@ def test(args):
         imgname_list = sorted(os.listdir(os.path.join(args.imgs_path, 'test', 'images256')))
         classes = ['ImpSurf', 'Building', 'Car', 'Tree', 'LowVeg', 'Clutter'] # 其中 Clutter # 是指 background
         test_dataset = ISPRS_loader(args.imgs_path, args.split, \
-                                    args.img_size, args.classes,  \
+                                    args.img_size, args.classes, \
                                     args.data_name, args.normalization, \
                                     is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
+
+    elif args.data_name == "NYUv2":
+        txt_path = os.path.join(args.imgs_path, args.split + '.txt')
+        with open(os.path.join(txt_path), "r") as f:
+            imgname_list = [x.strip() for x in f.readlines() if len(x.strip()) > 0]
+        classes = ['Background', 'Wall', 'Floor', 'Cabinet', 'Bed', 'Chair', 'Sofa', 
+                   'Table', 'Door', 'Window',  'Bookshelf', 'Picture', 'Counter', 
+                   'Blind', 'Desk', 'Shelf', 'Curtain', 'Dresser', 'Pillow', 'Mirror', 
+                   'Mat', 'Cloths', 'Ceiling', 'Books', 'Refridg', 'TV', 'Paper', 
+                   'Towel', 'Shower', 'Box', 'Board', 'Person', 'Stand', 'Toilet', 
+                   'Sink', 'Lamp', 'Bathtub', 'Bag', 'Othstr', 'Othfurn', 'Otherprop'] 
+        test_dataset = RGBD_loader(args.imgs_path, args.split, args.img_size, args.classes, 
+                               args.data_name, args.normalization, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes)
+
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
 
     id_to_color, legend_elements = train_id_to_color(classes)
-    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.classification).to(args.device)
+    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.classification, args.img_size).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)
@@ -164,11 +225,11 @@ def test(args):
     print("successfully load model from {} at {}".format(args.model_path, epoch))
     
     # plot_training_results
-    savefig_path = os.path.split(args.model_path)[0]
-    results_train = pd.DataFrame(checkpoint['results_train'])
-    results_val = pd.DataFrame(checkpoint['results_val'])
+    # savefig_path = os.path.split(args.model_path)[0]
+    # results_train = pd.DataFrame(checkpoint['results_train'])
+    # results_val = pd.DataFrame(checkpoint['results_val'])
     
-    plot_training_results(results_train, results_val, args.model, savefig_path)
+    # plot_training_results(results_train, results_val, args.model, savefig_path)
 
     model.to(args.device)
 
@@ -268,7 +329,7 @@ if __name__=='__main__':
                                  'CMANet', \
                                  'CMGFNet18', \
                                  'CMGFNet34'],
-                        default='CMGFNet18', help="the model architecture that should be trained")    
+                        default='CMGFNet34', help="the model architecture that should be trained")    
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -280,8 +341,9 @@ if __name__=='__main__':
     parser.add_argument("--file_path", nargs = "?", type = str, \
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0929-2319-ACNet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1759-CANet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0925-0126-CMANet"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-0103-CMGFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-0844-CMANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-0103-CMGFNet18"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1015-1045-CMGFNet34"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 

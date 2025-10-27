@@ -85,9 +85,9 @@ class MGFM(nn.Module):
         return f
 
 class HRnet_Backbone(nn.Module):
-    def __init__(self, in_channels, backbone = 'hrnetv2_w18', pretrained = False):
+    def __init__(self, in_channels, backbone='hrnetv2_w18', pretrained=False):
         super(HRnet_Backbone, self).__init__()
-        self.model = hrnet_classification(in_channels, backbone = backbone, pretrained = pretrained)
+        self.model = hrnet_classification(in_channels, backbone=backbone, pretrained=pretrained)
         del self.model.incre_modules
         del self.model.downsamp_modules
         del self.model.final_layer
