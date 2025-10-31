@@ -49,11 +49,11 @@ def train_id_to_color(classes):
     elif len(classes) == 6:
         drivables = [ 
             Label(classes[0], 0, (255, 255, 255)), 
-            Label(classes[1], 1, (0, 0, 255)), 
-            Label(classes[2], 2, (0, 255, 255)), 
+            Label(classes[1], 1, (255, 0, 0)), 
+            Label(classes[2], 2, (255, 255, 0)), 
             Label(classes[3], 3, (0, 255, 0)), 
-            Label(classes[4], 4, (255, 255, 0)), 
-            Label(classes[5], 5, (255, 0, 0))
+            Label(classes[4], 4, (0, 255, 255)), 
+            Label(classes[5], 5, (0, 0, 255))
         ]
     elif len(classes) == 10:
         drivables = [ 
@@ -291,7 +291,7 @@ def test(args):
 
         ############################### save pred image ###############################
             if args.save_img:
-                pred = pred.reshape(args.img_size, args.img_size)
+                pred = pred.reshape(*args.img_size)
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred)
                 # tifffile.imwrite(os.path.join(out_path, str(img_id) + '.tif'), pred.astype(np.uint8))
@@ -325,7 +325,7 @@ if __name__=='__main__':
                                 "MCANet", "MGFNet50", 'MGFNet_Wei50', "MGFNet_Wu34", "MGFNet_Wu50", 
                                 "PCGNet18", "PCGNet34", 'RDFNet50', "SFAFMA50", 'SOLC', 'PACSCNet50', 
                                 'FAFNet50', 'FAFNet101'],
-                        default="FAFNet101", help="the model architecture that should be trained")
+                        default="AsymFormer_b0", help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -337,13 +337,13 @@ if __name__=='__main__':
     parser.add_argument("--file_path", nargs = "?", type = str,
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-2227-AsymFormer_b0"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0930-0006-AsymFormer_b0"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1605-CMFNet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0926-2242-DE_CCFNet18"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1240-DE_CCFNet34"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1013-1101-DE_DCGCN"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1249-FAFNet50"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1430-FAFNet101"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1430-FAFNet101"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1008-1403-MCANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-1231-MGFNet_Wei50"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1017-2244-MGFNet_Wei101"),

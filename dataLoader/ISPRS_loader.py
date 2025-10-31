@@ -91,7 +91,7 @@ class ISPRS_loader(data.DataLoader):
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
 
             # 合成数据
-            # lidar = v2.RandomPerspective(distortion_scale=0.8, p=1)(lidar)
+            lidar = v2.RandomPerspective(distortion_scale=0.6, p=1)(lidar)
 
         gaofen, lidar = self.norm(gaofen, lidar)
         # lidar = lidar.expand(3, -1, -1)

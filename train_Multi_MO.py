@@ -132,6 +132,7 @@ def train(cfg, rundir):
 
     # model.eval()
     flops, params = profile(model, inputs=input)
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     flops, params, trainable_params = clever_format([flops, params, trainable_params])
     print('# Model FLOPs: {}'.format(flops))

@@ -83,8 +83,8 @@ class GCN(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.relu = nn.ReLU(inplace=True)
         # self.para = torch.nn.Parameter(torch.ones((1, channel, 16, 16), dtype=torch.float32))  # 128
-        # self.para = torch.nn.Parameter(torch.ones((1, channel, 32, 32), dtype=torch.float32))    # 256
-        self.para = torch.nn.Parameter(torch.ones((1, channel, 64, 64), dtype=torch.float32))  # 512
+        self.para = torch.nn.Parameter(torch.ones((1, channel, 32, 32), dtype=torch.float32))    # 256
+        # self.para = torch.nn.Parameter(torch.ones((1, channel, 64, 64), dtype=torch.float32))  # 512
         self.adj = torch.nn.Parameter(torch.ones((channel, channel), dtype=torch.float32))
 
     def forward(self, x):
