@@ -60,6 +60,8 @@ def tta_rotate_inference(model, gaofen, lidar):
     # 模型推理
     pred_a = model(gaofen_batch, lidar_batch)         # 原图 + 旋转图
     pred_b = model(gaofen_flip, lidar_flip)           # 翻转后预测
+    # print("pred_a shape: ", pred_a.shape)
+    # print("pred_b shape: ", pred_b.shape)
     pred_b = torch.flip(pred_b, dims=[3])             # 翻转回来
 
     # 融合两个方向的预测（上面只是把镜像图复原了，旋转图还没有复原）
