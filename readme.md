@@ -17,15 +17,17 @@
 | CMGFNet     |ResNet   | [CMGFNet: A Deep Cross-modal Gated Fusion Network for Building Extraction from Very High-resolution Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0924271621003294)       | ISPRS       | 2022       |
 | [PCGNet](https://github.com/hmdliu/PCGNet)    |ResNet    | [Pyramid-Context Guided Feature Fusion for RGB-D Semantic Segmentation](https://ieeexplore.ieee.org/abstract/document/9859353)       | ICMEW       | 2022       |
 | [DE-DCGCN-EE](https://github.com/YangLibuaa/DE-DCGCN-EE)    | U-Net-like   | [Dual Encoder-Based Dynamic-Channel Graph Convolutional Network With Edge Enhancement for Retinal Vessel Segmentation](https://ieeexplore.ieee.org/abstract/document/9714302)       | TMI       | 2022       |
-| [SFAF-MA](https://github.com/hexunjie/SFAF-MA)    | ResNet  | [SFAF-MA: Spatial Feature Aggregation and Fusion With Modality Adaptation for RGB-Thermal Semantic Segmentation](https://ieeexplore.ieee.org/document/10103760)       | TIM       | 2023       |
+| [SAM](https://github.com/YangLibuaa/DE-DCGCN-EE)    | ViT   | [Segment Anything](https://ieeexplore.ieee.org/abstract/document/9714302)       | TMI       | 2022       |
+| [SFAF-MA](https://github.com/hexunjie/SFAF-MA)    | ResNet  | [SFAF-MA: Spatial Feature Aggregation and Fusion With Modality Adaptation for RGB-Thermal Semantic Segmentation](https://openaccess.thecvf.com/content/ICCV2023/html/Kirillov_Segment_Anything_ICCV_2023_paper.html)       | CVPR       | 2023       |
 | [PACSCNet](https://github.com/F8AoMn/PACSCNet)     |Res2Net   | [Progressive Adjacent-Layer Coordination Symmetric Cascade Network for Semantic Segmentation of Multimodal Remote Sensing Images](https://www.sciencedirect.com/science/article/pii/S0957417423025010)       | ESA       | 2023       |
+| [SAM_MLoRA](https://github.com/xiaoyan07/SAM_MLoRA/blob/main/networks/sam_multi_lora.py)     |SAM   | [Multi-LoRA Fine-Tuned Segment Anything Model for Urban Man-Made Object Extraction](https://ieeexplore.ieee.org/abstract/document/10637992)       | TGRS       | 2024       |
 | DECCFNet     | ResNet   | [A Deep Cross-Modal Fusion Network for Road Extraction With High-Resolution Imagery and LiDAR Data](https://ieeexplore.ieee.org/document/10439005)       | TGRS       | 2024       |
 | [AsymFormer](https://github.com/Fourier7754/AsymFormer)    |MiT + ConvNeXt   | [AsymFormer: Asymmetrical Cross-Modal Representation Learning for Mobile Platform Real-Time RGB-D Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024W/USM/papers/Du_AsymFormer_Asymmetrical_Cross-Modal_Representation_Learning_for_Mobile_Platform_Real-Time_RGB-D_CVPRW_2024_paper.pdf)       | CVPR       | 2024       |
 | [MGFNet](https://github.com/yeyuanxin110/YESeg-OPT-SAR)   | ResNet + HRNet | [MGFNet: An MLP-dominated Gated Fusion Network for Semantic Segmentation of High-resolution Multi-modal Remote Sensing images](https://www.sciencedirect.com/science/article/pii/S1569843224005971)       | JAG       | 2024       |
 | [MGFNet](https://github.com/DrWuHonglin/MGFNet)    | ResNet   | [MGFNet: a Multiscale Gated Fusion Network for Multimodal Semantic Segmentation](https://link.springer.com/article/10.1007/s00371-025-03912-x)       | The Visual Computer       | 2025       |
 
 ## Description
-This repository proposed a new taxonomy to descibe existed tile based image semantic segmenation models.
+This repository proposes a new taxonomy to descibe existed tile based image semantic segmenation models.
 
 Based the input and output of the model, we categorized these pixel-level classification model into singlesacle singlemodality input and singleoutput (SSISO), singlesacle multimodelity input and singleoutput (SMISO), singlesacle multimodelity input and multioutput (SMIMO), mutlisacle multimodelity input and singleoutput (MMISO), mutlisacle multimodelity input and multiouput (MMIMO).
 
@@ -152,3 +154,4 @@ Code in this repo is for non-commercial use only.
 
 
 [PatchwiseClsFra](https://github.com/quanweiliu/PatchwiseClsFra)
+[finetune-anything](https://github.com/ziqi-jin/finetune-anything/tree/main)

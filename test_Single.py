@@ -274,8 +274,13 @@ if __name__=='__main__':
                                 'AMSUnet', \
                                 'MANet', \
                                 'ABCNet', \
+                                'b_adapter_sam', \
+                                'b_adapter_sam_lora96_96', \
+                                'b_adapter_sam_multi_lora32', \
+                                'extend_sam_b', \
+                                'extend_sam_l'
                                 ],
-                        default='baseline18_single', help="the model architecture that should be trained")
+                        default='b_adapter_sam', help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
@@ -284,8 +289,12 @@ if __name__=='__main__':
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
 
     parser.add_argument("--file_path", nargs = "?", type = str, \
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0920-1959-baseline18_single"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0920-1959-baseline18_single"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0819-1430-baseline34_single_decoder1"),
+                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0317-1231-b_adapter_sam"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0312-1359-b_adapter_sam_lora96_96"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0316-1304-extend_sam_b"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0316-2131-extend_sam_l"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0919-1248-AMSUnet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-2000-MANet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-2240-ABCNet"),

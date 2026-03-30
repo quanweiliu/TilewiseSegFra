@@ -39,7 +39,10 @@ from ptsemseg.models.SFAFMA.SFAFMA101 import SFAFMA101
 from ptsemseg.models.SFAFMA.SFAFMA152 import SFAFMA152
 from ptsemseg.models.SOLCV7.solcv7 import SOLCV7
 
-
+from ptsemseg.models.SAM_MLoRA.sam_adapter import build_sam_vit_b_adapter_linknet
+from ptsemseg.models.SAM_MLoRA.sam_multi_lora import build_sam_vit_b_adapter_linknet_multi_lora
+from ptsemseg.models.SAM_MLoRA.sam_lora96_96 import build_sam_vit_b_adapter_linknet_lora96_96
+from ptsemseg.models.extend_sam.extend_sam import SemanticSam
 
 def get_model(model_dict, bands1, bands2, classes, classification="Multi", image_size=[256, 256]):
 
@@ -122,6 +125,45 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi", image
         model = model(bands1, bands2, num_classes=classes, classification=classification, ind=50, pretrained=True)
     elif name == "PACSCNet101":
         model = model(bands1, bands2, num_classes=classes, classification=classification, ind=101, pretrained=True)
+
+    elif name == "b_adapter_sam":
+        freeze_strategy = param_dict.pop('freeze_strategy', 'all_except_adapter')
+        freeze_until_block = param_dict.pop('freeze_until_block', 10)
+        model, encoder_global_attn_indexes = model(
+            checkpoint='/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth',
+            n_classes=classes, 
+            image_size=image_size[0],
+            freeze_strategy=freeze_strategy,
+            freeze_until_block=freeze_until_block)
+    elif name == "b_adapter_sam_multi_lora32":
+        freeze_strategy = param_dict.pop('freeze_strategy', 'all_except_adapter')
+        freeze_until_block = param_dict.pop('freeze_until_block', 10)
+        model, encoder_global_attn_indexes = model(
+            checkpoint='/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth',
+            n_classes=classes, 
+            image_size=image_size[0],
+            freeze_strategy=freeze_strategy,
+            freeze_until_block=freeze_until_block)
+    elif name == "b_adapter_sam_lora96_96":
+        freeze_strategy = param_dict.pop('freeze_strategy', 'all_except_adapter')
+        freeze_until_block = param_dict.pop('freeze_until_block', 10)
+        model, encoder_global_attn_indexes = model(
+            checkpoint='/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth',
+            n_classes=classes, 
+            image_size=image_size[0],
+            freeze_strategy=freeze_strategy,
+            freeze_until_block=freeze_until_block)
+    elif name == "extend_sam_b":
+        model = model(ckpt_path="/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth", 
+                      class_num=6, 
+                      model_type='vit_b',
+                      input_size=256)
+        
+    elif name == "extend_sam_l":
+        model = model(ckpt_path="/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_l_0b3195.pth", 
+                      class_num=6, 
+                      model_type='vit_l',
+                      input_size=256)
     else:
         raise("you havn't set the model parameters")
     return model
@@ -169,6 +211,11 @@ def _get_model_instance(name):
             "SOLC": SOLCV7,
             "PACSCNet50": PACSCNet,
             "PACSCNet101": PACSCNet,
+            "b_adapter_sam": build_sam_vit_b_adapter_linknet,
+            "b_adapter_sam_lora96_96": build_sam_vit_b_adapter_linknet_lora96_96,
+            "b_adapter_sam_multi_lora32": build_sam_vit_b_adapter_linknet_multi_lora,
+            "extend_sam_b": SemanticSam,
+            "extend_sam_l": SemanticSam,
         }[name]
     except:
         raise("Model {} not available".format(name))
