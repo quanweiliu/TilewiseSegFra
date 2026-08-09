@@ -24,10 +24,24 @@ class ABCLoss(nn.Module):
 
     def forward(self, logits, labels):
         # print("self.training", self.training)  # True
-        if self.training and len(logits) == 3:
-            logit_main,  h2, h3  = logits
-            h2 = F.interpolate(h2, size=labels.shape[1:], mode='bilinear', align_corners=True)
-            h3 = F.interpolate(h3, size=labels.shape[1:], mode='bilinear', align_corners=True)
+        # Use isinstance check: len(tensor) returns batch size, so len(logits)==3
+        # would falsely match a single tensor with batch_size==3.
+        if self.training and isinstance(logits, (tuple, list)) and len(logits) == 3:
+            logit_main, h2, h3  = logits
+
+            # Ensure 4D (N, C, H, W). Models may output 3D (N, H, W) for binary.
+            if h2.dim() == 3:
+                h2 = h2.unsqueeze(1)
+            if h3.dim() == 3:
+                h3 = h3.unsqueeze(1)
+            if logit_main.dim() == 3:
+                logit_main = logit_main.unsqueeze(1)
+
+            # Target size: handle both (N, H, W) and (N, C, H, W) labels
+            target_size = labels.shape[-2:] if labels.dim() == 4 else labels.shape[1:]
+
+            h2 = F.interpolate(h2, size=target_size, mode='bilinear', align_corners=True)
+            h3 = F.interpolate(h3, size=target_size, mode='bilinear', align_corners=True)
             loss_aux = self.aux_loss(h2, labels) + self.aux_loss(h3, labels)
             # loss = self.main_loss(logit_main, labels) + 0.4 * self.aux_loss(logit_aux, labels)
             loss = self.main_loss(logit_main, labels) + self.weight * loss_aux

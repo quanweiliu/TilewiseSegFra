@@ -1,3 +1,4 @@
+import os
 import copy
 
 from ptsemseg.models.Baseline.Resnet18_single_branch import CRFN_base18_single
@@ -44,7 +45,7 @@ from ptsemseg.models.SAM_MLoRA.sam_multi_lora import build_sam_vit_b_adapter_lin
 from ptsemseg.models.SAM_MLoRA.sam_lora96_96 import build_sam_vit_b_adapter_linknet_lora96_96
 from ptsemseg.models.extend_sam.extend_sam import SemanticSam
 
-def get_model(model_dict, bands1, bands2, classes, classification="Multi", image_size=[256, 256]):
+def get_model(model_dict, bands1, bands2, classes, image_size=[256, 256], classification="Multi", root=None):
 
     name = model_dict['arch']
     model = _get_model_instance(name)
@@ -129,8 +130,10 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi", image
     elif name == "b_adapter_sam":
         freeze_strategy = param_dict.pop('freeze_strategy', 'all_except_adapter')
         freeze_until_block = param_dict.pop('freeze_until_block', 10)
+
+        # print("root", root)
         model, encoder_global_attn_indexes = model(
-            checkpoint='/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth',
+            checkpoint= os.path.join(root, 'pretrains/sam_vit_b_01ec64.pth'),
             n_classes=classes, 
             image_size=image_size[0],
             freeze_strategy=freeze_strategy,
@@ -139,7 +142,7 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi", image
         freeze_strategy = param_dict.pop('freeze_strategy', 'all_except_adapter')
         freeze_until_block = param_dict.pop('freeze_until_block', 10)
         model, encoder_global_attn_indexes = model(
-            checkpoint='/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth',
+            checkpoint=os.path.join(root, 'pretrains/sam_vit_b_01ec64.pth'),
             n_classes=classes, 
             image_size=image_size[0],
             freeze_strategy=freeze_strategy,
@@ -148,19 +151,19 @@ def get_model(model_dict, bands1, bands2, classes, classification="Multi", image
         freeze_strategy = param_dict.pop('freeze_strategy', 'all_except_adapter')
         freeze_until_block = param_dict.pop('freeze_until_block', 10)
         model, encoder_global_attn_indexes = model(
-            checkpoint='/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth',
+            checkpoint=os.path.join(root, 'pretrains/sam_vit_b_01ec64.pth'),
             n_classes=classes, 
             image_size=image_size[0],
             freeze_strategy=freeze_strategy,
             freeze_until_block=freeze_until_block)
     elif name == "extend_sam_b":
-        model = model(ckpt_path="/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_b_01ec64.pth", 
+        model = model(ckpt_path=os.path.join(root, 'pretrains/sam_vit_b_01ec64.pth'), 
                       class_num=6, 
                       model_type='vit_b',
                       input_size=256)
         
     elif name == "extend_sam_l":
-        model = model(ckpt_path="/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains/sam_vit_l_0b3195.pth", 
+        model = model(ckpt_path=os.path.join(root, 'pretrains/sam_vit_l_0b3195.pth'), 
                       class_num=6, 
                       model_type='vit_l',
                       input_size=256)

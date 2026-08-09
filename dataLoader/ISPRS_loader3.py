@@ -15,17 +15,17 @@ def rgb_to_2D_label(label):
     Suply our label masks as input in RGB format. 
     Replace pixels with specific RGB values ...
     """
-    Impervious = [255, 255, 255]
-    Building = [0, 0, 255]
-    Vegetation = [0, 255, 255]
-    Tree = [0, 255, 0]
-    Car = [255, 255, 0]
-    Clutter = [255, 0, 0]
+    ImSurf = [255, 255, 255] # Impervious 
+    Clutter = [0, 0, 255] # Building  
+    Car = [0, 255, 255] # Vegetation 
+    Tree = [0, 255, 0] # Tree
+    LowVeg = [255, 255, 0] # Car
+    Building = [255, 0, 0] # Clutter 
 
     label_seg = np.zeros(label.shape,dtype=np.uint8)
-    label_seg [np.all(label==Impervious,axis=-1)] = 0
+    label_seg [np.all(label==ImSurf,axis=-1)] = 0
     label_seg [np.all(label==Building,axis=-1)] = 1
-    label_seg [np.all(label==Vegetation,axis=-1)] = 2
+    label_seg [np.all(label==LowVeg,axis=-1)] = 2
     label_seg [np.all(label==Tree,axis=-1)] = 3
     label_seg [np.all(label==Car,axis=-1)] = 4
     label_seg [np.all(label==Clutter,axis=-1)] = 5

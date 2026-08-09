@@ -18,9 +18,10 @@ import torch
 from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+from dataLoader.invasiveSpecies import InvasiveSpecies
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -30,8 +31,7 @@ from ptsemseg.optimizers import get_optimizer
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
 
-
-def train(cfg, rundir):
+def train(cfg, rundir, root):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cuda")
@@ -56,6 +56,7 @@ def train(cfg, rundir):
     epoch = cfg['data']['train_epoch']
     n_workers = cfg['training']['n_workers']
     classification = cfg["data"]["classification"]
+    print("img_size", img_size)
 
     # Setup Dataloader
     if data_name == "OSTD":
@@ -64,11 +65,17 @@ def train(cfg, rundir):
         running_metrics_train = runningScore(classes+1)
         running_metrics_val = runningScore(classes+1)
 
-    elif data_name == "Vaihingen":
-        t_loader = ISPRS_loader(data_path, train_split, img_size, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, is_augmentation=False)
+    elif data_name == "Vaihingen" or data_name == "Potsdam":
+        t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
+
+    elif data_name == "InvasiveSpecies":
+        t_loader = InvasiveSpecies(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
+        v_loader = InvasiveSpecies(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
+        running_metrics_train = runningScore(classes+1)
+        running_metrics_val = runningScore(classes+1)
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
@@ -89,9 +96,12 @@ def train(cfg, rundir):
 
     # Set Model
     if cfg['data']['modality'] == "rgb":
-        model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification).to(device)
+        # print("Using modality 1", cfg['model'])
+        model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification, root=root).to(device)
     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-        model = get_model(cfg['model'], bands2, bands1, classes, img_size, classification).to(device)
+        # print("Using modality 2", cfg['model'])
+        model = get_model(cfg['model'], bands2, bands1, classes, img_size, classification, root=root).to(device)
+    # print("model", model)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -154,10 +164,10 @@ def train(cfg, rundir):
     while i < cfg['data']['train_epoch'] and flag:      #  Number of total training iterations
         ## every epoch
         i += 1
+        model.train()
         print('current lr: ', optimizer.state_dict()['param_groups'][0]['lr'])
         start_ts = time.time()
         for (gaofens, lidars, labels) in tqdm(trainloader):
-            model.train()
             gaofens = gaofens.to(device)
             lidars = lidars.to(device)
             labels = labels.to(device)
@@ -169,6 +179,8 @@ def train(cfg, rundir):
                 outputs = model(gaofens)
             elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
                 outputs = model(lidars)
+
+            # print("outputs", outputs[0].shape)
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
@@ -242,13 +254,14 @@ def train(cfg, rundir):
                             "mIOU": np.nanmean(score["mIoU  \t\t"]),
                         })
 
-            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f}'.format(
+            logger2.info('Epoch ({}) | Loss: {:.4f} | Tra_F1 {:.2f} Tra_IOU {:.2f} Val_F1 {:.2f} Val_IOU {:.2f} Tra_Time {:.2f}'.format(
                 i,
                 val_loss_meter.avg,
                 np.nanmean(train_score["F1  \t\t"]).round(4)*100,
                 np.nanmean(train_score["mIoU  \t\t"]).round(4)*100,
                 np.nanmean(score["F1  \t\t"]).round(4)*100,
                 np.nanmean(score["mIoU  \t\t"]).round(4)*100,
+                time_meter.avg
             ))
             val_loss_meter.reset()
             running_metrics_val.reset()
@@ -308,26 +321,38 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/ABCNet.yml",
+        default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/ABCNet.yml",
         help="Configuration file to use")
+
+    parser.add_argument(
+        "--root",
+        type = str,
+        default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra"),
+        help="Path to the saved model")
+    
+    parser.add_argument(
+        "--results",
+        type = str,
+        default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/TilewiseSegFra/run_Potsdam"),
+        help="Path to the saved model")
     
     parser.add_argument(
         "--model_path",
         nargs = "?",
         type = str,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
         default = None,
+        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
         cfg = yaml.safe_load(fp)
     
     run_id = datetime.now().strftime("%m%d-%H%M-") + cfg['model']['arch']
-    rundir = os.path.join(cfg['results']['path'], str(run_id))
+    rundir = os.path.join(args.results, str(run_id))
     os.makedirs(rundir, exist_ok=True)
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
-    train(cfg, rundir)
+    train(cfg, rundir, args.root)
     time.sleep(30)
-

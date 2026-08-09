@@ -9,7 +9,8 @@ from ptsemseg.loss.loss import cross_entropy2d, multi_cross_entropy2d
 
 from ptsemseg.loss.loss import new_dice_bce_loss, focal_bce_loss, \
                                 dice_bce_loss_re, dice_bce_loss_re2, \
-                                multi_loss, multi_loss2, multi_loss3
+                                multi_loss, multi_loss2, multi_loss3, \
+                                dice_bce_loss_re5
 from ptsemseg.loss.loss import multiclass_ce_dice_loss
 from ptsemseg.loss.loss import multiclass_multi_loss
 from ptsemseg.loss.loss import focal_dice_loss
@@ -36,6 +37,7 @@ key2loss = {
             'focal_bce_loss':focal_bce_loss,
             'dice_bce_loss_re':dice_bce_loss_re,
             'dice_bce_loss_re2':dice_bce_loss_re2,
+            'dice_bce_loss_re5':dice_bce_loss_re5,
             'multiclass_ce_dice_loss':multiclass_ce_dice_loss,
             'multiclass_multi_loss':multiclass_multi_loss,
             'gaploss':gaploss,

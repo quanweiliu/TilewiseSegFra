@@ -1,6 +1,6 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [1]))
-print('using GPU %s' % ','.join(map(str, [1])))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, [0]))
+print('using GPU %s' % ','.join(map(str, [0])))
 
 import logging
 import random
@@ -18,9 +18,10 @@ import torch
 from torch.utils import data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+from dataLoader.invasiveSpecies import InvasiveSpecies
 from ptsemseg import get_logger
 from ptsemseg.loss import get_loss_function
 from ptsemseg.models import get_model
@@ -30,7 +31,7 @@ from ptsemseg.optimizers import get_optimizer
 from schedulers.metrics import runningScore, averageMeter
 from tools.utils import plot_training_results
 
-def train(cfg, rundir):
+def train(cfg, rundir, root):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cuda")
@@ -66,9 +67,15 @@ def train(cfg, rundir):
 
     elif data_name == "Vaihingen" or data_name == "Potsdam":
         t_loader = ISPRS_loader(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
-        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name,is_augmentation=False)
+        v_loader = ISPRS_loader(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
         running_metrics_train = runningScore(classes)
         running_metrics_val = runningScore(classes)
+
+    elif data_name == "InvasiveSpecies":
+        t_loader = InvasiveSpecies(data_path, train_split, img_size, classes, data_name, is_augmentation=True)
+        v_loader = InvasiveSpecies(data_path, val_split, img_size, classes, data_name, is_augmentation=False)
+        running_metrics_train = runningScore(classes+1)
+        running_metrics_val = runningScore(classes+1)
 
     trainloader = data.DataLoader(t_loader, batch_size=batchsize, shuffle=True,
                                 num_workers=n_workers, prefetch_factor=4, pin_memory=True)
@@ -89,9 +96,12 @@ def train(cfg, rundir):
 
     # Set Model
     if cfg['data']['modality'] == "rgb":
-        model = get_model(cfg['model'], bands1, bands2, classes, classification).to(device)
+        # print("Using modality 1", cfg['model'])
+        model = get_model(cfg['model'], bands1, bands2, classes, img_size, classification, root=root).to(device)
     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-        model = get_model(cfg['model'], bands2, bands1, classes, classification).to(device)
+        # print("Using modality 2", cfg['model'])
+        model = get_model(cfg['model'], bands2, bands1, classes, img_size, classification, root=root).to(device)
+    # print("model", model)
 
     ## Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
@@ -107,6 +117,7 @@ def train(cfg, rundir):
 
     # loss_function
     loss_fn = get_loss_function(cfg)
+
     ################################# FLOPs and Params ###################################################
     # # input = torch.randn(2, 1, hsi_bands+sar_bands, args.patch_size, args.patch_size).to(args.device)
     # # input = torch.randn(2, 3, 128, 128).to(device)
@@ -162,13 +173,12 @@ def train(cfg, rundir):
             labels = labels.to(device)
             # print("gaofens", gaofens.shape)
             # print("lidars", lidars.shape)
-            # print("labels", labels.shape)
+            # print("labels", labels.shape, type(labels), labels.dtype)
 
             if cfg['data']['modality'] == "rgb":
                 outputs = model(gaofens)
             elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
                 outputs = model(lidars)
-            # print("outputs", outputs.shape)
             loss, loss1, loss2 = loss_fn(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
@@ -307,22 +317,28 @@ if __name__ ==  "__main__":
         "--config",
         nargs = "?",
         type = str,
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline18_single.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extend_sam_b.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/extend_sam_l.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/b_adapter_sam.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/b_adapter_sam_lora96_96.yml",
-        default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/b_adapter_sam_multi_lora32.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/baseline34_single.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/AMSUnet.yml",
-        # default = "/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/config/MANet.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/baseline18_single.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/baseline34_single.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/extend_sam_b.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/extend_sam_l.yml",
+        default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/b_adapter_sam.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/b_adapter_sam_lora96_96.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/b_adapter_sam_multi_lora32.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/AMSUnet.yml",
+        # default = "/home/icclab/Documents/lqw/TilewiseSegFra/config_uni/MANet.yml",
         help="Configuration file to use")
 
     parser.add_argument(
+        "--root",
+        type = str,
+        default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra"),
+        help="Path to the saved model")
+    
+    parser.add_argument(
         "--results",
         type = str,
-        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run"),
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam"),
+        default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run"),
+        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/TilewiseSegFra/run_Potsdam"),
         help="Path to the saved model")
     
     parser.add_argument(
@@ -330,7 +346,7 @@ if __name__ ==  "__main__":
         nargs = "?",
         type = str,
         default = None,
-        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
+        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0811-1658-AMSUnet", "best.pt"),
         help="Path to the saved model")
     args = parser.parse_args()
     with open(args.config) as fp:
@@ -342,5 +358,5 @@ if __name__ ==  "__main__":
 
     shutil.copy(args.config, rundir)   # copy config file to rundir
 
-    train(cfg, rundir)
+    train(cfg, rundir, args.root)
     time.sleep(30)

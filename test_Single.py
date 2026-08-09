@@ -21,6 +21,7 @@ from torch.utils import data
 from ptsemseg.logger import Logger
 from dataLoader.OSTD_loader import OSTD_loader
 from dataLoader.ISPRS_loader import ISPRS_loader
+from dataLoader.invasiveSpecies import InvasiveSpecies
 # from ptsemseg.loss import dice_bce_gScore
 from ptsemseg.models import get_model
 from schedulers.metrics import runningScore, averageMeter
@@ -36,9 +37,8 @@ def train_id_to_color(classes):
     if len(classes) == 2:
         # print("into here")
         drivables = [ 
-            Label(classes[0], 0, (255, 255, 0)), 
-            Label(classes[1], 1, (0, 0, 255)),
-            # Label(classes[2], 2, (255, 0, 0))
+            Label(classes[0], 0, (0, 0, 0)), 
+            Label(classes[1], 1, (83, 143, 13)),
         ]
     elif len(classes) == 3:
         # print("into here")
@@ -119,6 +119,8 @@ def sort_key(filename, args):
         name = filename.split('.')[0][5:]
     elif args.data_name == 'Vaihingen':
         name = filename.split('.')[0][20:]
+    elif args.data_name == 'InvasiveSpecies':
+        name = filename.split('.')[0][5:]
     return int(name)
 
 def test(args):
@@ -154,14 +156,23 @@ def test(args):
         test_dataset = ISPRS_loader(args.imgs_path, args.split, args.img_size, args.classes, args.data_name, is_augmentation=False)
         running_metrics_test = runningScore(args.classes)
 
+    if args.data_name == "InvasiveSpecies":
+        imgname_list = os.listdir(os.path.join(args.imgs_path, 'test', 'images'))
+        classes = ['present', 'absent'] # 其中 Clutter # 是指 background
+        # print("imgname_list: ", imgname_list)
+        test_dataset = InvasiveSpecies(args.imgs_path, args.split, args.img_size, is_augmentation=False)
+        running_metrics_test = runningScore(args.classes+1)
+
     testloader = data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
 
     id_to_color, legend_elements = train_id_to_color(classes)
     if cfg['data']['modality'] == "rgb":
-        model = get_model(cfg['model'], args.bands1, args.bands2, args.classes, args.classification).to(args.device)
+        model = get_model(cfg['model'], args.bands1, args.bands2, args.classes, 
+                        classification=args.classification, root=args.root).to(args.device)
     elif cfg['data']['modality'] == "lidar" or cfg['data']['modality'] == "sar":
-        model = get_model(cfg['model'], args.bands2, args.bands1, args.classes, args.classification).to(args.device)
+        model = get_model(cfg['model'], args.bands2, args.bands1, args.classes, 
+                        classification=args.classification, root=args.root).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)
@@ -236,11 +247,13 @@ def test(args):
                     outputs[outputs > args.threshold] = 1
                     outputs[outputs <= args.threshold] = 0
                     pred = outputs.data.cpu().numpy().astype(np.uint8)
+                    # print("pred shape: ", pred.shape)
                 running_metrics_test.update(mask.numpy(), pred)
 
         ############################### save pred image ###############################
             if args.save_img:
-                pred = pred.reshape(args.img_size, args.img_size)
+                # print("pred", len(pred), pred[0].shape, pred)
+                pred = pred.reshape(*args.img_size)
                 # print(str(img_id), type(str(img_id)), type(img_id))
                 cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), id_to_color[pred])
                 # cv2.imwrite(os.path.join(out_path, str(img_id) + '.png'), pred.astype(np.uint8))
@@ -280,26 +293,28 @@ if __name__=='__main__':
                                 'extend_sam_b', \
                                 'extend_sam_l'
                                 ],
-                        default='b_adapter_sam', help="the model architecture that should be trained")
+                        default='ABCNet', help="the model architecture that should be trained")
     parser.add_argument("--device", nargs = "?", type = str, default = "cuda:0", help="CPU or GPU")
     parser.add_argument("--split", type = str, default = "test", help="Dataset to use ['train, val, test']")
     parser.add_argument('--threshold', type=float, default=0.5, help='threshold for binary classification')
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
-
+    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
+    parser.add_argument("--root", type = str, default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra"),
+                        help="Path to the saved model")
+    
     parser.add_argument("--file_path", nargs = "?", type = str, \
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Potsdam/0920-1959-baseline18_single"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0808-1548-baseline18_single"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0819-1430-baseline34_single_decoder1"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0317-1231-b_adapter_sam"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0809-1936-b_adapter_sam"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0312-1359-b_adapter_sam_lora96_96"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0316-1304-extend_sam_b"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0316-2131-extend_sam_l"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0919-1248-AMSUnet"),
                         # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-2000-MANet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0811-2240-ABCNet"),
+                        default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0809-1958-ABCNet"),
                         help="Path to the saved model")
-    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
     args = parser.parse_args(args=[])
 
     with open(os.path.join(args.file_path, args.model + '.yml')) as fp:

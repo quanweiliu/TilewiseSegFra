@@ -1,11 +1,9 @@
 import os
 import cv2
-import torch
 import rasterio
 import numpy as np
-import scipy.io as scio
+import torch
 from torch.utils import data
-from torchvision import transforms
 from torchvision.transforms import v2
 import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
@@ -51,6 +49,7 @@ class ISPRS_loader(data.DataLoader):
         self.img_size = img_size
         self.data_name = data_name
         self.normalization = normalization
+        self.augmentation = is_augmentation
         
         self.gaofen_data_path = os.path.join(self.root, self.split, 'images256')
         # self.gaofen_imgs = sorted(os.listdir(self.gaofen_data_path), key=self.sort_key)
@@ -61,7 +60,6 @@ class ISPRS_loader(data.DataLoader):
         self.mask_data_path = os.path.join(self.root, self.split, 'masks256')
         # self.masks = sorted(os.listdir(self.mask_data_path), key=self.sort_key)
         self.masks = sorted(os.listdir(self.mask_data_path))
-        self.augmentation = is_augmentation
         
     def __getitem__(self, index):
         img_name = self.gaofen_imgs[index]
@@ -91,7 +89,7 @@ class ISPRS_loader(data.DataLoader):
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
 
             # 合成数据
-            lidar = v2.RandomPerspective(distortion_scale=0.6, p=1)(lidar)
+            # lidar = v2.RandomPerspective(distortion_scale=0.6, p=1)(lidar)
 
         gaofen, lidar = self.norm(gaofen, lidar)
         # lidar = lidar.expand(3, -1, -1)
@@ -221,9 +219,14 @@ class ISPRS_loader(data.DataLoader):
 
 if __name__ == '__main__':
     root = "/home/icclab/Documents/lqw/DatasetMMF/Vaihingen"
-    root = "/home/icclab/Documents/lqw/DatasetMMF/Potsdam"
+    # root = "/home/icclab/Documents/lqw/DatasetMMF/Potsdam"
     # dataset = ISPRS_loader(root, split='train', img_size=256, is_augmentation=False)
-    dataset = ISPRS_loader(root, split='train', img_size=512, classes=6, data_name="Potsdam", is_augmentation=False)
+    dataset = ISPRS_loader(root, 
+                            split='train', 
+                            img_size=[512, 512], 
+                            classes=6, 
+                            data_name="Potsdam", 
+                            is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=4, shuffle=True)
 
     for gaofen, lidar, mask in trainloader:

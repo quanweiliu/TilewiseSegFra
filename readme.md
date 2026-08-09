@@ -39,21 +39,31 @@ Distributed Training: The training process employs distributed training, while i
 
 If you want to contribute this repository and make it better, feel free to contact me. My emial : quanwei.liu@my.jcu.edu.au
 
-
-## Files
-
+## Data loader
 ISPRS_loader, ISPRS_loader2 和 ISPRS_loader3 三个文件都是用于加载数据。
 
 - ISPRS_loader 是通过 train / val / test 文件夹加载数据。
 - ISPRS_loader2 是通过 train.txt / val.txt / test.txt 文件加载数据。
 - ISPRS_loader3 融合 ISPRS_loader 和 ISPRS_loader2，得到一个加载速度快的 train.txt / val.txt / test.txt 文件加载数据。
+- ISPRS_loader 有一个 RandomPerspective 增强，特别影响数据集的精度。记得调整。
 
 ISPRS_loader 和 ISPRS_loader2 两种数据加载方式的精度是差不多一致的，但是 ISPRS_loader2 采用了更强的数据增强，复杂的数据增强过程导致模型训练非常慢，并且需要更长的训练周期。去掉多尺度等复杂的变化过程，会极大的加快训练过程。因此，我结合 ISPRS_loader 和 ISPRS_loader2，构建一个基于 train.txt / val.txt / test.txt 加载的data loader。
 
-- OSTD_loader 和 OSTD_loader2 效果一摸一样。我用来测试norm 位置，发现，数据增强如果不改变数据的分布的话，放哪都一样。
+- OSTD_loader 和 OSTD_loader2 效果一摸一样。我用来测试 norm 位置，发现，数据增强如果不改变数据的分布的话，放哪都一样。
 
-因为得到的精度一致，ISPRS_loader2加载会显著拖慢训练时间，所以以后都用 ISPRS_loader, ISPRS_loader3 文件加载数据。
+因为得到的精度一致，ISPRS_loader2加载会显著拖慢训练时间，所以以后都用 ISPRS_loader 或者 ISPRS_loader3 文件加载数据。
 
+## Loss
+
+Binary loss
+- Binary loss 主要是 
+- dice_bce_loss_re：由 bce_loss 和 dice_loss 组成。 这个 loss 接收 sigmoid 之后的 logits. 
+- dice_bce_loss_re5： 为了统一，我构建了 dice_bce_loss_re5，这个 loss 同样由 bce_loss 和 dice_loss 组成，但是内置了 sigmoid 函数，所以就不用在模型中加 sigmoid 函数了。
+- dice_bce_loss_re2：加了 class weight 参数，调整类别均衡作用，需要额外设置，没有用过。
+
+
+Multi-class loss
+- multiclass_ce_dice_loss：dice_bce_loss_re 的多类别版本，接收 raw logits
 
 ## Nomalization:
 1. MinMax normalization
@@ -153,5 +163,5 @@ Code in this repo is for non-commercial use only.
 ### Acknowledge
 
 
-[PatchwiseClsFra](https://github.com/quanweiliu/PatchwiseClsFra)
-[finetune-anything](https://github.com/ziqi-jin/finetune-anything/tree/main)
+- [PatchwiseClsFra](https://github.com/quanweiliu/PatchwiseClsFra)
+- [finetune-anything](https://github.com/ziqi-jin/finetune-anything/tree/main)

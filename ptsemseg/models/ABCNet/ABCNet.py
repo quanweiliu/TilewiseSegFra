@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.nn import Module, Conv2d, Parameter
 
 from .resnet import Resnet18
+# from resnet import Resnet18
 
 def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding=None):
     # 3x3 convolution with padding and relu
@@ -309,6 +310,9 @@ class ABCNet(nn.Module):
             if self.training:
                 feat_out16 = self.conv_out16(feat_cp8)
                 feat_out32 = self.conv_out32(feat_cp16)
+                # print("feat_out", feat_out.shape)  # torch.Size([6, 2, 256, 256])
+                # print("feat_out16", feat_out16.shape)  # torch.Size([6, 2, 256, 256])
+                # print("feat_out32", feat_out32.shape)  # torch.Size([6, 2, 256, 256])
                 return feat_out, feat_out16, feat_out32
             # feat_out = feat_out.argmax(dim=1)
             return feat_out
@@ -318,6 +322,8 @@ class ABCNet(nn.Module):
                 feat_out32 = self.conv_out32(feat_cp16)
                 return F.sigmoid(feat_out), F.sigmoid(feat_out16), F.sigmoid(feat_out32)
             return F.sigmoid(feat_out)
+        else:
+            raise ValueError("classification must be 'Multi' or 'Binary'")
 
     def init_weight(self):
         for ly in self.children():
@@ -339,10 +345,11 @@ class ABCNet(nn.Module):
 
 
 if __name__ == "__main__":
-    bands1 = 5
+    bands1 = 3
     in_ten = torch.randn(4, bands1, 512, 512)
-    net = ABCNet(bands1, n_classes=19, classification="Multi")
+    net = ABCNet(bands1, n_classes=2, classification="Multi")
     out = net(in_ten)
-    print(out[0].shape)
+    print(out)
+    # print(out[0].shape)
 
     net.get_params()

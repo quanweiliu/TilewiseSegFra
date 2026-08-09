@@ -216,7 +216,7 @@ def test(args):
 
 
     id_to_color, legend_elements = train_id_to_color(classes)
-    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.classification, args.img_size).to(args.device)
+    model = get_model({"arch":args.model}, args.bands1, args.bands2, args.classes, args.img_size, args.classification, args.root).to(args.device)
 
     # state = convert_state_dict(torch.load(args.model_path)["model_state"])    # multi-gpus
     checkpoint = torch.load(args.model_path, weights_only=False)
@@ -282,6 +282,7 @@ def test(args):
                 outputs = model(gaofen, lidar)
                 if args.classification == "Multi":
                     pred = outputs.argmax(dim=1).cpu().numpy().astype(np.uint8)  # [B, H, W]
+                    # print("pred shape: ", pred.shape)
 
                 elif args.classification == "Binary":
                     outputs[outputs > args.threshold] = 1
@@ -332,28 +333,30 @@ if __name__=='__main__':
     parser.add_argument('--n_workers', type=int, default=4, help='number of workers for validation data')
     parser.add_argument("--TTA", nargs="?", type=bool, default=False, help="default use TTA",) # default=False / True
     parser.add_argument("--out_path", nargs = "?", type = str, default = '', help="Path of the output segmap")
-    parser.add_argument("--save_img", type=bool, default=False, help="whether save pred image or not")
-
+    parser.add_argument("--save_img", type=bool, default=True, help="whether save pred image or not")
+    parser.add_argument("--root", type = str, default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra"),
+                        help="Path to the saved model")
+    
     parser.add_argument("--file_path", nargs = "?", type = str,
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline18_double"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run/0813-1449-baseline34_double"),
-                        default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0930-0006-AsymFormer_b0"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/0928-1605-CMFNet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0926-2242-DE_CCFNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1240-DE_CCFNet34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1013-1101-DE_DCGCN"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1249-FAFNet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/1022-1430-FAFNet101"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1008-1403-MCANet"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-1231-MGFNet_Wei50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1017-2244-MGFNet_Wei101"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_NYUv2/1003-1452-MGFNet_Wu34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1015-2302-MGFNet_Wu50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Vai_st/0928-0347-PACSCNet50"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1001-0909-PCGNet18"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1018-0945-PCGNet34"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1013-1107-SOLC"),
-                        # default = os.path.join("/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/run_Pot_st/1007-2234-SFAFMA50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0813-1449-baseline18_double"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run/0813-1449-baseline34_double"),
+                        default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Vai_st/0928-0846-AsymFormer_b0"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/0928-1605-CMFNet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Vai_st/0926-2242-DE_CCFNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Vai_st/1022-1240-DE_CCFNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1013-1101-DE_DCGCN"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Vai_st/1022-1249-FAFNet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Vai_st/1022-1430-FAFNet101"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1008-1403-MCANet"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_NYUv2/1003-1231-MGFNet_Wei50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1017-2244-MGFNet_Wei101"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_NYUv2/1003-1452-MGFNet_Wu34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1015-2302-MGFNet_Wu50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Vai_st/0928-0347-PACSCNet50"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1001-0909-PCGNet18"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1018-0945-PCGNet34"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1013-1107-SOLC"),
+                        # default = os.path.join("/home/icclab/Documents/lqw/TilewiseSegFra/run_Pot_st/1007-2234-SFAFMA50"),
                         help="Path to the saved model")
     args = parser.parse_args(args=[])
 
@@ -375,4 +378,3 @@ if __name__=='__main__':
     args.threshold = cfg['threshold']
     print("args", args.img_size, args.classes, args.ignore_index, args.threshold, args.normalization)
     test(args)
-

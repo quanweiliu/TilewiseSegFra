@@ -1,4 +1,5 @@
 model:
+  # arch: AMSUnet
   # arch: baseline18_single
   # arch: baseline34_single
   # arch: baseline18_double
@@ -33,10 +34,11 @@ data:
   # train_split: train
   # val_split: val
   # test_split: test
-  # img_size: 128
+  # img_size: [128, 128]
   # bands1: 193
   # bands2: 3
   # classes: 1
+  # train_epoch: 100
   # batch_size: 32
   # ignore_index: 999
   # classification: Binary
@@ -44,23 +46,41 @@ data:
   # # modality: lidar
   # # modality: sar
 
-  name: Vaihingen
-  path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  name: InvasiveSpecies
+  path: /home/icclab/Documents/lqw/DatasetSMD/InvasiveSpecies
   train_split: train
   val_split: val
   test_split: test
+  # img_size: [512, 512]
   img_size: [256, 256]
   bands1: 3
-  bands2: 1
-  classes: 6
+  bands2: 3
+  classes: 1
   train_epoch: 100
-  batch_size: 32
-  ignore_index: 5
-  normalization: standard # zScore, standard, minMax
-  classification: Multi
+  batch_size: 16
+  ignore_index: 999
+  classification: Binary
   modality: rgb
   # modality: lidar
   # modality: sar
+
+  # name: Vaihingen
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Vaihingen
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: [256, 256]
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # train_epoch: 100
+  # batch_size: 32
+  # ignore_index: 5
+  # normalization: standard # zScore, standard, minMax
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
 
   # name: Potsdam
   # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
@@ -94,10 +114,10 @@ training:
 #    lr: 0.001
 
   loss:
-    # name: 'dice_bce_loss_re'
+    name: 'dice_bce_loss_re5'
 
-    name: 'multiclass_ce_dice_loss'
-    classes: 6
+    # name: 'multiclass_ce_dice_loss'
+    # classes: 6
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'

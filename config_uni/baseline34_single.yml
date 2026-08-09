@@ -1,7 +1,7 @@
 model:
-  arch: AMSUnet
+  # arch: AMSUnet
   # arch: baseline18_single
-  # arch: baseline34_single
+  arch: baseline34_single
   # arch: baseline18_double
   # arch: baseline34_single_decoder1
   # arch: baseline34_single_decoder2
@@ -18,7 +18,8 @@ model:
   # arch: DE_DCGCN
   # arch: HAFNetE
   # arch: PACSCNet
-  # arch: PCGNet
+  # arch: PCGNet18
+  # arch: PCGNet34
   # arch: SFAFMA50
   # arch: SFAFMA101
 
@@ -28,10 +29,11 @@ data:
   # train_split: train
   # val_split: val
   # test_split: test
-  # img_size: 128
+  # img_size: [128, 128]
   # bands1: 193
   # bands2: 3
   # classes: 1
+  # batch_size: 32
   # ignore_index: 999
   # classification: Binary
   # # modality: rgb
@@ -48,19 +50,34 @@ data:
   bands2: 1
   classes: 6
   train_epoch: 100
-  batch_size: 16
+  batch_size: 32
   ignore_index: 5
-  normalization: minMax # zScore, standard, minMax
+  normalization: standard # zScore, standard, minMax
   classification: Multi
   modality: rgb
   # modality: lidar
   # modality: sar
 
+  # name: Potsdam
+  # path: /home/icclab/Documents/lqw/DatasetMMF/Potsdam
+  # train_split: train
+  # val_split: val
+  # test_split: test
+  # img_size: 512
+  # bands1: 3
+  # bands2: 1
+  # classes: 6
+  # train_epoch: 100
+  # batch_size: 16
+  # ignore_index: 1
+  # classification: Multi
+  # modality: rgb
+  # # modality: lidar
+  # # modality: sar
+
 training:
   GPUS: [0, 1]
   find_unused_parameters: False
-  train_epoch: 100
-  batch_size: 16
   test_batch_size: 1
   n_workers: 4
   optimizer:
@@ -71,12 +88,13 @@ training:
 #  gaofen_optimizer:
 #    name: 'adam'
 #    lr: 0.001
-  loss:
-    # name: 'dice_bce_loss_re'
-    # size_average: True
 
-    name: 'multiclass_ce_dice_loss'
-    classes: 6
+  loss:
+    name: 'dice_bce_loss_re'
+    size_average: True
+
+    # name: 'multiclass_ce_dice_loss'
+    # classes: 6
 
     # name: 'dice_loss'
     # name: 'focal_bce_loss'

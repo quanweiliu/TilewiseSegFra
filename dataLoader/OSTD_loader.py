@@ -4,6 +4,7 @@ import numpy as np
 import scipy.io as scio
 from torch.utils import data
 from torchvision import transforms
+from torchvision.transforms import v2
 
 
 class OSTD_loader(data.DataLoader):
@@ -36,12 +37,18 @@ class OSTD_loader(data.DataLoader):
         lidar2np = np.array(scio.loadmat(lidar_path)['sar'], np.float32)
         mask2np = np.array(scio.loadmat(mask_path)['map'], np.float32)
         # gaofen2np, lidar2np = self.norm(gaofen2np, lidar2np)
+        # print("gaofen2np.shape: ", gaofen2np.shape)
+        # print("lidar2np.shape: ", lidar2np.shape)
+        # print("mask2np.shape: ", mask2np.shape)
 
         if self.augmentation:
             gaofen, lidar, mask = self.is_aug(gaofen2np, lidar2np, mask2np)
         else:
             gaofen, lidar, mask = self.no_aug(gaofen2np, lidar2np, mask2np)
-        
+
+            # 合成数据
+            # lidar = v2.RandomPerspective(distortion_scale=0.1, p=1)(lidar)
+
         gaofen, lidar = self.norm(gaofen, lidar)
         return gaofen, lidar, mask.long()
 
@@ -64,9 +71,9 @@ class OSTD_loader(data.DataLoader):
         _, _, gaofen_band = gaofen2np.shape
         _, _, lidar_band = lidar2np.shape
 
-        aug = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
-                                transforms.RandomVerticalFlip(p=0.5),
-                                transforms.RandomRotation(15)])
+        aug = v2.Compose([v2.RandomHorizontalFlip(p=0.5),
+                                v2.RandomVerticalFlip(p=0.5),
+                                v2.RandomRotation(15)])
 
         img = torch.cat((torch.from_numpy(gaofen2np), 
                          torch.from_numpy(lidar2np), 
@@ -96,7 +103,10 @@ class OSTD_loader(data.DataLoader):
 
 if __name__ == '__main__':
     root = "/home/icclab/Documents/lqw/DatasetMMF/OSTD"
-    dataset = OSTD_loader(root, split='train', img_size=128, is_augmentation=False)
+    dataset = OSTD_loader(root, 
+                          split='train', 
+                          img_size=[128, 128], 
+                          is_augmentation=False)
     trainloader = data.DataLoader(dataset, batch_size=2, shuffle=True)
     print(len(dataset))
 

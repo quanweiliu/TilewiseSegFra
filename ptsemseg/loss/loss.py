@@ -206,7 +206,7 @@ def bce_loss(input, target):
         target = target.float()
         target = target.unsqueeze(1)
         target = F.interpolate(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
+        target = target.squeeze(1)
     elif h < ht and w < wt:  # upsample images
         target = target.float()
         target = torch.unsqueeze(target, 1)
@@ -222,7 +222,6 @@ def bce_loss(input, target):
     # loss = F.binary_cross_entropy_with_logits(input, target, class_weight, size_average)
     loss = F.binary_cross_entropy(input, target)
     return loss
-
 
 def bce_loss2(input, target, device_num, weight=None):
 
@@ -244,6 +243,10 @@ def bce_loss2(input, target, device_num, weight=None):
         target = torch.squeeze(target, 1)
         target = target.long()
 
+    # the only difference between bce_loss and bce_loss2 is that bce_loss2 has a weight parameter, 
+    # which is used to assign different weights to different classes in the loss calculation. 
+    # This can be useful when dealing with imbalanced datasets where some classes are underrepresented.
+    # The weight parameter allows you to give more importance to the underrepresented classes during training.
     device = torch.device("cuda:"+str(device_num) if torch.cuda.is_available() else "cpu")
     weight = (torch.from_numpy(np.array(weight))).type(torch.Tensor)
     weight = weight.to(device)
@@ -359,7 +362,9 @@ def multiclass_ce_dice_loss(input, target, a, b, classes):
     return loss, ce_loss, dice
 
 
-def dice_bce_loss_re(input, target, a, b, size_average=True):
+def dice_bce_loss_re(input, target, a, b):
+    if isinstance(input, (tuple,)) and len(input) == 3:
+        input = input[0]
     bceloss = bce_loss(input, target)
     diceloss = dice_loss(input, target)
     # alpha = 0.3
@@ -369,7 +374,18 @@ def dice_bce_loss_re(input, target, a, b, size_average=True):
 
 
 def dice_bce_loss_re2(input, target, device, weight, a, b, size_average=True):
+    # class balance bce loss
     bceloss = bce_loss2(input, target, device_num=device, weight=weight, size_average=size_average)
+    diceloss = dice_loss(input, target)
+    # alpha = 0.3
+    # loss = (1-alpha)*bceloss + alpha*diceloss
+    loss = a * bceloss + b * diceloss
+    return loss, bceloss, diceloss
+
+def dice_bce_loss_re5(input, target, a, b):
+    input = F.sigmoid(input)
+
+    bceloss = bce_loss(input, target)
     diceloss = dice_loss(input, target)
     # alpha = 0.3
     # loss = (1-alpha)*bceloss + alpha*diceloss

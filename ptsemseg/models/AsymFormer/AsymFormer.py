@@ -14,7 +14,7 @@ from .MLPDecoder import DecoderHead
 
 def load_pretrain2(net, pretrain_name):
     dir_path = os.getcwd()
-    pretrain_path = os.path.join(dir_path, '/home/icclab/Documents/lqw/Multimodal_Segmentation/TilewiseSegFra/pretrains', pretrain_name)
+    pretrain_path = os.path.join(dir_path, '/home/icclab/Documents/lqw/TilewiseSegFra/pretrains', pretrain_name)
     # print("Pretrain_path:", pretrain_path)
     net_dict = net.state_dict()
 
